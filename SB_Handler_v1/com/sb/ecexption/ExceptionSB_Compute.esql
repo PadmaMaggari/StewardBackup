@@ -1,0 +1,84 @@
+BROKER SCHEMA com.sb.ecexption
+
+
+CREATE COMPUTE MODULE ExceptionSB_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET Environment.Variables.TraceFileExc.exceptionDesc = getExceptionDesc(InputRoot, OutputRoot, InputExceptionList);
+RETURN TRUE;
+END;
+
+CREATE PROCEDURE getExceptionDesc (IN InputRoot REFERENCE, IN OutputRoot REFERENCE, IN InputExceptionList REFERENCE)
+RETURNS CHAR
+BEGIN
+--Copy the exception description
+DECLARE continueLoop BOOLEAN;
+
+DECLARE inRefName,inRefValue,inRefName1,inRefValue1 CHARACTER;
+DECLARE flag INTEGER 0;
+DECLARE inRef REFERENCE TO InputRoot;
+DECLARE outRef REFERENCE TO OutputRoot;
+DECLARE exceptionData CHAR;
+SET continueLoop = TRUE;
+MOVE inRef TO InputExceptionList;
+
+WHILE continueLoop DO
+IF CARDINALITY(inRef.RecoverableException[]) = 0 THEN
+SET continueLoop = FALSE;
+ELSE
+MOVE inRef TO inRef.RecoverableException[1];
+END IF;
+END WHILE;
+DECLARE messageText CHARACTER;
+DECLARE inRef2 REFERENCE TO InputExceptionList;
+WHILE lastmove(inRef2) DO
+IF inRef2.Number is not null THEN
+SET inRefName = FIELDNAME(inRef2);
+SET inRefValue = FIELDVALUE(inRef2.Text);
+SET messageText = inRef2.Text;
+END IF;
+move inRef2 lastchild;
+END WHILE;
+SET messageText = messageText||' ' || inRef2;
+CREATE LASTCHILD OF OutputRoot AS outRef DOMAIN 'XMLNSC';
+CREATE LASTCHILD OF OutputRoot.XMLNSC AS outRef NAME 'ExceptionText';
+IF (LENGTH(inRef.[<].Text) = 0) THEN
+SET inRefName1 = FIELDNAME(inRef);
+SET inRefValue1 = FIELDVALUE(inRef.Text);
+SET outRef.ExceptionText = FIELDNAME(inRef)||' :'||' '||FIELDVALUE(inRef.Text);
+ELSE
+SET inRefName1 = FIELDNAME(inRef);
+SET inRefValue1 = FIELDVALUE(inRef.Text);
+SET outRef.ExceptionText = FIELDNAME(inRef.[<])||' :'||' '||FIELDVALUE(inRef.[<].Text);
+END IF;
+--SET exceptionData = CAST(ASBITSTREAM(outRef) AS CHAR CCSID Coalesce(InputRoot.MQMD.CodedCharSetId,437));
+--trace:Exception Description :${SUBSTRING(Environment.Variables.TraceFileExc.exceptionDesc FROM 16 FOR LENGTH(Environment.Variables.TraceFileExc.exceptionDesc)-31)}
+--SET exceptionData = inRefName||' '||inRefValue;
+
+--IF CONTAINS(exceptionData,messageText) THEN
+
+-- SET exceptionData = inRefName1||'
+-- '||inRefValue1||'
+-- '||messageText;
+--
+--END IF;
+-- SET OutputRoot.XMLNSC = NULL;
+SET Environment.Variables.TraceFileExc.ExceptionType= inRefName ;
+SET exceptionData = messageText;
+RETURN exceptionData;
+END;
+END MODULE;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
