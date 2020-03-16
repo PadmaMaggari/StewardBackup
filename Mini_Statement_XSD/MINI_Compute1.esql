@@ -1,0 +1,145 @@
+
+
+
+
+PATH com.sb.logging;  
+CREATE COMPUTE MODULE MINI_Compute1
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		CALL CopyEntireMessage();
+		RETURN FALSE;
+	END;
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		----------------------------------------------------------
+		DECLARE userName,password,key, encryptedUserName, encryptedPassword  CHARACTER; 
+		SET userName ='eidiko';
+		SET password ='sarasu10';
+
+
+		DECLARE key1 INTEGER RAND()*1000000000000;
+		DECLARE key2 INTEGER RAND()*1000000000000;
+		DECLARE key4 INTEGER RAND()*100000000;
+		SET key=CAST(key1 AS CHARACTER)||CAST(key2 AS CHARACTER)||CAST(key4 AS CHARACTER);
+		SET Environment.key=key;
+
+
+		CALL getEncryption (userName,key, encryptedUserName );
+		CALL getEncryption (password,key, encryptedPassword );
+--		SET OutputRoot.XMLNSC.data.username=encryptedUserName;
+--		SET OutputRoot.XMLNSC.data.password=encryptedPassword;
+		SET Environment.XMLNSC.data.username= encryptedUserName;
+		SET Environment.XMLNSC.data.password= encryptedPassword; 
+		
+		----------------------------------------------------------
+		DECLARE msgId CHARACTER InputRoot.MQMD.MsgId;
+		DECLARE correlationId CHARACTER InputRoot.MQRFH2.usr.RouterHeader.msgId;
+		DECLARE protoType CHARACTER InputRoot.MQRFH2.usr.RouterHeader.replyProtocol;
+		DECLARE inputChar CHARACTER CAST(ASBITSTREAM(InputRoot.JSON.Data.Body) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+		CALL AUDIT_LOGGING( msgId, correlationId, '',protoType,'Info','Mini_Statement_XSD','T24reqPropagation',inputChar,CURRENT_TIMESTAMP,CAST(InputRoot.Properties.CreationTime AS TIMESTAMP),'MINI.msgflow') IN Database.DSNFARU.SYSTEM;
+		-- SEt OutputRoot.MQMD.CorrelId = CAST(correlationId AS BLOB CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+		SET OutputRoot.MQMD.CorrelId = InputRoot.MQMD.MsgId;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE protocolType CHARACTER InputRoot.MQRFH2.usr.RouterHeader.replyProtocol;
+		CREATE LASTCHILD OF OutputRoot.XMLNSC.log NAME 'receive';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC.log.receive NAME 'isomsg';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC.log.receive.isomsg TYPE XMLNSC.Attribute NAME 'direction' Value 'incoming';
+		DECLARE ref REFERENCE to OutputRoot.XMLNSC.log.receive.isomsg;
+		DECLARE ref1 REFERENCE to InputRoot.JSON.Data.Body[>];
+
+		SET ref.field[1].(XMLNSC.Attribute)id = '0';
+		SET ref.field[1].(XMLNSC.Attribute)value = '0200';
+		SET ref.field[2].(XMLNSC.Attribute)id = 'AccountNumber';
+		SET ref.field[2].(XMLNSC.Attribute)value = ref1.AccountNumber;
+		SET ref.field[3].(XMLNSC.Attribute)id = 'AccountType';
+		SET ref.field[3].(XMLNSC.Attribute)value = ref1.AccountType;
+
+
+
+		SET ref.field[4].(XMLNSC.Attribute)id = '4';
+		SET ref.field[4].(XMLNSC.Attribute)value = '00000';
+		SET ref.field[5].(XMLNSC.Attribute)id = '7';
+		SET ref.field[5].(XMLNSC.Attribute)value = '0112153358';
+		SET ref.field[6].(XMLNSC.Attribute)id = '11';
+		SET ref.field[6].(XMLNSC.Attribute)value = '035815';
+		SET ref.field[7].(XMLNSC.Attribute)id = '12';
+		SET ref.field[7].(XMLNSC.Attribute)value = '173358';
+		SET ref.field[8].(XMLNSC.Attribute)id = '13';
+		SET ref.field[8].(XMLNSC.Attribute)value = '0112';
+		SET ref.field[9].(XMLNSC.Attribute)id = '14';
+		SET ref.field[9].(XMLNSC.Attribute)value = '4912';
+		SET ref.field[10].(XMLNSC.Attribute)id = '15';
+		SET ref.field[10].(XMLNSC.Attribute)value = '0112';
+		SET ref.field[11].(XMLNSC.Attribute)id = '18';
+		SET ref.field[11].(XMLNSC.Attribute)value = '6011';
+		SET ref.field[12].(XMLNSC.Attribute)id = '22';
+		SET ref.field[12].(XMLNSC.Attribute)value = '002';
+		SET ref.field[13].(XMLNSC.Attribute)id = '25';
+		SET ref.field[13].(XMLNSC.Attribute)value = '27';
+		SET ref.field[14].(XMLNSC.Attribute)id = '28';
+		SET ref.field[14].(XMLNSC.Attribute)value = 'C00000000';
+		SET ref.field[15].(XMLNSC.Attribute)id = '30';
+		SET ref.field[15].(XMLNSC.Attribute)value = 'C00000000';
+		SET ref.field[16].(XMLNSC.Attribute)id = '32';
+		SET ref.field[16].(XMLNSC.Attribute)value = '502195';
+		SET ref.field[17].(XMLNSC.Attribute)id = '33';
+		SET ref.field[17].(XMLNSC.Attribute)value = '502195';
+		SET ref.field[18].(XMLNSC.Attribute)id = '37';
+		SET ref.field[18].(XMLNSC.Attribute)value = '000578618514';
+		SET ref.field[19].(XMLNSC.Attribute)id = 'TransactionId';
+		SET ref.field[19].(XMLNSC.Attribute)value = ref1.TransactionId;
+		SET ref.field[20].(XMLNSC.Attribute)id = '42';
+		SET ref.field[20].(XMLNSC.Attribute)value ='ZSS26377';
+		SET ref.field[21].(XMLNSC.Attribute)id = '43';
+		SET ref.field[21].(XMLNSC.Attribute)value ='26377-SBZMOBILE';
+		SET ref.field[22].(XMLNSC.Attribute)id = '49';
+		SET ref.field[22].(XMLNSC.Attribute)value = '932';
+		SET ref.field[23].(XMLNSC.Attribute)id = '56';
+		SET ref.field[23].(XMLNSC.Attribute)value = '1510';
+		SET ref.field[24].(XMLNSC.Attribute)id = '59';
+		SET ref.field[24].(XMLNSC.Attribute)value = '0995778843';
+		SET ref.field[25].(XMLNSC.Attribute)id = '100';
+		SET ref.field[25].(XMLNSC.Attribute)value ='502195';
+		SET ref.field[26].(XMLNSC.Attribute)id = '102';
+		SET ref.field[26].(XMLNSC.Attribute)value = '1003647648';
+		SET ref.field[27].(XMLNSC.Attribute)id = '123';
+		SET ref.field[27].(XMLNSC.Attribute)value = '100450100130021';
+		SET ref.field[28].(XMLNSC.Attribute)id = 'CustomerId';
+		SET ref.field[28].(XMLNSC.Attribute)value = ref1.CustomerId;
+
+		CREATE LASTCHILD OF OutputRoot.XMLNSC.log.receive.isomsg NAME 'isomsg';
+		SET OutputRoot.XMLNSC.log.receive.isomsg.isomsg.(XMLNSC.Attribute)id = '127';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC.log.receive.isomsg.isomsg NAME 'field';
+		CREATE FIELD OutputRoot.XMLNSC.log.receive.isomsg.isomsg.field[1].(XMLNSC.Attribute)field;
+		DECLARE iso REFERENCE to OutputRoot.XMLNSC.log.receive.isomsg.isomsg;
+		DECLARE iso1 REFERENCE to InputRoot.JSON.Data.MiniStatementRequest.RESERVEDPRIVATEUSE;
+
+		SET iso.field[1].(XMLNSC.Attribute)id = '2';
+		SET iso.field[1].(XMLNSC.Attribute)value = '0995778843';
+		SET iso.field[2].(XMLNSC.Attribute)id = '3';
+		SET iso.field[2].(XMLNSC.Attribute)value = 'SBZMobileSrcSBZMobileSnk131822035815';
+		SET iso.field[3].(XMLNSC.Attribute)id = '20';
+		SET iso.field[3].(XMLNSC.Attribute)value = '20200112';
+		SET iso.field[4].(XMLNSC.Attribute)id = '22';
+		SET iso.field[4].(XMLNSC.Attribute)value = '14MSDN212263774742331218Postilion:MetaData22114MSDN11117Channel11117Channel210SMARTPHONE';
+		IF protocolType = 'TCPIP' THEN
+			PROPAGATE TO TERMINAL 'out1';
+		ELSE
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
+	END;
+
+END MODULE;
+CREATE PROCEDURE getEncryption (IN P1 CHARACTER,IN P2 CHARACTER ,INOUT P3 CHARACTER )
+LANGUAGE JAVA
+EXTERNAL NAME "com.cedge.algorithm.EncryptionUtils.getEncryption";
