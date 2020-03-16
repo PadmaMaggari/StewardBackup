@@ -1,0 +1,16 @@
+BROKER SCHEMA reouterFlow
+
+
+CREATE COMPUTE MODULE routerFlowISO8583_ExceptionPropagation
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL ExceptionPropagation();
+		RETURN TRUE;
+	END;
+
+	
+
+	CREATE PROCEDURE ExceptionPropagation() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
