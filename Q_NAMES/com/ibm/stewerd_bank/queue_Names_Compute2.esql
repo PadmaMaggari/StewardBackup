@@ -1,0 +1,59 @@
+BROKER SCHEMA com.ibm.stewerd_bank
+
+
+CREATE COMPUTE MODULE queue_Names_Compute2
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL CopyEntireMessage();
+		RETURN TRUE;
+	END;
+
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		DECLARE reqData CHARACTER;
+   			DECLARE data ROW;
+   			DECLARE req CHARACTER InputRoot.JSON.Data.ISO8583_1987.ProcessingCode_003;
+   			SET reqData = SUBSTRING(req  FROM 1 FOR 2);
+   			SET data.values[] = select A.PROC_CODE,A.QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = reqData and A.DOMAIN = domainName;
+   			DECLARE Queuename CHARACTER '';
+
+
+   			SET Queuename = data.values.QUEUE_NAME;
+   			
+   			CASE
+   			WHEN data.values.PROC_CODE = '31' THEN
+   				SET OutputRoot.JSON = InputRoot.JSON;
+   				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Queuename;
+   			WHEN data.values.PROC_CODE = '01' THEN
+   				SET OutputRoot.JSON = InputRoot.JSON;
+   				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Queuename;
+   			WHEN data.values.PROC_CODE = '27' THEN
+   				SET OutputRoot.JSON = InputRoot.JSON;
+   				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Queuename;
+   			WHEN data.values.PROC_CODE = '38' THEN
+   				SET OutputRoot.JSON = InputRoot.JSON;
+   				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Queuename;
+   			WHEN data.values.PROC_CODE = '21' THEN
+   				SET OutputRoot.JSON = InputRoot.JSON;
+   				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Queuename ;
+
+   			WHEN data.values.PROC_CODE = '00' THEN
+   				SET OutputRoot.JSON = InputRoot.JSON;
+   				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Queuename;
+   			WHEN data.values.PROC_CODE = '50' THEN
+   				SET OutputRoot.JSON = InputRoot.JSON;
+   				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Queuename;
+   			WHEN data.values.PROC_CODE = '54' THEN
+   				SET OutputRoot.JSON = InputRoot.JSON;
+   				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Queuename;
+   			WHEN data.values.PROC_CODE = '40' THEN
+   				SET OutputRoot.JSON = InputRoot.JSON;
+   				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Queuename;
+   			WHEN data.values.PROC_CODE = '09' THEN
+   				SET OutputRoot.JSON = InputRoot.JSON;
+   				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Queuename ;
+   			END CASE;
+   			PROPAGATE TO TERMINAL 'out';
+   			
+	END;
+END MODULE;

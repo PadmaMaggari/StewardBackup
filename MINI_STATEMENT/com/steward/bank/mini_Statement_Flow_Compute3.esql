@@ -1,0 +1,15 @@
+BROKER SCHEMA com.steward.bank
+
+
+CREATE COMPUTE MODULE mini_Statement_Flow_Compute3
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL ExceptionPropagation();
+		RETURN TRUE;
+	END;
+
+	
+	CREATE PROCEDURE ExceptionPropagation() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
