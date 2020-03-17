@@ -1,0 +1,36 @@
+
+
+BROKER SCHEMA com.steward.bank
+--PATH com.steward.log4j;
+DECLARE Config_File EXTERNAL CHARACTER '';
+DECLARE IsLogRequired EXTERNAL CHARACTER '';
+DECLARE SERVER_IP EXTERNAL CHARACTER '';
+
+CREATE FILTER MODULE checkPayload
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--DECLARE rc BOOLEAN;
+		--CALL initLog (Config_File) INTO rc;
+		--IF IsLogRequired = 'Y' THEN
+		--CALL writerToLogFile (MessageFlowLabel,'Log','INFO','LOG :'|| CAST(CURRENT_TIMESTAMP AS CHARACTER)||CAST(ASBITSTREAM(Root.XMLNSC CCSID 1208) AS CHARACTER CCSID 1208)) INTO rc;
+		--RETURN TRUE;
+		--ELSE
+		--RETURN FALSE;
+		--END IF;
+		DECLARE payload CHARACTER CAST(Root.BLOB.BLOB AS CHARACTER CCSID Root.Properties.CodedCharSetId ENCODING Root.Properties.Encoding);
+		SET Environment.SERVERIP = SERVER_IP;
+		SET Environment.BROKERNAME = BrokerName;
+		SET Environment.EGNAME = ExecutionGroupLabel;
+		SET Environment.CREATEDBY = MessageFlowLabel;
+		SET Environment.MESSAGETIME = CURRENT_TIMESTAMP;
+		SET Environment.PAYLOADTIME_REQUEST = CURRENT_TIMESTAMP;
+		SET Environment.PAYLOAD_REQUEST = payload;
+	  
+		IF STARTSWITH(payload, '{') THEN
+			RETURN TRUE;
+		ELSE
+			RETURN FALSE;
+		END IF;
+	END;
+
+END MODULE;

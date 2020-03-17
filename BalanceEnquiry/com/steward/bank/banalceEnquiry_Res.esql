@@ -1,0 +1,66 @@
+BROKER SCHEMA com.steward.bank
+
+
+CREATE COMPUTE MODULE banalceEnquiry_Res
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		-- CALL CopyEntireMessage();
+		
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.*;
+		CALL ConstructBE_Res(inRef,OutputRoot);
+		
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE ConstructBE_Res(IN inRef REFERENCE, INOUT OutputRoot REFERENCE) BEGIN
+		DECLARE primaryBitmap REFERENCE TO inRef.PrimaryBitmap;
+		DECLARE secondaryBitmap REFERENCE TO inRef.SecondaryBitmap;
+		SET Environment.MSG.Properties  = InputRoot.Properties;
+		SET Environment.MSG.MQMD = InputRoot.MQMD;
+		
+		SET Environment.InputRequest = InputRoot.DFDL.*;
+		SET Environment.version = InputRoot.DFDL.*.MTI_Version;
+					
+		DECLARE outPayLoadRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+					
+		-- Assigning MessageType Properties with Required ISO message
+		SET OutputRoot.Properties.MessageType =  '{}:ISO8583_1987';
+		
+		-- Creating Domain and ISO type	
+		CREATE LASTCHILD OF OutputRoot AS outPayLoadRef DOMAIN 'DFDL';
+		CREATE LASTCHILD OF outPayLoadRef AS outPayLoadRef NAME 'ISO8583_1987';
+		
+		
+		-- Adding MTI header 
+		SET outPayLoadRef.MTI_Version = '0';
+		SET outPayLoadRef.MTI_MessageClass = '2';
+		SET outPayLoadRef.MTI_MessageFunction = '1';
+		SET outPayLoadRef.MTI_MessageOrigin = '0';
+		-- method for initialising Field list
+		-- CALL GenNPCIReqMsgWithXML();
+		
+		--CALL updateMsgWithHexBitMap(outPayLoadRef);
+	 	CALL updateMsgWithAsciiBitMap(outPayLoadRef); 
+	 	
+	 	SET Environment.PAYLOADTIME_RESPONSE =  CAST(OutputRoot.DFDL.ISO8583_1987 AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+		SET Environment.PAYLOAD_RESPONSE = CURRENT_TIMESTAMP;
+		
+		-------------
+		SET Environment.STATUS = 'SUCCESS' ;
+		--SET Environment.ERROR_CODE = inref.ERROR_CODE ;
+		--SET Environment.ERROR_DESC = inref.ERROR_DESC ;
+		--SET Environment.ERROR_TYPE = inref.ERROR_TYPE;
+		SET Environment.RESPONSE_CODE = '00';  
+	END;
+END MODULE;

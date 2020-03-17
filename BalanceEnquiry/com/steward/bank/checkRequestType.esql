@@ -1,0 +1,100 @@
+BROKER SCHEMA com.steward.bank
+
+
+CREATE COMPUTE MODULE checkRequestType
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		-- CALL CopyEntireMessage();
+		IF EXISTS(InputRoot.DFDL[]) = TRUE THEN
+			CALL ConstructT24_Req(InputRoot,OutputRoot);
+		ELSEIF EXISTS(InputRoot.JSON[]) = TRUE THEN
+			CALL ConstructPostilion_Req(InputRoot,OutputRoot);
+		ELSE
+		
+		END IF;
+		SET Environment.PAYLOADTP_REQUEST = 'LOG'|| CAST(InputRoot.DFDL.ISO8583_1987 AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+		SET Environment.PAYLOADTPTIME_REQUEST = CURRENT_TIMESTAMP;
+		
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE ConstructT24_Req(IN InputRoot REFERENCE,INOUT OutputRoot REFERENCE) BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+	
+	CREATE PROCEDURE ConstructPostilion_Req(IN InputRoot REFERENCE,INOUT OutputRoot REFERENCE) BEGIN
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
+		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987_Unpacked';
+		
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987_Unpacked;
+		
+		SET outRef.TCPHeader = '02D9';
+		SET outRef.MTI_Version = '0';
+		SET outRef.MTI_MessageClass = '2';
+		SET outRef.MTI_MessageFunction = '0';
+		SET outRef.MTI_MessageOrigin = '0';
+		SET outRef.PrimaryAccountNumber_002 = '5021951320001173';	
+		SET outRef.ProcessingCode_003 = '312000';
+		SET outRef.AmountTransaction_004 = '0';
+		SET outRef.AmountSettlement_005 = '0';
+		SET outRef.TransmissionDatetime_007 = CAST('0305064626' AS TIMESTAMP FORMAT '');
+		SET outRef.ConversionRateSettlement_009 = '00000000';
+		SET outRef.SystemsTraceAuditNumber_011 = '445355';
+		SET outRef.TimeLocalTransaction_012 = '08:46:26.000000+00:00';
+		SET outRef.DateLocalTransaction_013 = CAST('0305' AS TIMESTAMP FORMAT '');
+		SET outRef.DateExpiration_014 = CAST('2309' AS TIMESTAMP FORMAT '');
+		SET outRef.DateSettlement_015 = CAST('0306' AS TIMESTAMP FORMAT '');
+		SET outRef.DateConversion_016 = CAST('0305' AS TIMESTAMP FORMAT '');
+		SET outRef.MerchantType_018 = '5411';
+		SET outRef.PointOfServiceEntryMode_022 = '051';
+		SET outRef.CardSequenceNumber_023 = '001';
+		SET outRef.PointOfServiceConditionCode_025 = '00';
+		SET outRef.AmountTransactionFee_028 = 'C00000000';
+		SET outRef.AmountSettlementFee_029 = 'C00000000';
+		SET outRef.AmountTransactionProcessingFee_030 = 'C00000000';
+		SET outRef.AmountSettlementProcessingFee_031 = 'C00000000';
+		SET outRef.AcquiringInstitutionIdentificationCode_032 = '502195';
+		SET outRef.Track2Data_035 = '5021951320001173=2309226';
+		SET outRef.RetrievalReferenceNumber_037 = '006508000449';
+		SET outRef.AuthorizationIdentificationResponse_038 = '084804';
+		SET outRef.ResponseCode_039 = '00';
+		SET outRef.ServiceRestrictionCode_040 = '226';
+		SET outRef.CardAcceptorTerminalIdentification_041 = 'SBB09484';
+		SET outRef.CardAcceptorIdentificationCode_042 = '9999900076ECOMD';
+		SET outRef.CardAcceptorNameLocation_043 = 'Econet Mt Darwin CommutMt Darwin&#32;&#32;&#32;&#32;25ZW';
+		SET outRef.CurrencyCodeTransaction_049 = '840';
+		SET outRef.CurrencyCodeSettlement_050 = '932';
+		SET outRef.ReservedISO_056 = '1003';
+		SET outRef.ReservedNational_059 = '0695974333';
+		SET outRef.ReplacementAmounts_095 = '000000000000000000000000C00000000C00000000';
+		SET outRef.ReceivingInstitutionIdentificationCode_100 = '727272';
+		SET outRef.AccountIdentification1_102 = '1036231544';
+		SET outRef.ReservedPrivate_123 = '51010151014C101';
+		SET outRef."RoutingInformationPostilionPrivate_127.3" = '202020TermAppISO&#32;&#32;StewardBPOS 000449445355SBZDeb';
+		SET outRef."POSDataPostilionPrivate_127.4" = 'itGrp SBB0948400044100';
+		SET outRef."CheckDataPostilionPrivate_127.7"  = '999 44002';
+		SET outRef."AddressVerificationResultPostilionPrivate_127.16" = '0';
+		SET outRef."BankDetailsPostilionPrivate_127.19" = '0716&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;02267C1E4F7C0000000';
+		SET outRef."OriginatorAuthorizerDatePostilionPrivate_127.20" = '00000000';
+		SET outRef."ApplicationIdentifierPostilionPrivate_127.25.4" = '0004107FCEDAE7C432';
+		SET outRef."ApplicationTransactionCounterPostilionPrivate_127.25.6" = 'DF10';
+		SET outRef."CardAuthReliabilityIndicatiorPostilionPrivate_127.25.9" = '8';
+		SET outRef."ChipConditionCodePostilionPrivate_127.25.11" = '0';
+		SET outRef."SecureData3DResultPostilionPrivate_127.30" = '0';
+		SET outRef."ExtendedResponseCodePostilionPrivate_127.37" = '2000';
+		SET outRef."AdditionalPOSDataCodePostilionPrivate_127.38" = '000000000000020320300640FA501A20000000000000000000000000F010000000000000000000000000000E0F0C8716228';
+	
+		CALL updateMsgWithHexBitMap(outRef);
+	END;
+END MODULE;
