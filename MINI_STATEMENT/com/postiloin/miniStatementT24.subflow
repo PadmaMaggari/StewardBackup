@@ -6,16 +6,16 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/MINI_STATEMENT/icons/full/obj16/miniStatementT24.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/MINI_STATEMENT/icons/full/obj30/miniStatementT24.gif"/>
     <composition>
-      <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="136,50">
+      <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="122,118">
         <translation xmi:type="utility:TranslatableString" key="InTerminal.Input" bundleName="com/postiloin/miniStatementT24" pluginId="MINI_STATEMENT"/>
       </nodes>
       <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="641,78">
         <translation xmi:type="utility:TranslatableString" key="OutTerminal.Output" bundleName="com/postiloin/miniStatementT24" pluginId="MINI_STATEMENT"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="291,67" connectionDetails="localhost:9999">
+      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="337,25" connectionDetails="192.168.3.124:1111" timeoutSendingData="20">
         <translation xmi:type="utility:ConstantString" string="TCPIP Client Output"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="473,86" connectionDetails="localhost:9999" messageDomainProperty="DFDL" messageTypeProperty="{}:ISO8583_1987">
+      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="459,125" connectionDetails="192.168.3.124:1111" timeoutWaitingForData="20" messageDomainProperty="DFDL" messageTypeProperty="{}:ISO8583_1987">
         <translation xmi:type="utility:ConstantString" string="TCPIP Client Receive"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_1" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
