@@ -1,0 +1,265 @@
+
+
+/**
+* Method for to update Bit map with Ascii
+**/
+CREATE PROCEDURE updateMsgWithAsciiBitMap (INOUT outPayLoadRef REFERENCE)
+BEGIN
+	DECLARE mtiOrigin, primaryBitRef, secondryBitRef REFERENCE TO outPayLoadRef.MTI_MessageOrigin;
+	--DECLARE RowBitMap ROW;
+	-- DECLARE rowBitMapRef REFERENCE TO RowBitMap;
+	DECLARE SecondaryBitmap BOOLEAN FALSE;  	
+  	 
+	--Checking MtiOrigin populated or not
+	IF NOT LASTMOVE(mtiOrigin) THEN
+		THROW USER EXCEPTION SEVERITY 3 MESSAGE 0000 VALUES ('MTI Message Origin is not created. Should be before calling updateMsgWithHexBitMap method');
+	END IF;
+
+	CREATE NEXTSIBLING OF mtiOrigin AS primaryBitRef NAME 'PrimaryBitmap';
+	--CREATE LASTCHILD OF RowBitMap AS rowPrimBitRef NAME 'PrimaryBitmap';
+	CALL PopulatePrimaryBitmap(primaryBitRef);
+
+	IF CAST(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '_') AS INT) > 64 THEN
+		SET SecondaryBitmap = TRUE;
+		SET outPayLoadRef.PrimaryBitmap.Bit001 = 1;
+		CREATE NEXTSIBLING OF primaryBitRef AS secondryBitRef NAME 'SecondaryBitmap';
+		--CREATE LASTCHILD OF RowBitMap AS rowSeconBitRef NAME 'SecondaryBitmap';
+		CALL PopulateSecondaryBitmap(secondryBitRef);
+	END IF;
+	--Updating the fields based on available fields
+	CALL UpdatedWithAvailableFields(outPayLoadRef, outPayLoadRef);	 	 
+END;
+
+
+
+
+
+/**
+* Method for to update Bit map with Hexa..
+**/
+CREATE PROCEDURE updateMsgWithHexBitMap (INOUT outPayLoadRef REFERENCE)
+BEGIN
+	DECLARE isoType CHARACTER FIELDNAME(outPayLoadRef);
+	DECLARE mtiOrigin, primaryBitRef, secondryBitRef, rowPrimBitRef, rowSeconBitRef REFERENCE TO outPayLoadRef.MTI_MessageOrigin;
+	DECLARE RowBitMap ROW;
+	DECLARE rowBitMapRef REFERENCE TO RowBitMap;
+	DECLARE SecondaryBitmap,PostilionBitmap,ICCDataBitmap BOOLEAN FALSE;  	
+  	 
+	--Checking MtiOrigin populated or not
+	IF NOT LASTMOVE(mtiOrigin) THEN
+		THROW USER EXCEPTION SEVERITY 3 MESSAGE 0000 VALUES ('MTI Message Origin is not created. Should be before calling updateMsgWithHexBitMap method');
+	END IF;
+
+	CREATE NEXTSIBLING OF mtiOrigin AS primaryBitRef NAME 'PrimaryBitmap';
+	CREATE LASTCHILD OF RowBitMap AS rowPrimBitRef NAME 'PrimaryBitmap';
+	
+	IF isoType IS NOT NULL AND NOT isoType = 'ISO8583_1987_Unpacked'  THEN
+	CALL PopulatePrimaryBitmap(rowPrimBitRef);
+	
+	DECLARE bite CHAR SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '_');
+	IF CAST(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '.') AS INT) > 64 THEN
+		SET SecondaryBitmap = TRUE;
+		SET rowPrimBitRef.Bit001 = 1;
+		CREATE NEXTSIBLING OF primaryBitRef AS secondryBitRef NAME 'SecondaryBitmap';
+		CREATE LASTCHILD OF RowBitMap AS rowSeconBitRef NAME 'SecondaryBitmap';
+		CALL PopulateSecondaryBitmap(rowSeconBitRef);
+	END IF;
+		
+	ELSEIF  isoType IS NOT NULL AND isoType = 'ISO8583_1987_Unpacked' THEN
+		CALL PopulateBitmapUnPack(primaryBitRef, rowPrimBitRef, 0);
+		DECLARE bite CHAR SUBSTRING(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '_') BEFORE '.');
+		
+		IF CAST(SUBSTRING(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '_') BEFORE '.') AS INT) > 64 THEN
+		SET SecondaryBitmap = TRUE;
+		SET rowPrimBitRef.Bits001to004 = 8;
+		CREATE NEXTSIBLING OF primaryBitRef AS secondryBitRef NAME 'SecondaryBitmap';
+		CREATE LASTCHILD OF RowBitMap AS rowSeconBitRef NAME 'SecondaryBitmap';
+		CALL PopulateBitmapUnPack(secondryBitRef, rowSeconBitRef, 64);
+		IF CAST(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) BEFORE '.') AS INT) < 64 THEN
+			SET PostilionBitmap = TRUE;
+		END IF;
+		END IF;
+	--ELSE
+		
+	END IF;
+	
+	--Updating the fields based on available fields
+	CALL UpdatedWithAvailableFields(outPayLoadRef, rowBitMapRef);
+	-- Update with hex in Primary
+	CALL PopulateBitmapUnPack(primaryBitRef, rowPrimBitRef, 0);
+	IF SecondaryBitmap THEN
+		-- Update with hex in Secondary
+		CALL PopulateBitmapUnPack(secondryBitRef, rowSeconBitRef, 64);
+	END IF;
+END;
+
+
+/**
+* Method for to update Bit map with Hexa..
+**/
+CREATE PROCEDURE updateMsgWithHexBitMapPostilion (INOUT outPayLoadRef REFERENCE)
+BEGIN
+	DECLARE mtiOrigin, primaryBitRef, secondryBitRef, rowPrimBitRef, rowSeconBitRef REFERENCE TO outPayLoadRef.MTI_MessageOrigin;
+	DECLARE RowBitMap ROW;
+	DECLARE rowBitMapRef REFERENCE TO RowBitMap;
+	DECLARE SecondaryBitmap BOOLEAN FALSE;  	
+  	 
+	--Checking MtiOrigin populated or not
+	IF NOT LASTMOVE(mtiOrigin) THEN
+		THROW USER EXCEPTION SEVERITY 3 MESSAGE 0000 VALUES ('MTI Message Origin is not created. Should be before calling updateMsgWithHexBitMap method');
+	END IF;
+
+	CREATE NEXTSIBLING OF mtiOrigin AS primaryBitRef NAME 'PrimaryBitmap';
+	CREATE LASTCHILD OF RowBitMap AS rowPrimBitRef NAME 'PrimaryBitmap';
+	CALL PopulatePrimaryBitmap(rowPrimBitRef);
+
+	IF CAST(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '_') AS INT) > 64 THEN
+		SET SecondaryBitmap = TRUE;
+		SET rowPrimBitRef.Bit001 = 1;
+		CREATE NEXTSIBLING OF primaryBitRef AS secondryBitRef NAME 'SecondaryBitmap';
+		CREATE LASTCHILD OF RowBitMap AS rowSeconBitRef NAME 'SecondaryBitmap';
+		CALL PopulateSecondaryBitmap(rowSeconBitRef);
+	END IF;
+	--Updating the fields based on available fields
+	CALL UpdatedWithAvailableFields(outPayLoadRef, rowBitMapRef);
+	-- Update with hex in Primary
+	CALL PopulateBitmapUnPack(primaryBitRef, rowPrimBitRef, 0);
+	IF SecondaryBitmap THEN
+		-- Update with hex in Secondary
+		CALL PopulateBitmapUnPack(secondryBitRef, rowSeconBitRef, 64);
+	END IF;
+END;
+
+
+
+
+CREATE PROCEDURE PopulateBitmapUnPack(IN DFDLPointerUnpack REFERENCE,IN DFDLPointer REFERENCE, IN SecondDigit INTEGER)
+BEGIN
+	DECLARE I2 INTEGER 1;
+	DECLARE I3 INTEGER 4;
+	DECLARE returnChar CHARACTER;
+	DECLARE primIndexChar,secIndexChar CHAR;
+	-- Create PrimaryBitmap structure, with all bits set to 0
+
+	WHILE I2 < 65 DO
+		CALL GenerateThreeDigitIndex(I2+SecondDigit,primIndexChar);
+		CALL GenerateThreeDigitIndex(I2+3+SecondDigit,secIndexChar);
+		SET returnChar = GetHexCode(CAST(DFDLPointer.*[I2] AS CHARACTER) ||
+		CAST(DFDLPointer.*[I2+1] AS CHARACTER)||
+		CAST(DFDLPointer.*[I2+2] AS CHARACTER) ||
+		CAST(DFDLPointer.*[I2+3] AS CHARACTER));
+
+		CREATE LASTCHILD OF DFDLPointerUnpack NAME ('Bits' || primIndexChar || 'to' ||secIndexChar)
+		VALUE returnChar;
+		SET I2 = I2 + 4;
+	END WHILE;
+END;
+
+
+
+
+
+CREATE FUNCTION GetHexCode (bitCode CHARACTER) RETURNS CHARACTER
+BEGIN
+	SET bitCode =
+	CASE bitCode
+	WHEN '0001' THEN '1'
+	WHEN '0010' THEN '2'
+	WHEN '0011' THEN '3'
+	WHEN '0100' THEN '4'
+	WHEN '0101' THEN '5'
+	WHEN '0110' THEN '6'
+	WHEN '0111' THEN '7'
+	WHEN '1000' THEN '8'
+	WHEN '1001' THEN '9'
+	WHEN '1010' THEN 'A'
+	WHEN '1011' THEN 'B'
+	WHEN '1100' THEN 'C'
+	WHEN '1101' THEN 'D'
+	WHEN '1110' THEN 'E'
+	WHEN '1111' THEN 'F'
+	ELSE '0'
+	END;
+	RETURN bitCode;
+END;
+
+
+
+--Common Methods
+CREATE PROCEDURE PopulatePrimaryBitmap(INOUT DFDLPointer REFERENCE)
+BEGIN
+	DECLARE I2 INTEGER 1;
+	DECLARE IndexChar CHAR;
+	-- Create PrimaryBitmap structure, with all bits set to 0
+	WHILE I2 < 65 DO
+		CALL GenerateThreeDigitIndex(I2,IndexChar);
+		CREATE LASTCHILD OF DFDLPointer NAME ('Bit' || IndexChar) VALUE 0;
+		SET I2 = I2 + 1;
+	END WHILE;
+END;
+
+--Bits001to004
+CREATE PROCEDURE PopulateUnpackedPrimaryBitmap(INOUT DFDLPointer REFERENCE)
+BEGIN
+	DECLARE I2 INTEGER 1;
+	DECLARE stIndx CHAR;
+	DECLARE endIndx CHAR;
+	-- Create PrimaryBitmap structure, with all bits set to 0
+	WHILE I2 < 17 DO
+		CALL GenerateThreeDigitIndex(I2,stIndx);
+		--SET endIndx = CAST(CAST(stIndx AS INTEGER) + '3' AS CHARACTER);
+		CREATE LASTCHILD OF DFDLPointer NAME ('Bits' || stIndx ||'to'|| endIndx) VALUE 0;
+		SET I2 = I2 + 1;
+	END WHILE;
+END;
+
+CREATE PROCEDURE PopulateSecondaryBitmap(INOUT DFDLPointer REFERENCE)
+BEGIN
+	DECLARE J INTEGER 65;
+	DECLARE IndexChar CHAR;
+	WHILE J < 129 DO
+		-- Create SecondaryBitmap structure, with all bits set to 0
+		CALL GenerateThreeDigitIndex(J,IndexChar);
+		CREATE LASTCHILD OF DFDLPointer NAME ('Bit' || IndexChar) VALUE 0;
+		SET J = J + 1;
+	END WHILE;
+END;
+
+
+
+CREATE PROCEDURE GenerateThreeDigitIndex(IN IndexInt INTEGER, OUT IndexChar CHAR)
+BEGIN
+	SET IndexChar =
+	CASE
+	WHEN IndexInt < 10 THEN ('00' || CAST(IndexInt AS CHAR))
+	WHEN IndexInt < 100 THEN ('0' || CAST(IndexInt AS CHAR))
+	ELSE CAST(IndexInt AS CHAR)
+	END;
+END;
+
+
+
+
+CREATE PROCEDURE UpdatedWithAvailableFields(IN outPayloadRef REFERENCE, INOUT DFDLPointer REFERENCE)
+BEGIN
+	-- Loop over the fields which are present to update the Bitmaps ...
+	-- Moving outRef from bit map segments
+	DECLARE outRef REFERENCE TO outPayloadRef.SecondaryBitmap;
+	IF NOT LASTMOVE(outRef) THEN
+		MOVE outRef TO outPayloadRef.PrimaryBitmap;
+	END IF;
+	MOVE outRef NEXTSIBLING;
+	-- Now outRef is on first FieldsXXX
+	WHILE LASTMOVE(outRef) DO
+		DECLARE CurrentFieldName CHAR FIELDNAME(outRef);
+		DECLARE BitName CHAR ('Bit' || SUBSTRING(CurrentFieldName AFTER '_'));
+		IF CAST(SUBSTRING(CurrentFieldName AFTER '_') AS INT) < 65 THEN
+			-- Current field relates to PrimaryBitmap
+			SET DFDLPointer.PrimaryBitmap.{BitName} = 1;
+		ELSE
+			-- Current field relates to SecondaryBitmap
+			SET DFDLPointer.SecondaryBitmap.{BitName} = 1;
+		END IF;
+		MOVE outRef NEXTSIBLING;
+	END WHILE;
+END;

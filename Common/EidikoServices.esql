@@ -1,0 +1,39 @@
+
+
+CREATE PROCEDURE getPayloadString (IN InputBody REFERENCE, IN envarea REFERENCE)
+BEGIN
+		--If error occurs capture the original message
+		DECLARE payload CHARACTER CAST(ASBITSTREAM(InputBody 
+									ENCODING envarea.MSG.Properties.Encoding 
+									CCSID envarea.MSG.CodedCharSetId) 
+									AS CHARACTER);    
+		DECLARE domainFldName CHARACTER FIELDNAME(InputBody);
+		SET envarea.Variables.Payload = payload;
+END;
+
+CREATE FUNCTION updateWithPadChar( in_string 				CHAR, 
+								   in_pad_char 			CHAR, 
+								   in_length 				INTEGER, 
+								   in_right_justification 	BOOLEAN
+					  			  ) RETURNS CHAR
+BEGIN
+
+  	DECLARE return_value CHAR;
+
+  	SET return_value = in_string;
+
+  	IF in_right_justification = TRUE
+	THEN
+    	WHILE LENGTH(return_value) < in_length DO
+      		SET return_value = in_pad_char || return_value;
+    	END WHILE;
+  	ELSE
+    	WHILE LENGTH(return_value) < in_length 
+    	DO
+      		SET return_value = return_value || in_pad_char;
+    	END WHILE;
+  	END IF;
+
+	RETURN return_value;
+
+END;
