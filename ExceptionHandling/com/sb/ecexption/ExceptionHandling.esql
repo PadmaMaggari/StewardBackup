@@ -1,0 +1,44 @@
+BROKER SCHEMA com.sb.ecexption
+
+
+CREATE COMPUTE MODULE ExceptionHandling
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		-- CALL CopyEntireMessage();
+		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';  
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.ExceptionDetails;
+		DECLARE excpRef REFERENCE TO InputExceptionList;
+		CALL getExceptionDesc(excpRef,outRef);
+		RETURN TRUE; 
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+	
+	CREATE PROCEDURE getExceptionDesc(IN excpRef REFERENCE,INOUT outRef REFERENCE)	
+	BEGIN
+		WHILE LASTMOVE(excpRef) DO
+		IF excpRef.Number is not null THEN
+			SET outRef.excpType = FIELDNAME(excpRef);
+			SET outRef.excpNumber = excpRef.Number;
+			SET outRef.excpLable = excpRef.Label;
+			SET outRef.excpText = excpRef.Text; 
+		END IF;
+		move excpRef lastchild;
+	END WHILE;
+END;
+	
+END MODULE;
