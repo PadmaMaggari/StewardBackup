@@ -1,0 +1,288 @@
+BROKER SCHEMA com.steward.bank
+
+
+CREATE COMPUTE MODULE econet_Res
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		 CALL ConstructEcoResponse();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE ConstructEcoResponse() BEGIN
+		DECLARE I INT 1;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'acknowledgement';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC.acknowledgement NAME 'status';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC.acknowledgement NAME 'data';
+		DECLARE status REFERENCE TO OutputRoot.XMLNSC.acknowledgement.status;
+		DECLARE data REFERENCE TO OutputRoot.XMLNSC.acknowledgement.data;
+		DECLARE searchCode CHARACTER COALESCE(UPPER(InputRoot.XMLNSC.request.data.param.name || InputRoot.XMLNSC.request.data.param[2].name),UPPER(InputRoot.XMLNSC.request.data.param.name),'');
+		
+		IF searchCode = 'MSISDN' THEN
+		
+		SET status.code = 'SC0000';
+		SET status.desc = 'SUCCESS';
+--		WHILE I < 36 DO
+--		SET data.param[I].name = 'FIRST NAME';
+--		SET data.param[I].value = 'TEST';
+--		SET I = I +1;	
+--		END WHILE;
+--		
+		SET data.param[1].name = 'FIRST NAME';
+		SET data.param[1].value = 'TEST';
+		SET data.param[2].name = 'LAST NAME';
+		SET data.param[2].value = 'MANNER';
+		SET data.param[3].name = 'DOB';
+		SET data.param[3].value = '08-11-1913';
+    	SET data.param[4].name = 'GENDER';
+		SET data.param[4].value = 'M';
+		SET data.param[5].name = 'EMAIL';
+		SET data.param[5].value = 'mohsinali.mir@eidiko.com';
+		SET data.param[6].name = 'STATUS';
+		SET data.param[6].value = 'REGISTERED';
+		SET data.param[7].name = 'ICCID';
+		SET data.param[7].value = 'TEST';
+    	SET data.param[8].name = 'ALTERNATE CONTACT NUMBER';
+		SET data.param[8].value = 'TEST';
+		SET data.param[9].name = 'ADDRESS';
+		SET data.param[9].value = '2720123 HIGHFIELDS';
+		SET data.param[10].name = 'VILLAGE';
+		SET data.param[10].value = 'TEST';
+		SET data.param[11].name = 'PROVINCE';
+		SET data.param[11].value = 'HARARE';
+    	SET data.param[12].name = 'CITY';
+		SET data.param[12].value = 'HARARE';
+		SET data.param[13].name = 'DISTRICT';
+		SET data.param[13].value = 'HARARE';
+		SET data.param[14].name = 'CUSTOMER TYPE';
+		SET data.param[14].value = 'PRIVATE NATIONAL';
+		SET data.param[15].name = 'APPLICATION NUMBER';
+		SET data.param[15].value = 'NULL';
+    	SET data.param[16].name = 'DOC ID';
+		SET data.param[16].value = '2';
+		SET data.param[17].name = 'DOC TYPE';
+    	SET data.param[17].value = 'National ID';
+		SET data.param[18].name = 'DOC NUMBER';
+		SET data.param[18].value = '02262778W12';
+		SET data.param[19].name = 'CREATE USER';
+		SET data.param[19].value = 'NULL';
+		SET data.param[20].name = 'CREATE USER MSISDN';
+		SET data.param[20].value = 'NULL';
+		SET data.param[21].name = 'CREATE DATE';
+		SET data.param[21].value = '2013-10-23 08:10:06.0';
+		SET data.param[22].name = 'ACTIVATION DATE';
+		SET data.param[22].value = '2013-10-23 08:10:06.0';
+		SET data.param[23].name = 'COMPANY PHYSICAL ADDRESS';
+		SET data.param[23].value = 'NULL';
+		SET data.param[24].name = 'COMPANY NAME';
+		SET data.param[24].value = 'NULL';
+		SET data.param[25].name = 'INDUSTRY TYPE';
+		SET data.param[25].value = 'NULL';
+		SET data.param[26].name = 'COMPANY REG NO';
+		SET data.param[26].value = 'NULL';
+		SET data.param[27].name = 'VERIFICATION STATUS';
+		SET data.param[27].value = 'CUSTOMER DETAILS VERIFIED';
+		SET data.param[28].name = 'KIN FIRST NAME';
+		SET data.param[28].value = 'NULL';
+		SET data.param[29].name = 'KIN SUR NAME';
+		SET data.param[29].value = 'NULL';
+		SET data.param[30].name = 'KIN CONTACT NUMBER';
+		SET data.param[30].value = 'NULL';
+		SET data.param[31].name = 'TITLE';
+		SET data.param[31].value = 'Miss';
+		SET data.param[32].name = 'PASSPORT EXPIRATION DATE';
+		SET data.param[32].value = 'NULL';
+		SET data.param[33].name = 'MARITAL STATUS';
+		SET data.param[33].value = 'NULL';
+		SET data.param[34].name = 'SUBSCRIPTION LIMIT';
+		SET data.param[34].value = '4';
+		SET data.param[35].name = 'CUSTOMER CREATION DATE';
+		SET data.param[35].value = '2014-07-09 00:07:00.0';
+		
+			
+		ELSEIF searchCode = 'IDPROOFNUMBER' THEN
+			
+			SET status.code = 'SC0000';
+		SET status.desc = 'SUCCESS';
+--		WHILE I < 36 DO
+--		SET data.param[I].name = 'FIRST NAME';
+--		SET data.param[I].value = 'TEST';
+--		SET I = I +1;	
+--		END WHILE;
+--		
+		SET data.param[1].name = 'FIRST NAME';
+		SET data.param[1].value = 'TAWAN';
+		SET data.param[2].name = 'LAST NAME';
+		SET data.param[2].value = 'MATENH';
+		SET data.param[3].name = 'DOB';
+		SET data.param[3].value = '06-26-1912';
+    	SET data.param[4].name = 'GENDER';
+		SET data.param[4].value = 'M';
+		SET data.param[5].name = 'EMAIL';
+		SET data.param[5].value = 'mohsinali.mir@eidiko.com';
+		SET data.param[6].name = 'STATUS';
+		SET data.param[6].value = 'REGISTERED';
+		SET data.param[7].name = 'ICCID';
+		SET data.param[7].value = 'TEST';
+    	SET data.param[8].name = 'ALTERNATE CONTACT NUMBER';
+		SET data.param[8].value = 'TEST';
+		SET data.param[9].name = 'ADDRESS';
+		SET data.param[9].value = '12 FLEMING RD SOUTHERTON';
+		SET data.param[10].name = 'VILLAGE';
+		SET data.param[10].value = 'TEST';
+		SET data.param[11].name = 'PROVINCE';
+		SET data.param[11].value = 'HARARE';
+    	SET data.param[12].name = 'CITY';
+		SET data.param[12].value = 'HARARE';
+		SET data.param[13].name = 'DISTRICT';
+		SET data.param[13].value = 'HARARE';
+		SET data.param[14].name = 'CUSTOMER TYPE';
+		SET data.param[14].value = 'PRIVATE NATIONAL';
+		SET data.param[15].name = 'APPLICATION NUMBER';
+		SET data.param[15].value = 'NULL';
+    	SET data.param[16].name = 'DOC ID';
+		SET data.param[16].value = '2';
+		SET data.param[17].name = 'DOC TYPE';
+    	SET data.param[17].value = 'National ID';
+		SET data.param[18].name = 'DOC NUMBER';
+		SET data.param[18].value = '02262778W12';
+		SET data.param[19].name = 'CREATE USER';
+		SET data.param[19].value = 'NULL';
+		SET data.param[20].name = 'CREATE USER MSISDN';
+		SET data.param[20].value = 'NULL';
+		SET data.param[21].name = 'CREATE DATE';
+		SET data.param[21].value = '2011-09-07 15:09:22.0';
+		SET data.param[22].name = 'ACTIVATION DATE';
+		SET data.param[22].value = '2011-09-07 15:09:22.0';
+		SET data.param[23].name = 'COMPANY PHYSICAL ADDRESS';
+		SET data.param[23].value = 'NULL';
+		SET data.param[24].name = 'COMPANY NAME';
+		SET data.param[24].value = 'NULL';
+		SET data.param[25].name = 'INDUSTRY TYPE';
+		SET data.param[25].value = 'NULL';
+		SET data.param[26].name = 'COMPANY REG NO';
+		SET data.param[26].value = 'NULL';
+		SET data.param[27].name = 'VERIFICATION STATUS';
+		SET data.param[27].value = 'CUSTOMER DETAILS VERIFIED';
+		SET data.param[28].name = 'KIN FIRST NAME';
+		SET data.param[28].value = 'NULL';
+		SET data.param[29].name = 'KIN SUR NAME';
+		SET data.param[29].value = 'NULL';
+		SET data.param[30].name = 'KIN CONTACT NUMBER';
+		SET data.param[30].value = 'NULL';
+		SET data.param[31].name = 'TITLE';
+		SET data.param[31].value = 'Mr';
+		SET data.param[32].name = 'PASSPORT EXPIRATION DATE';
+		SET data.param[32].value = 'NULL';
+		SET data.param[33].name = 'MARITAL STATUS';
+		SET data.param[33].value = 'NULL';
+		SET data.param[34].name = 'SUBSCRIPTION LIMIT';
+		SET data.param[34].value = '4';
+		SET data.param[35].name = 'CUSTOMER CREATION DATE';
+		SET data.param[35].value = '2018-01-22 12:28:11.0';
+				
+		ELSEIF searchCode = 'MSISDNIDPROOFNUMBER' THEN
+		
+		SET status.code = 'SC0000';
+		SET status.desc = 'SUCCESS';
+--		WHILE I < 36 DO
+--		SET data.param[I].name = 'FIRST NAME';
+--		SET data.param[I].value = 'TEST';
+--		SET I = I +1;	
+--		END WHILE;
+
+		SET data.param[1].name = 'FIRST NAME';
+		SET data.param[1].value = 'TEST';
+		SET data.param[2].name = 'LAST NAME';
+		SET data.param[2].value = 'MANNER';
+		SET data.param[3].name = 'DOB';
+		SET data.param[3].value = '08-11-1913';
+    	SET data.param[4].name = 'GENDER';
+		SET data.param[4].value = 'M';
+		SET data.param[5].name = 'EMAIL';
+		SET data.param[5].value = 'mohsinali.mir@eidiko.com';
+		SET data.param[6].name = 'STATUS';
+		SET data.param[6].value = 'REGISTERED';
+		SET data.param[7].name = 'ICCID';
+		SET data.param[7].value = 'TEST';
+    	SET data.param[8].name = 'ALTERNATE CONTACT NUMBER';
+		SET data.param[8].value = 'TEST';
+		SET data.param[9].name = 'ADDRESS';
+		SET data.param[9].value = '2720123 HIGHFIELDS';
+		SET data.param[10].name = 'VILLAGE';
+		SET data.param[10].value = 'TEST';
+		SET data.param[11].name = 'PROVINCE';
+		SET data.param[11].value = 'HARARE';
+    	SET data.param[12].name = 'CITY';
+		SET data.param[12].value = 'HARARE';
+		SET data.param[13].name = 'DISTRICT';
+		SET data.param[13].value = 'HARARE';
+		SET data.param[14].name = 'CUSTOMER TYPE';
+		SET data.param[14].value = 'PRIVATE NATIONAL';
+		SET data.param[15].name = 'APPLICATION NUMBER';
+		SET data.param[15].value = 'NULL';
+    	SET data.param[16].name = 'DOC ID';
+		SET data.param[16].value = '2';
+		SET data.param[17].name = 'DOC TYPE';
+    	SET data.param[17].value = 'National ID';
+		SET data.param[18].name = 'DOC NUMBER';
+		SET data.param[18].value = '75123426W12';
+		SET data.param[19].name = 'CREATE USER';
+		SET data.param[19].value = 'NULL';
+		SET data.param[20].name = 'CREATE USER MSISDN';
+		SET data.param[20].value = 'NULL';
+		SET data.param[21].name = 'CREATE DATE';
+		SET data.param[21].value = '2013-10-23 08:10:06.0';
+		SET data.param[22].name = 'ACTIVATION DATE';
+		SET data.param[22].value = '2013-10-23 08:10:06.0';
+		SET data.param[23].name = 'COMPANY PHYSICAL ADDRESS';
+		SET data.param[23].value = 'NULL';
+		SET data.param[24].name = 'COMPANY NAME';
+		SET data.param[24].value = 'NULL';
+		SET data.param[25].name = 'INDUSTRY TYPE';
+		SET data.param[25].value = 'NULL';
+		SET data.param[26].name = 'COMPANY REG NO';
+		SET data.param[26].value = 'NULL';
+		SET data.param[27].name = 'VERIFICATION STATUS';
+		SET data.param[27].value = 'CUSTOMER DETAILS VERIFIED';
+		SET data.param[28].name = 'KIN FIRST NAME';
+		SET data.param[28].value = 'NULL';
+		SET data.param[29].name = 'KIN SUR NAME';
+		SET data.param[29].value = 'NULL';
+		SET data.param[30].name = 'KIN CONTACT NUMBER';
+		SET data.param[30].value = 'NULL';
+		SET data.param[31].name = 'TITLE';
+		SET data.param[31].value = 'Mr';
+		SET data.param[32].name = 'PASSPORT EXPIRATION DATE';
+		SET data.param[32].value = 'NULL';
+		SET data.param[33].name = 'MARITAL STATUS';
+		SET data.param[33].value = 'NULL';
+		SET data.param[34].name = 'SUBSCRIPTION LIMIT';
+		SET data.param[34].value = '4';
+		SET data.param[35].name = 'CUSTOMER CREATION DATE';
+		SET data.param[35].value = '2018-01-22 12:28:11.0';
+		
+		ELSE
+			
+			SET status.code = 'FL0002';
+			SET status.desc = 'No result found';		
+			SET data.param[1].name = 'Message';
+			SET data.param[1].value = 'No result found';
+			
+		END IF;
+		    
+           
+		
+	END;
+END MODULE;

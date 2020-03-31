@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <xsd:element name="code" type="xsd:string"/>
+  <xsd:element name="data">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element maxOccurs="unbounded" ref="param"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+  <xsd:element name="param">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element ref="name"/>
+        <xsd:element ref="value"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+  <xsd:element name="name" type="xsd:string"/>
+  <xsd:element name="value" type="xsd:string"/>
+  <xsd:element name="acknowledgment">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element ref="status"/>
+        <xsd:element ref="data"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+  <xsd:element name="status">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element ref="code"/>
+        <xsd:element ref="desc"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+  <xsd:element name="desc" type="xsd:string"/>
+</xsd:schema>
