@@ -1,0 +1,211 @@
+BROKER SCHEMA com.steward.bank
+
+
+CREATE COMPUTE MODULE dbLogging
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		 CALL CopyEntireMessage();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
+
+
+
+CREATE COMPUTE MODULE constructDWHReq
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		 CALL DWHServiceCall();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE DWHServiceCall() BEGIN
+		SET OutputRoot = InputRoot;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://localhost:7800/ecocash/?id=263785974144';
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE constructEconetReq
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		 CALL constructEconetReq();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+		CREATE PROCEDURE constructEconetReq() BEGIN
+		DECLARE randomNumber CHARACTER;
+		
+		SET randomNumber = UUIDASCHAR;
+		SET OutputRoot.XMLNSC.request.requestId = '2';
+		SET OutputRoot.XMLNSC.request.transactionId = '5437654328765435';
+		SET OutputRoot.XMLNSC.request.featureId = 'search_msisdn';
+		SET OutputRoot.XMLNSC.request.timeStamp = CURRENT_TIMESTAMP;
+		SET OutputRoot.XMLNSC.request.channelId = '6';
+		SET OutputRoot.XMLNSC.request.languageId = '1';
+		SET OutputRoot.XMLNSC.request.username = 'eeeeeee';
+		SET OutputRoot.XMLNSC.request.password = 'eeeeeeeee';
+		SET OutputRoot.XMLNSC.request.data.name = 'MSISDN';
+		SET OutputRoot.XMLNSC.request.data.value = '772984803';
+
+		END;
+		
+		CREATE FUNCTION getRandomString(INOUT leng INTEGER) RETURNS CHAR
+		BEGIN
+			DECLARE randomString CHARACTER;
+			DECLARE chars CHARACTER '0123456789';
+			DECLARE i INTEGER 0;
+			WHILE i < leng DO
+				
+				--SET randomString = randomString || SUBSTRING(chars,FLOOR(RAND() * LENGTH(chars) +1),1);
+			END WHILE;
+			RETURN randomString;
+		END;
+--
+--CREATE FUNCTION getRandomString()
+--RETURNS CHAR
+--LANGUAGE JAVA
+--EXTERNAL NAME "com.steward.bank.RandomNumbers.getRandomString";
+END MODULE;
+
+
+CREATE COMPUTE MODULE checkDWHRes
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		 IF EXISTS(InputRoot.JSON[]) = TRUE THEN
+		 	SET OutputRoot = InputRoot;
+		 	PROPAGATE TO TERMINAL 'out';
+		 RETURN FALSE;
+		 ELSE
+		 	PROPAGATE TO TERMINAL 'out1';
+		 	RETURN FALSE; 
+		 END IF;
+		 RETURN TRUE;
+		
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+END MODULE;
+
+
+
+
+CREATE COMPUTE MODULE constructKYCRes
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		 CALL constructKYCRes();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE constructKYCRes() BEGIN
+		SET OutputRoot.XMLNSC.AccountOpeningResponse.KYC_Customer.Status = 'Success';
+	END;
+END MODULE;
+
+
+
+CREATE COMPUTE MODULE checkEconetRes
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		 CALL CopyEntireMessage();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
+
+
+
+CREATE COMPUTE MODULE cnstrctAccOpRes
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		 CALL CopyEntireMessage();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
