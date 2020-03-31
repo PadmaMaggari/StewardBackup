@@ -1,0 +1,675 @@
+BROKER SCHEMA StewardBankCommonEsql
+
+
+
+CREATE PROCEDURE copyBitMap(INOUT inOutRef REFERENCE,INOUT inputRef REFERENCE,INOUT outRef REFERENCE,IN type CHARACTER)
+BEGIN
+	DECLARE I INTEGER 1;
+	WHILE LASTMOVE(inOutRef) DO
+		IF type = 'PrimaryBitmap' THEN
+			SET outRef.PrimaryBitmap.[I]=inputRef.PrimaryBitmap.[I];
+		END IF;
+		IF type = 'SecondaryBitmap' THEN
+			SET outRef.SecondaryBitmap.[I]=inputRef.SecondaryBitmap.[I];
+		END IF;
+		IF type = 'PostilionBitmap' THEN
+			SET outRef.PostilionBitmap.[I]=inputRef.PostilionBitmap.[I];
+		END IF;
+		SET I = I + 1;
+		MOVE inOutRef NEXTSIBLING;
+	END WHILE;
+END;
+CREATE PROCEDURE FieldToFieldMapping(IN inputRef REFERENCE,IN outRef REFERENCE)
+BEGIN
+	SET outRef.TCPHeaderBitmap[]=inputRef.TCPHeaderBitmap[];
+	SET outRef.MTI_Version=inputRef.MTI_Version;
+	SET outRef.MTI_MessageClass=inputRef.MTI_MessageClass;
+	SET outRef.MTI_MessageFunction=inputRef.MTI_MessageFunction; 
+	SET outRef.MTI_MessageOrigin=inputRef.MTI_MessageOrigin;
+	SET outRef.PrimaryBitmap.Bit001=inputRef.PrimaryBitmap.Bit001;
+	DECLARE inRef REFERENCE TO inputRef.PrimaryBitmap.[1];
+	DECLARE isSecondaryBitMapExists,is127FieldExists BOOLEAN FALSE;
+	IF FIELDVALUE(inRef)= '1' THEN SET isSecondaryBitMapExists = TRUE; END IF;
+	CALL copyBitMap(inRef,inputRef,outRef,'PrimaryBitmap');
+	
+	IF isSecondaryBitMapExists = TRUE THEN
+		DECLARE secondBitMapRef REFERENCE TO inputRef.SecondaryBitmap.[1];
+		CALL copyBitMap(secondBitMapRef,inputRef,outRef,'SecondaryBitmap');
+		DECLARE field127Ref REFERENCE TO inputRef.SecondaryBitmap.[<2];
+		IF FIELDVALUE(field127Ref)= '1' THEN SET is127FieldExists = TRUE; END IF;
+	END IF;
+	IF FIELDNAME(inputRef.PrimaryAccountNumber_002) is NOT NULL  THEN
+		SET outRef.PrimaryAccountNumber_002= inputRef.PrimaryAccountNumber_002;
+	END IF;
+	IF FIELDNAME(inputRef.ProcessingCode_003) is NOT NULL  THEN
+		SET outRef.ProcessingCode_003= inputRef.ProcessingCode_003;
+	END IF;
+	IF FIELDNAME(inputRef.AmountTransaction_004) is NOT NULL THEN
+		SET outRef.AmountTransaction_004= inputRef.AmountTransaction_004;
+	END IF;
+	IF FIELDNAME(inputRef.AmountSettlement_005) is NOT NULL THEN
+		SET outRef.AmountSettlement_005= inputRef.AmountSettlement_005;
+	END IF;
+	IF FIELDNAME(inputRef.AmountCardHolderBilling_006) is NOT NULL THEN
+		SET outRef.AmountCardHolderBilling_006= inputRef.AmountCardHolderBilling_006;
+	END IF;
+	IF FIELDNAME(inputRef.TransmissionDatetime_007) is NOT NULL THEN
+		SET outRef.TransmissionDatetime_007= inputRef.TransmissionDatetime_007;
+	END IF;
+	IF FIELDNAME(inputRef.AmountCardHolderBillingFee_008) is NOT NULL THEN
+		SET outRef.AmountCardHolderBillingFee_008= inputRef.AmountCardHolderBillingFee_008;
+	END IF;
+	IF FIELDNAME(inputRef.ConversionRateSettlement_009) is NOT NULL THEN
+		SET outRef.ConversionRateSettlement_009= inputRef.ConversionRateSettlement_009;
+	END IF;
+	IF FIELDNAME(inputRef.ConversionRateCardholderBilling_010) is NOT NULL THEN
+		SET outRef.ConversionRateCardholderBilling_010= inputRef.ConversionRateCardholderBilling_010;
+	END IF;
+	IF FIELDNAME(inputRef.SystemsTraceAuditNumber_011) is NOT NULL THEN
+		SET outRef.SystemsTraceAuditNumber_011= inputRef.SystemsTraceAuditNumber_011;
+	END IF;
+	IF FIELDNAME(inputRef.TimeLocalTransaction_012) is NOT NULL THEN
+		SET outRef.TimeLocalTransaction_012= inputRef.TimeLocalTransaction_012;
+	END IF;
+	IF FIELDNAME(inputRef.DateLocalTransaction_013) is NOT NULL THEN
+		SET outRef.DateLocalTransaction_013= inputRef.DateLocalTransaction_013;
+	END IF;
+	IF FIELDNAME(inputRef.DateExpiration_014) is NOT NULL THEN
+		SET outRef.DateExpiration_014= inputRef.DateExpiration_014;
+	END IF;
+	IF FIELDNAME(inputRef.DateSettlement_015) is NOT NULL THEN
+		SET outRef.DateSettlement_015= inputRef.DateSettlement_015;
+	END IF;
+	IF FIELDNAME(inputRef.DateConversion_016) is NOT NULL THEN
+		SET outRef.DateConversion_016= inputRef.DateConversion_016;
+	END IF;
+	IF FIELDNAME(inputRef.DateCapture_017) is NOT NULL THEN
+		SET outRef.DateCapture_017= inputRef.DateCapture_017;
+	END IF;
+	IF FIELDNAME(inputRef.MerchantType_018) is NOT NULL THEN
+		SET outRef.MerchantType_018= inputRef.MerchantType_018;
+	END IF;
+	IF FIELDNAME(inputRef.AcquiringInstitutionCountryCode_019) is NOT NULL THEN
+		SET outRef.AcquiringInstitutionCountryCode_019= inputRef.AcquiringInstitutionCountryCode_019;
+	END IF;
+	IF FIELDNAME(inputRef.PANExtendedCountryCode_020) is NOT NULL THEN
+		SET outRef.PANExtendedCountryCode_020= inputRef.PANExtendedCountryCode_020;
+	END IF;
+	IF FIELDNAME(inputRef.ForwardingInstitutionCountryCode_021) is NOT NULL THEN
+		SET outRef.ForwardingInstitutionCountryCode_021= inputRef.ForwardingInstitutionCountryCode_021;
+	END IF;
+	IF FIELDNAME(inputRef.PointOfServiceEntryMode_022) is NOT NULL THEN
+		SET outRef.PointOfServiceEntryMode_022= inputRef.PointOfServiceEntryMode_022;
+	END IF;
+	IF FIELDNAME(inputRef.CardSequenceNumber_023) is NOT NULL THEN
+		SET outRef.CardSequenceNumber_023= inputRef.CardSequenceNumber_023;
+	END IF;
+	IF FIELDNAME(inputRef.NetworkInternationalIdentifier_024) is NOT NULL THEN
+		SET outRef.NetworkInternationalIdentifier_024= inputRef.NetworkInternationalIdentifier_024;
+	END IF;
+	IF FIELDNAME(inputRef.PointOfServiceConditionCode_025) is NOT NULL THEN
+		SET outRef.PointOfServiceConditionCode_025= inputRef.PointOfServiceConditionCode_025;
+	END IF;
+	IF FIELDNAME(inputRef.PointOfServiceCaptureCode_026) is NOT NULL THEN
+		SET outRef.PointOfServiceCaptureCode_026= inputRef.PointOfServiceCaptureCode_026;
+	END IF;
+	IF FIELDNAME(inputRef.AuthorizingIdentificationResponseLength_027) is NOT NULL THEN
+		SET outRef.AuthorizingIdentificationResponseLength_027= inputRef.AuthorizingIdentificationResponseLength_027;
+	END IF;
+	IF FIELDNAME(inputRef.AmountTransactionFee_028) is NOT NULL THEN
+		SET outRef.AmountTransactionFee_028= inputRef.AmountTransactionFee_028;
+	END IF;
+	IF FIELDNAME(inputRef.AmountSettlementFee_029) is NOT NULL THEN
+		SET outRef.AmountSettlementFee_029= inputRef.AmountSettlementFee_029;
+	END IF;
+	IF FIELDNAME(inputRef.AmountTransactionProcessingFee_030) is NOT NULL THEN
+		SET outRef.AmountTransactionProcessingFee_030= inputRef.AmountTransactionProcessingFee_030;
+	END IF;
+	IF FIELDNAME(inputRef.AmountSettlementProcessingFee_031) is NOT NULL THEN
+		SET outRef.AmountSettlementProcessingFee_031= inputRef.AmountSettlementProcessingFee_031;
+	END IF;
+	IF FIELDNAME(inputRef.AcquiringInstitutionIdentificationCode_032) is NOT NULL THEN
+		SET outRef.AcquiringInstitutionIdentificationCode_032= inputRef.AcquiringInstitutionIdentificationCode_032;
+	END IF;
+	IF FIELDNAME(inputRef.ForwardingInstitutionIdentificationCode_033) is NOT NULL THEN
+		SET outRef.ForwardingInstitutionIdentificationCode_033= inputRef.ForwardingInstitutionIdentificationCode_033;
+	END IF;
+	IF FIELDNAME(inputRef.PrimaryAccountNumberExtended_034) is NOT NULL THEN
+		SET outRef.PrimaryAccountNumberExtended_034= inputRef.PrimaryAccountNumberExtended_034;
+	END IF;
+	IF FIELDNAME(inputRef.Track2Data_035) is NOT NULL THEN
+		SET outRef.Track2Data_035= inputRef.Track2Data_035;
+	END IF;
+	IF FIELDNAME(inputRef.Track3Data_036) is NOT NULL THEN
+		SET outRef.Track3Data_036= inputRef.Track3Data_036;
+	END IF;
+	IF FIELDNAME(inputRef.RetrievalReferenceNumber_037) is NOT NULL THEN
+		SET outRef.RetrievalReferenceNumber_037= inputRef.RetrievalReferenceNumber_037;
+	END IF;
+	IF FIELDNAME(inputRef.AuthorizationIdentificationResponse_038) is NOT NULL THEN
+		SET outRef.AuthorizationIdentificationResponse_038= inputRef.AuthorizationIdentificationResponse_038;
+	END IF;
+	IF FIELDNAME(inputRef.ResponseCode_039) is NOT NULL THEN
+		SET outRef.ResponseCode_039= inputRef.ResponseCode_039;
+	END IF;
+	IF FIELDNAME(inputRef.ServiceRestrictionCode_040) is NOT NULL THEN
+		SET outRef.ServiceRestrictionCode_040= inputRef.ServiceRestrictionCode_040;
+	END IF;
+	IF FIELDNAME(inputRef.CardAcceptorTerminalIdentification_041) is NOT NULL THEN
+		SET outRef.CardAcceptorTerminalIdentification_041= inputRef.CardAcceptorTerminalIdentification_041;
+	END IF;
+	IF FIELDNAME(inputRef.CardAcceptorIdentificationCode_042) is NOT NULL THEN
+		SET outRef.CardAcceptorIdentificationCode_042= inputRef.CardAcceptorIdentificationCode_042;
+	END IF;
+	IF FIELDNAME(inputRef.CardAcceptorNameLocation_043) is NOT NULL THEN
+		SET outRef.CardAcceptorNameLocation_043= inputRef.CardAcceptorNameLocation_043;
+	END IF;
+	IF FIELDNAME(inputRef.AdditionalResponseData_044) is NOT NULL THEN
+		SET outRef.AdditionalResponseData_044= inputRef.AdditionalResponseData_044;
+	END IF;
+	IF FIELDNAME(inputRef.Track1Data_045) is NOT NULL THEN
+		SET outRef.Track1Data_045= inputRef.Track1Data_045;
+	END IF;
+	IF FIELDNAME(inputRef.AdditionalDataISO_046) is NOT NULL THEN
+		SET outRef.AdditionalDataISO_046= inputRef.AdditionalDataISO_046;
+	END IF;
+	IF FIELDNAME(inputRef.AdditionalDataNational_047) is NOT NULL THEN
+		SET outRef.AdditionalDataNational_047= inputRef.AdditionalDataNational_047;
+	END IF;
+	IF FIELDNAME(inputRef.AdditionalDataPrivate_048) is NOT NULL THEN
+		SET outRef.AdditionalDataPrivate_048= inputRef.AdditionalDataPrivate_048;
+	END IF;
+	IF FIELDNAME(inputRef.CurrencyCodeTransaction_049) is NOT NULL THEN
+		SET outRef.CurrencyCodeTransaction_049= inputRef.CurrencyCodeTransaction_049;
+	END IF;
+	IF FIELDNAME(inputRef.CurrencyCodeSettlement_050) is NOT NULL THEN
+		SET outRef.CurrencyCodeSettlement_050= inputRef.CurrencyCodeSettlement_050;
+	END IF;
+	IF FIELDNAME(inputRef.CurrencyCodeCardholderBilling_051) is NOT NULL THEN
+		SET outRef.CurrencyCodeCardholderBilling_051= inputRef.CurrencyCodeCardholderBilling_051;
+	END IF;
+	IF FIELDNAME(inputRef.PersonalIdentificationNumberData_052) is NOT NULL THEN
+		SET outRef.PersonalIdentificationNumberData_052= inputRef.PersonalIdentificationNumberData_052;
+	END IF;
+	IF FIELDNAME(inputRef.SecurityRelatedControlInformation_053) is NOT NULL THEN
+		SET outRef.SecurityRelatedControlInformation_053= inputRef.SecurityRelatedControlInformation_053;
+	END IF;
+	IF FIELDNAME(inputRef.AdditionalAmounts_054) is NOT NULL THEN
+		SET outRef.AdditionalAmounts_054= inputRef.AdditionalAmounts_054;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedISO_055) is NOT NULL THEN
+		SET outRef.ReservedISO_055= inputRef.ReservedISO_055;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedISO_056) is NOT NULL THEN
+		SET outRef.ReservedISO_056= inputRef.ReservedISO_056;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedNational_057) is NOT NULL THEN
+		SET outRef.ReservedNational_057= inputRef.ReservedNational_057;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedNational_058) is NOT NULL THEN
+		SET outRef.ReservedNational_058= inputRef.ReservedNational_058;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedNational_059) is NOT NULL THEN
+		SET outRef.ReservedNational_059= inputRef.ReservedNational_059;
+	END IF;
+	IF FIELDNAME(inputRef.AdviceReasonCode_060) is NOT NULL THEN
+		SET outRef.AdviceReasonCode_060= inputRef.AdviceReasonCode_060;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedPrivate_061) is NOT NULL THEN
+		SET outRef.ReservedPrivate_061= inputRef.ReservedPrivate_061;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedPrivate_062) is NOT NULL THEN
+		SET outRef.ReservedPrivate_062= inputRef.ReservedPrivate_062;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedPrivate_063) is NOT NULL THEN
+		SET outRef.ReservedPrivate_063= inputRef.ReservedPrivate_063;
+	END IF;
+	IF FIELDNAME(inputRef.MessageAuthenticationCode_064) is NOT NULL THEN
+		SET outRef.MessageAuthenticationCode_064= inputRef.MessageAuthenticationCode_064;
+	END IF;
+	IF FIELDNAME(inputRef.TertiaryBitmap_065) is NOT NULL THEN
+		SET outRef.TertiaryBitmap_065= inputRef.TertiaryBitmap_065;
+	END IF;
+	IF FIELDNAME(inputRef.SettlementCode_066) is NOT NULL THEN
+		SET outRef.SettlementCode_066= inputRef.SettlementCode_066;
+	END IF;
+	IF FIELDNAME(inputRef.ExtendedPaymentCode_067) is NOT NULL THEN
+		SET outRef.ExtendedPaymentCode_067= inputRef.ExtendedPaymentCode_067;
+	END IF;
+	IF FIELDNAME(inputRef.ReceivingInstitutionCountryCode_068) is NOT NULL THEN
+		SET outRef.ReceivingInstitutionCountryCode_068= inputRef.ReceivingInstitutionCountryCode_068;
+	END IF;
+	IF FIELDNAME(inputRef.SettlementInstitutionCountryCode_069) is NOT NULL THEN
+		SET outRef.SettlementInstitutionCountryCode_069= inputRef.SettlementInstitutionCountryCode_069;
+	END IF;
+	IF FIELDNAME(inputRef.NetworkManagementInformationCode_070) is NOT NULL THEN
+		SET outRef.NetworkManagementInformationCode_070= inputRef.NetworkManagementInformationCode_070;
+	END IF;
+	IF FIELDNAME(inputRef.MessageNumber_071) is NOT NULL THEN
+		SET outRef.MessageNumber_071= inputRef.MessageNumber_071;
+	END IF;
+	IF FIELDNAME(inputRef.MessageNumberLast_072) is NOT NULL THEN
+		SET outRef.MessageNumberLast_072= inputRef.MessageNumberLast_072;
+	END IF;
+	IF FIELDNAME(inputRef.DateAction_073) is NOT NULL THEN
+		SET outRef.DateAction_073= inputRef.DateAction_073;
+	END IF;
+	IF FIELDNAME(inputRef.CreditsNumber_074) is NOT NULL THEN
+		SET outRef.CreditsNumber_074= inputRef.CreditsNumber_074;
+	END IF;
+	IF FIELDNAME(inputRef.CreditsReversalNumber_075) is NOT NULL THEN
+		SET outRef.CreditsReversalNumber_075= inputRef.CreditsReversalNumber_075;
+	END IF;
+	
+	IF FIELDNAME(inputRef.DebitsNumber_076) is NOT NULL THEN
+		SET outRef.DebitsNumber_076= inputRef.DebitsNumber_076;
+	END IF;
+	IF FIELDNAME(inputRef.DebitsReversalNumber_077) is NOT NULL THEN
+		SET outRef.DebitsReversalNumber_077= inputRef.DebitsReversalNumber_077;
+	END IF;
+	IF FIELDNAME(inputRef.TransferNumber_078) is NOT NULL THEN
+		SET outRef.TransferNumber_078= inputRef.TransferNumber_078;
+	END IF;
+	IF FIELDNAME(inputRef.TransferReversalNumber_079) is NOT NULL THEN
+		SET outRef.TransferReversalNumber_079= inputRef.TransferReversalNumber_079;
+	END IF;
+	IF FIELDNAME(inputRef.InquiriesNumber_080) is NOT NULL THEN
+		SET outRef.InquiriesNumber_080= inputRef.InquiriesNumber_080;
+	END IF;
+	IF FIELDNAME(inputRef.AuthorizationsNumber_081) is NOT NULL THEN
+		SET outRef.AuthorizationsNumber_081= inputRef.AuthorizationsNumber_081;
+	END IF;
+	IF FIELDNAME(inputRef.CreditsProcessingFeeAmount_082) is NOT NULL THEN
+		SET outRef.CreditsProcessingFeeAmount_082= inputRef.CreditsProcessingFeeAmount_082;
+	END IF;
+	IF FIELDNAME(inputRef.CreditsTransactionFeeAmount_083) is NOT NULL THEN
+		SET outRef.CreditsTransactionFeeAmount_083= inputRef.CreditsTransactionFeeAmount_083;
+	END IF;
+	IF FIELDNAME(inputRef.DebitsProcessingFeeAmount_084) is NOT NULL THEN
+		SET outRef.DebitsProcessingFeeAmount_084= inputRef.DebitsProcessingFeeAmount_084;
+	END IF;
+	IF FIELDNAME(inputRef.DebitsTransactionFeeAmount_085) is NOT NULL THEN
+		SET outRef.DebitsTransactionFeeAmount_085= inputRef.DebitsTransactionFeeAmount_085;
+	END IF;
+	IF FIELDNAME(inputRef.CreditsAmount_086) is NOT NULL THEN
+		SET outRef.CreditsAmount_086= inputRef.CreditsAmount_086;
+	END IF;
+	IF FIELDNAME(inputRef.CreditsReversalAmount_087) is NOT NULL THEN
+		SET outRef.CreditsReversalAmount_087= inputRef.CreditsReversalAmount_087;
+	END IF;
+	IF FIELDNAME(inputRef.DebitsAmount_088) is NOT NULL THEN
+		SET outRef.DebitsAmount_088= inputRef.DebitsAmount_088;
+	END IF;
+	IF FIELDNAME(inputRef.DebitsReversalAmount_089) is NOT NULL THEN
+		SET outRef.DebitsReversalAmount_089= inputRef.DebitsReversalAmount_089;
+	END IF;
+	IF FIELDNAME(inputRef.OriginalDataElements_090) is NOT NULL THEN
+		SET outRef.OriginalDataElements_090= inputRef.OriginalDataElements_090;
+	END IF;
+	IF FIELDNAME(inputRef.FileUpdateCode_091) is NOT NULL THEN
+		SET outRef.FileUpdateCode_091= inputRef.FileUpdateCode_091;
+	END IF;
+	IF FIELDNAME(inputRef.FileSecurityCode_092) is NOT NULL THEN
+		SET outRef.FileSecurityCode_092= inputRef.FileSecurityCode_092;
+	END IF;
+	IF FIELDNAME(inputRef.ResponseIndicator_093) is NOT NULL THEN
+		SET outRef.ResponseIndicator_093= inputRef.ResponseIndicator_093;
+	END IF;
+	IF FIELDNAME(inputRef.ServiceIndicator_094) is NOT NULL THEN
+		SET outRef.ServiceIndicator_094= inputRef.ServiceIndicator_094;
+	END IF;
+	IF FIELDNAME(inputRef.ReplacementAmounts_095) is NOT NULL THEN
+		SET outRef.ReplacementAmounts_095= inputRef.ReplacementAmounts_095;
+	END IF;
+	IF FIELDNAME(inputRef.MessageSecurityCode_096) is NOT NULL THEN
+		SET outRef.MessageSecurityCode_096= inputRef.MessageSecurityCode_096;
+	END IF;
+	IF FIELDNAME(inputRef.AmountNetSettlement_097) is NOT NULL THEN
+		SET outRef.AmountNetSettlement_097= inputRef.AmountNetSettlement_097;
+	END IF;
+	IF FIELDNAME(inputRef.Payee_098) is NOT NULL THEN
+		SET outRef.Payee_098= inputRef.Payee_098;
+	END IF;
+	IF FIELDNAME(inputRef.SettlementInstitutionIdentificationCode_099) is NOT NULL THEN
+		SET outRef.SettlementInstitutionIdentificationCode_099= inputRef.SettlementInstitutionIdentificationCode_099;
+	END IF;
+	IF FIELDNAME(inputRef.ReceivingInstitutionIdentificationCode_100) is NOT NULL THEN
+		SET outRef.ReceivingInstitutionIdentificationCode_100= inputRef.ReceivingInstitutionIdentificationCode_100;
+	END IF;
+	IF FIELDNAME(inputRef.FileName_101) is NOT NULL THEN
+		SET outRef.FileName_101= inputRef.FileName_101;
+	END IF;
+	IF FIELDNAME(inputRef.AccountIdentification1_102) is NOT NULL THEN
+		SET outRef.AccountIdentification1_102= inputRef.AccountIdentification1_102;
+	END IF;
+	IF FIELDNAME(inputRef.AccountIdentification2_103) is NOT NULL THEN
+		SET outRef.AccountIdentification2_103= inputRef.AccountIdentification2_103;
+	END IF;
+	IF FIELDNAME(inputRef.TransactionDescription_104) is NOT NULL THEN
+		SET outRef.TransactionDescription_104= inputRef.TransactionDescription_104;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedISO_105) is NOT NULL THEN
+		SET outRef.ReservedISO_105= inputRef.ReservedISO_105;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedISO_106) is NOT NULL THEN
+		SET outRef.ReservedISO_106= inputRef.ReservedISO_106;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedISO_107) is NOT NULL THEN
+		SET outRef.ReservedISO_107= inputRef.ReservedISO_107;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedISO_108) is NOT NULL THEN
+		SET outRef.ReservedISO_108= inputRef.ReservedISO_108;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedISO_109) is NOT NULL THEN
+		SET outRef.ReservedISO_109= inputRef.ReservedISO_109;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedISO_110) is NOT NULL THEN
+		SET outRef.ReservedISO_110= inputRef.ReservedISO_110;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedISO_111) is NOT NULL THEN
+		SET outRef.ReservedISO_111= inputRef.ReservedISO_111;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedNational_112) is NOT NULL THEN
+		SET outRef.ReservedNational_112= inputRef.ReservedNational_112;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedNational_113) is NOT NULL THEN
+		SET outRef.ReservedNational_113= inputRef.ReservedNational_113;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedNational_114) is NOT NULL THEN
+		SET outRef.ReservedNational_114= inputRef.ReservedNational_114;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedNational_115) is NOT NULL THEN
+		SET outRef.ReservedNational_115= inputRef.ReservedNational_115;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedNational_116) is NOT NULL THEN
+		SET outRef.ReservedNational_116= inputRef.ReservedNational_116;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedNational_117) is NOT NULL THEN
+		SET outRef.ReservedNational_117= inputRef.ReservedNational_117;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedNational_118) is NOT NULL THEN
+		SET outRef.ReservedNational_118= inputRef.ReservedNational_118;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedNational_119) is NOT NULL THEN
+		SET outRef.ReservedNational_119= inputRef.ReservedNational_119;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedPrivate_120) is NOT NULL THEN
+		SET outRef.ReservedPrivate_120= inputRef.ReservedPrivate_120;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedPrivate_121) is NOT NULL THEN
+		SET outRef.ReservedPrivate_121= inputRef.ReservedPrivate_121;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedPrivate_122) is NOT NULL THEN
+		SET outRef.ReservedPrivate_122= inputRef.ReservedPrivate_122;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedPrivate_123) is NOT NULL THEN
+		SET outRef.ReservedPrivate_123= inputRef.ReservedPrivate_123;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedPrivate_124) is NOT NULL THEN
+		SET outRef.ReservedPrivate_124= inputRef.ReservedPrivate_124;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedPrivate_125) is NOT NULL THEN
+		SET outRef.ReservedPrivate_125= inputRef.ReservedPrivate_125;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedPrivate_126) is NOT NULL THEN
+		SET outRef.ReservedPrivate_126= inputRef.ReservedPrivate_126;
+	END IF;
+	IF FIELDNAME(inputRef.ReservedPrivate_127) is NOT NULL THEN
+		SET outRef.ReservedPrivate_127= inputRef.ReservedPrivate_127;
+	END IF;
+	IF is127FieldExists = TRUE THEN
+		DECLARE postilionBitMapRef REFERENCE TO inputRef.PostilionBitmap.[1];
+		CALL copyBitMap(postilionBitMapRef,inputRef,outRef,'PostilionBitmap');
+	END IF;
+	IF FIELDNAME(inputRef.SwitchKeyPostilionPrivate_127_2) is NOT NULL THEN
+		SET outRef.SwitchKeyPostilionPrivate_127_2= inputRef.SwitchKeyPostilionPrivate_127_2;
+	END IF;
+	IF FIELDNAME(inputRef.RoutingInformationPostilionPrivate_127_3) is NOT NULL THEN
+		SET outRef.RoutingInformationPostilionPrivate_127_3= inputRef.RoutingInformationPostilionPrivate_127_3;
+	END IF;
+	IF FIELDNAME(inputRef.POSDataPostilionPrivate_127_4) is NOT NULL THEN
+		SET outRef.POSDataPostilionPrivate_127_4= inputRef.POSDataPostilionPrivate_127_4;
+	END IF;
+	IF FIELDNAME(inputRef.ServiceStationDataPostilionPrivate_127_5) is NOT NULL THEN
+		SET outRef.ServiceStationDataPostilionPrivate_127_5= inputRef.ServiceStationDataPostilionPrivate_127_5;
+	END IF;
+	IF FIELDNAME(inputRef.AuthorizationProfilePostilionPrivate_127_6) is NOT NULL THEN
+		SET outRef.AuthorizationProfilePostilionPrivate_127_6= inputRef.AuthorizationProfilePostilionPrivate_127_6;
+	END IF;
+	IF FIELDNAME(inputRef.CheckDataPostilionPrivate_127_7) is NOT NULL THEN
+		SET outRef.CheckDataPostilionPrivate_127_7= inputRef.CheckDataPostilionPrivate_127_7;
+	END IF;
+	IF FIELDNAME(inputRef.RetentionDataPostilionPrivate_127_8) is NOT NULL THEN
+		SET outRef.RetentionDataPostilionPrivate_127_8= inputRef.RetentionDataPostilionPrivate_127_8;
+	END IF;
+	IF FIELDNAME(inputRef.AdditionalNodeDataPostilionPrivate_127_9) is NOT NULL THEN
+		SET outRef.AdditionalNodeDataPostilionPrivate_127_9= inputRef.AdditionalNodeDataPostilionPrivate_127_9;
+	END IF;
+	IF FIELDNAME(inputRef.CVVPostilionPrivate_127_10) is NOT NULL THEN
+		SET outRef.CVVPostilionPrivate_127_10= inputRef.CVVPostilionPrivate_127_10;
+	END IF;
+	IF FIELDNAME(inputRef.OriginalKeyPostilionPrivate_127_11) is NOT NULL THEN
+		SET outRef.OriginalKeyPostilionPrivate_127_11= inputRef.OriginalKeyPostilionPrivate_127_11;
+	END IF;
+	IF FIELDNAME(inputRef.OriginalKeyPostilionPrivate_127_12) is NOT NULL THEN
+		SET outRef.OriginalKeyPostilionPrivate_127_12= inputRef.OriginalKeyPostilionPrivate_127_12;
+	END IF;
+	IF FIELDNAME(inputRef.PosGeographicDataPostilionPrivate_127_13) is NOT NULL THEN
+		SET outRef.PosGeographicDataPostilionPrivate_127_13= inputRef.PosGeographicDataPostilionPrivate_127_13;
+	END IF;
+	IF FIELDNAME(inputRef.SponsorBankPostilionPrivate_127_14) is NOT NULL THEN
+		SET outRef.SponsorBankPostilionPrivate_127_14= inputRef.SponsorBankPostilionPrivate_127_14;
+	END IF;
+	
+	IF FIELDNAME(inputRef.AddressVerificationDataPostilionPrivate_127_15) is NOT NULL THEN
+		SET outRef.AddressVerificationDataPostilionPrivate_127_15= inputRef.AddressVerificationDataPostilionPrivate_127_15;
+	END IF;
+	IF FIELDNAME(inputRef.AddressVerificationResultPostilionPrivate_127_16) is NOT NULL THEN
+		SET outRef.AddressVerificationResultPostilionPrivate_127_16= inputRef.AddressVerificationResultPostilionPrivate_127_16;
+	END IF;
+	
+	IF FIELDNAME(inputRef.CardHolderInformationPostilionPrivate_127_17) is NOT NULL THEN
+		SET outRef.CardHolderInformationPostilionPrivate_127_17= inputRef.CardHolderInformationPostilionPrivate_127_17;
+	END IF;
+	IF FIELDNAME(inputRef.ValidationDataPostilionPrivate_127_18) is NOT NULL THEN
+		SET outRef.ValidationDataPostilionPrivate_127_18= inputRef.ValidationDataPostilionPrivate_127_18;
+	END IF;
+	IF FIELDNAME(inputRef.BankDetailsPostilionPrivate_127_19) is NOT NULL THEN
+		SET outRef.BankDetailsPostilionPrivate_127_19= inputRef.BankDetailsPostilionPrivate_127_19;
+	END IF;
+	IF FIELDNAME(inputRef.OriginatorAuthorizerDatePostilionPrivate_127_20) is NOT NULL THEN
+		SET outRef.OriginatorAuthorizerDatePostilionPrivate_127_20= inputRef.OriginatorAuthorizerDatePostilionPrivate_127_20;
+	END IF;
+	IF FIELDNAME(inputRef.RecordIdentificationPostilionPrivate_127_21) is NOT NULL THEN
+		SET outRef.RecordIdentificationPostilionPrivate_127_21= inputRef.RecordIdentificationPostilionPrivate_127_21;
+	END IF;
+	IF FIELDNAME(inputRef.StructuredDataPostilionPrivate_127_22) is NOT NULL THEN
+		SET outRef.StructuredDataPostilionPrivate_127_22= inputRef.StructuredDataPostilionPrivate_127_22;
+	END IF;
+	IF FIELDNAME(inputRef.PayeeNameAddressPostilionPrivate_127_23) is NOT NULL THEN
+		SET outRef.PayeeNameAddressPostilionPrivate_127_23= inputRef.PayeeNameAddressPostilionPrivate_127_23;
+	END IF;
+	IF FIELDNAME(inputRef.PayerAccountPostilionPrivate_127_24) is NOT NULL THEN
+		SET outRef.PayerAccountPostilionPrivate_127_24= inputRef.PayerAccountPostilionPrivate_127_24;
+	END IF;
+	IF FIELDNAME(inputRef.ICCDataPostilionPrivate_127_25) is NOT NULL THEN
+		SET outRef.ICCDataPostilionPrivate_127_25= inputRef.ICCDataPostilionPrivate_127_25;
+	END IF;
+	IF FIELDNAME(inputRef.OriginalNodePostilionPrivate_127_26) is NOT NULL THEN
+		SET outRef.OriginalNodePostilionPrivate_127_26= inputRef.OriginalNodePostilionPrivate_127_26;
+	END IF;
+	IF FIELDNAME(inputRef.CardVerificationResultPostilionPrivate_127_27) is NOT NULL THEN
+		SET outRef.CardVerificationResultPostilionPrivate_127_27= inputRef.CardVerificationResultPostilionPrivate_127_27;
+	END IF;
+	IF FIELDNAME(inputRef.AmericanExpressCardIdentifierPostilionPrivate_127_28) is NOT NULL THEN
+		SET outRef.AmericanExpressCardIdentifierPostilionPrivate_127_28= inputRef.AmericanExpressCardIdentifierPostilionPrivate_127_28;
+	END IF;
+	IF FIELDNAME(inputRef.SecureData3DPostilionPrivate_127_29) is NOT NULL THEN
+		SET outRef.SecureData3DPostilionPrivate_127_29= inputRef.SecureData3DPostilionPrivate_127_29;
+	END IF;
+	IF FIELDNAME(inputRef.SecureData3DResultPostilionPrivate_127_30) is NOT NULL THEN
+		SET outRef.SecureData3DResultPostilionPrivate_127_30= inputRef.SecureData3DResultPostilionPrivate_127_30;
+	END IF;
+	IF FIELDNAME(inputRef.IssuerNetworkIDPostilionPrivate_127_31) is NOT NULL THEN
+		SET outRef.IssuerNetworkIDPostilionPrivate_127_31= inputRef.IssuerNetworkIDPostilionPrivate_127_31;
+	END IF;
+	IF FIELDNAME(inputRef.UCAFDataPostilionPrivate_127_32) is NOT NULL THEN
+		SET outRef.UCAFDataPostilionPrivate_127_32= inputRef.UCAFDataPostilionPrivate_127_32;
+	END IF;
+	IF FIELDNAME(inputRef.ExtendedTransactionTypePostilionPrivate_127_33) is NOT NULL THEN
+		SET outRef.ExtendedTransactionTypePostilionPrivate_127_33= inputRef.ExtendedTransactionTypePostilionPrivate_127_33;
+	END IF;
+	IF FIELDNAME(inputRef.AccountTypeQualifierPostilionPrivate_127_34) is NOT NULL THEN
+		SET outRef.AccountTypeQualifierPostilionPrivate_127_34= inputRef.AccountTypeQualifierPostilionPrivate_127_34;
+	END IF;
+	IF FIELDNAME(inputRef.AcquirerNetworkIDPostilionPrivate_127_35) is NOT NULL THEN
+		SET outRef.AcquirerNetworkIDPostilionPrivate_127_35= inputRef.AcquirerNetworkIDPostilionPrivate_127_35;
+	END IF;
+	IF FIELDNAME(inputRef.CustomerIDPostilionPrivate_127_36) is NOT NULL THEN
+		SET outRef.CustomerIDPostilionPrivate_127_36= inputRef.CustomerIDPostilionPrivate_127_36;
+	END IF;
+	IF FIELDNAME(inputRef.ExtendedResponseCodePostilionPrivate_127_37) is NOT NULL THEN
+		SET outRef.ExtendedResponseCodePostilionPrivate_127_37= inputRef.ExtendedResponseCodePostilionPrivate_127_37;
+	END IF;
+	IF FIELDNAME(inputRef.AdditionalPOSDataCodePostilionPrivate_127_38) is NOT NULL THEN
+		SET outRef.AdditionalPOSDataCodePostilionPrivate_127_38= inputRef.AdditionalPOSDataCodePostilionPrivate_127_38;
+	END IF;
+	IF FIELDNAME(inputRef.OriginalResponseCodePostilionPrivate_127_39) is NOT NULL THEN
+		SET outRef.OriginalResponseCodePostilionPrivate_127_39= inputRef.OriginalResponseCodePostilionPrivate_127_39;
+	END IF;
+	IF FIELDNAME(inputRef.MessageAuthenticationCode_128) is NOT NULL THEN
+		SET outRef.MessageAuthenticationCode_128= inputRef.MessageAuthenticationCode_128;
+	END IF;
+	
+END;
+CREATE FUNCTION getPayLoad(IN inputRef REFERENCE, IN encodeRef REFERENCE,IN propertiesRef REFERENCE) RETURNS CHARACTER 
+	BEGIN
+		DECLARE payload CHARACTER '';
+		SET payload = CAST(ASBITSTREAM(inputRef ENCODING encodeRef CCSID propertiesRef)AS CHARACTER); 
+		RETURN payload;
+	END;
+
+CREATE PROCEDURE MTIResponse(IN mtiVersion CHARACTER,IN mtiClass CHARACTER,IN mtiFunction CHARACTER,IN mtiOrigin CHARACTER,OUT env REFERENCE) 
+	BEGIN
+		
+		CASE
+			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0200' THEN
+				SET env.mtiResponse = '0210';
+			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0400' THEN
+				SET env.mtiResponse = '0410';
+			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0500' THEN
+				SET env.mtiResponse = '0510';
+			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0300' THEN
+				SET env.mtiResponse = '0310';
+			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0600' THEN
+				SET env.mtiResponse = '0610';
+		ELSE
+		END CASE;
+	END;
+	CREATE PROCEDURE BuildExceptionDetails(IN excpRef REFERENCE,INOUT outRef REFERENCE,IN serviceName CHARACTER) BEGIN
+		SET outRef.excpType = FIELDNAME(excpRef);
+		SET outRef.excpNumber = excpRef.Number;
+		SET outRef.excpLable = excpRef.Label;
+		SET outRef.excpText = excpRef.Text;
+		CASE
+		WHEN excpRef.excpType = 'FatalException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_001';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Fatal exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+			
+		WHEN excpRef.excpType = 'RecoverableException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_002';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Recoverable Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+		WHEN excpRef.excpType = 'ConfigurationException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_003';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Configuration Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+		WHEN excpRef.excpType = 'SecurityException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_004';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Security Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+		WHEN excpRef.excpType = 'ParserException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_005';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Parser Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+
+		WHEN excpRef.excpType = 'ConversionException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_006';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Conversion Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+
+		WHEN excpRef.excpType = 'DatabaseException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_007';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Database Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+
+		WHEN excpRef.excpType = 'UserException'	 THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_008';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'User Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+
+		WHEN excpRef.excpType = 'CastException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_009';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Cast Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+
+		WHEN excpRef.excpType = 'MessageException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_010';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Message Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+
+		WHEN excpRef.excpType = 'SqlException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_011';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Sql Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+
+		WHEN excpRef.excpType = 'SocketException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_012';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Socket Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+
+		WHEN excpRef.excpType = 'SocketTimeoutException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_013';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Socket Timeout Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+
+		WHEN excpRef.excpType = 'UnknownException' THEN
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_014';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Unknown Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+	
+		ELSE
+			SET outRef.Status = 'FAILURE';
+			SET outRef.ErrorCode = serviceName||'_015';
+			SET outRef.ErrorType = excpRef.excpType;
+			SET outRef.Description = 'Exception at Message flow: '||CAST(excpRef.excpLable AS CHARACTER);
+		END CASE;
+	END;
+	
+	CREATE FUNCTION writeToLogFile( IN COMPONENT_NAME CHARACTER,
+	IN LOGGER_NAME CHARACTER,
+	IN LEVEL CHARACTER,
+	IN TEXT CHARACTER )
+	RETURNS BOOLEAN
+	LANGUAGE JAVA
+	EXTERNAL NAME "com.ibm.broker.IAM3.Log4jNode.log";
+
+	CREATE FUNCTION initLog4j( IN CONFIG_FILE_NAME CHARACTER )
+	RETURNS BOOLEAN
+	LANGUAGE JAVA
+	EXTERNAL NAME "com.ibm.broker.IAM3.Log4jNode.initLog4j";
