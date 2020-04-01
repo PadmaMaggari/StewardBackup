@@ -1,0 +1,396 @@
+
+ PATH CommonBitMapGen;
+CREATE COMPUTE MODULE WALLET_TO_BANK_ISO_Compute
+	DECLARE rc BOOLEAN;
+	DECLARE Config_File EXTERNAL CHARACTER '';
+	DECLARE IsLogRequired EXTERNAL CHARACTER '';  
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL initLog(Config_File) INTO rc;
+		 CALL wallet_To_Bank();
+		RETURN FALSE;
+	END;
+
+	
+	CREATE PROCEDURE wallet_To_Bank() BEGIN
+		
+		SET Environment.msgID = InputRoot.MQMD.MsgId;
+		DECLARE domainFldName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Domain = FIELDNAME(InputBody);
+		DECLARE req CHARACTER '';
+			IF IsLogRequired LIKE 'Y' THEN
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO','=================== Request Received ================') INTO rc;
+			SET req = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO',req) INTO rc;
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO','=================== Request Sent to POSTILION ================') INTO rc;
+		END IF;
+		DECLARE msgId CHARACTER CAST(InputRoot.MQMD.MsgId AS CHARACTER);  
+			DECLARE serverIp,brokerName,egName,payload CHARACTER'';
+			DECLARE msgTime TIMESTAMP CURRENT_TIMESTAMP;
+			SET req = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			SET OutputRoot.JSON.Data.DB_LOGGING.msgId = msgId;
+			SET OutputRoot.JSON.Data.DB_LOGGING.serverIp='192.168.2.15';
+			SET OutputRoot.JSON.Data.DB_LOGGING.brokerName ='ESB';
+			SET OutputRoot.JSON.Data.DB_LOGGING.egName ='IT';
+			SET OutputRoot.JSON.Data.DB_LOGGING.createdBy ='ESB';
+			SET OutputRoot.JSON.Data.DB_LOGGING.msgTime = msgTime; 
+			SET OutputRoot.JSON.Data.DB_LOGGING.payload = req;
+			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTime=msgTime;
+			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTP =req;
+			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTPTime =msgTime;
+
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'DB_AUDIT';
+			PROPAGATE TO TERMINAL 'out2';
+ 
+		CASE
+		WHEN domainFldName ='DFDL' THEN
+ 
+ 
+   CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
+    CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+
+DECLARE  outpayLoadRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+
+SET outpayLoadRef.MTI_Version =inRef.MTI_Version;
+SET outpayLoadRef.MTI_MessageClass =inRef.MTI_MessageClass;
+SET outpayLoadRef.MTI_MessageFunction =inRef.MTI_MessageFunction;
+SET outpayLoadRef.MTI_MessageOrigin =inRef.MTI_MessageOrigin;
+
+SET outpayLoadRef.PrimaryAccountNumber_002= inRef.PrimaryAccountNumber_002;
+SET outpayLoadRef.ProcessingCode_003= inRef.ProcessingCode_003;
+SET outpayLoadRef.AmountTransaction_004=inRef.AmountTransaction_004;
+SET outpayLoadRef.AmountSettlement_005=inRef.AmountSettlement_005;
+SET outpayLoadRef.AmountCardHolderBilling_006=inRef.AmountCardHolderBilling_006;
+SET outpayLoadRef.TransmissionDatetime_007=CAST(inRef.TransmissionDatetime_007 AS TIMESTAMP FORMAT 'MMddHHmmss');
+SET outpayLoadRef.AmountCardHolderBillingFee_008 = inRef.AmountCardHolderBillingFee_008;
+SET outpayLoadRef.ConversionRateSettlement_009=inRef.ConversionRateSettlement_009;
+SET outpayLoadRef.ConversionRateCardholderBilling_010=inRef.ConversionRateCardholderBilling_010;
+SET outpayLoadRef.SystemsTraceAuditNumber_011=inRef.SystemsTraceAuditNumber_011;
+SET outpayLoadRef.TimeLocalTransaction_012=CAST(inRef.TimeLocalTransaction_012 AS TIME FORMAT 'HHmmss');
+SET outpayLoadRef.DateLocalTransaction_013=CAST(inRef.DateLocalTransaction_013 AS DATE FORMAT 'MMdd');
+SET outpayLoadRef.DateExpiration_014=CAST(inRef.DateExpiration_014 AS TIMESTAMP FORMAT 'yyMM');
+SET outpayLoadRef.DateSettlement_015=CAST(inRef.DateSettlement_015 AS DATE FORMAT 'MMdd');
+SET outpayLoadRef.DateConversion_016=CAST(inRef.DateConversion_016 AS DATE FORMAT 'MMdd');
+SET outpayLoadRef.DateCapture_017=CAST(inRef.DateCapture_017 AS DATE FORMAT 'MMdd');
+SET outpayLoadRef.MerchantType_018=inRef.MerchantType_018;
+SET outpayLoadRef.AcquiringInstitutionCountryCode_019=inRef.AcquiringInstitutionCountryCode_019;
+SET outpayLoadRef.PANExtendedCountryCode_020=inRef.PANExtendedCountryCode_020;
+SET outpayLoadRef.ForwardingInstitutionCountryCode_021=inRef.ForwardingInstitutionCountryCode_021;
+SET outpayLoadRef.PointOfServiceEntryMode_022=inRef.PointOfServiceEntryMode_022;
+SET outpayLoadRef.CardSequenceNumber_023=inRef.CardSequenceNumber_023;
+SET outpayLoadRef.NetworkInternationalIdentifier_024=inRef.NetworkInternationalIdentifier_024;
+SET outpayLoadRef.PointOfServiceConditionCode_025=inRef.PointOfServiceConditionCode_025;
+SET outpayLoadRef.PointOfServiceCaptureCode_026=inRef.PointOfServiceCaptureCode_026;
+SET outpayLoadRef.AuthorizingIdentificationResponseLength_027=inRef.AuthorizingIdentificationResponseLength_027;
+SET outpayLoadRef.AmountTransactionFee_028=inRef.AmountTransactionFee_028;
+SET outpayLoadRef.AmountSettlementFee_029=inRef.AmountSettlementFee_029;
+SET outpayLoadRef.AmountTransactionProcessingFee_030=inRef.AmountTransactionProcessingFee_030;
+SET outpayLoadRef.AmountSettlementProcessingFee_031=inRef.AmountSettlementProcessingFee_031;
+SET outpayLoadRef.AcquiringInstitutionIdentificationCode_032=inRef.AcquiringInstitutionIdentificationCode_032;
+SET outpayLoadRef.ForwardingInstitutionIdentificationCode_033=inRef.ForwardingInstitutionIdentificationCode_033;
+SET outpayLoadRef.PrimaryAccountNumberExtended_034=inRef.PrimaryAccountNumberExtended_034;
+SET outpayLoadRef.Track2Data_035=inRef.Track2Data_035;
+SET outpayLoadRef.Track3Data_036=inRef.Track3Data_036;
+SET outpayLoadRef.RetrievalReferenceNumber_037=inRef.RetrievalReferenceNumber_037;
+SET outpayLoadRef.AuthorizationIdentificationResponse_038=inRef.AuthorizationIdentificationResponse_038;
+SET outpayLoadRef.ResponseCode_039=inRef.ResponseCode_039;
+SET outpayLoadRef.ServiceRestrictionCode_040=inRef.ServiceRestrictionCode_040;
+SET outpayLoadRef.CardAcceptorTerminalIdentification_041=inRef.CardAcceptorTerminalIdentification_041;
+SET outpayLoadRef.CardAcceptorIdentificationCode_042=inRef.CardAcceptorIdentificationCode_042;
+SET outpayLoadRef.CardAcceptorNameLocation_043=inRef.CardAcceptorNameLocation_043;
+SET outpayLoadRef.AdditionalResponseData_044=inRef.AdditionalResponseData_044;
+SET outpayLoadRef.Track1Data_045=inRef.Track1Data_045;
+SET outpayLoadRef.AdditionalDataISO_046=inRef.AdditionalDataISO_046;
+SET outpayLoadRef.AdditionalDataNational_047=inRef.AdditionalDataNational_047;
+SET outpayLoadRef.AdditionalDataPrivate_048=inRef.AdditionalDataPrivate_048;
+SET outpayLoadRef.CurrencyCodeTransaction_049=inRef.CurrencyCodeTransaction_049;
+SET outpayLoadRef.CurrencyCodeSettlement_050=inRef.CurrencyCodeSettlement_050;
+SET outpayLoadRef.CurrencyCodeCardholderBilling_051=inRef.CurrencyCodeCardholderBilling_051;
+SET outpayLoadRef.PersonalIdentificationNumberData_052=inRef.PersonalIdentificationNumberData_052;
+SET outpayLoadRef.SecurityRelatedControlInformation_053=inRef.SecurityRelatedControlInformation_053;
+SET outpayLoadRef.AdditionalAmounts_054=inRef.AdditionalAmounts_054;
+SET outpayLoadRef.ReservedISO_055=inRef.ReservedISO_055;
+SET outpayLoadRef.ReservedISO_056=inRef.ReservedISO_056;
+SET outpayLoadRef.ReservedNational_057=inRef.ReservedNational_057;
+SET outpayLoadRef.ReservedNational_058=inRef.ReservedNational_058;
+SET outpayLoadRef.ReservedNational_059=inRef.ReservedNational_059;
+SET outpayLoadRef.AdviceReasonCode_060=inRef.AdviceReasonCode_060;
+SET outpayLoadRef.ReservedPrivate_061=inRef.ReservedPrivate_061;
+SET outpayLoadRef.ReservedPrivate_062=inRef.ReservedPrivate_062;
+SET outpayLoadRef.ReservedPrivate_063=inRef.ReservedPrivate_063;
+SET outpayLoadRef.MessageAuthenticationCode_064=inRef.MessageAuthenticationCode_064;
+SET outpayLoadRef.TertiaryBitmap_065=inRef.TertiaryBitmap_065;
+SET outpayLoadRef.SettlementCode_066=inRef.SettlementCode_066;
+SET outpayLoadRef.ExtendedPaymentCode_067=inRef.ExtendedPaymentCode_067;
+SET outpayLoadRef.ReceivingInstitutionCountryCode_068=inRef.ReceivingInstitutionCountryCode_068;
+SET outpayLoadRef.SettlementInstitutionCountryCode_069=inRef.SettlementInstitutionCountryCode_069;
+SET outpayLoadRef.NetworkManagementInformationCode_070=inRef.NetworkManagementInformationCode_070;
+SET outpayLoadRef.MessageNumber_071=inRef.MessageNumber_071;
+SET outpayLoadRef.MessageNumberLast_072=inRef.MessageNumberLast_072;
+SET outpayLoadRef.DateAction_073=CAST(inRef.DateAction_073 AS TIMESTAMP FORMAT 'yyMMdd');
+SET outpayLoadRef.CreditsNumber_074=inRef.CreditsNumber_074;
+SET outpayLoadRef.CreditsReversalNumber_075=inRef.CreditsReversalNumber_075;
+SET outpayLoadRef.DebitsNumber_076=inRef.DebitsNumber_076;
+SET outpayLoadRef.DebitsReversalNumber_077=inRef.DebitsReversalNumber_077;
+SET outpayLoadRef.TransferNumber_078=inRef.TransferNumber_078;
+SET outpayLoadRef.TransferReversalNumber_079=inRef.TransferReversalNumber_079;
+SET outpayLoadRef.InquiriesNumber_080=inRef.InquiriesNumber_080;
+SET outpayLoadRef.AuthorizationsNumber_081=inRef.AuthorizationsNumber_081;
+SET outpayLoadRef.CreditsProcessingFeeAmount_082=inRef.CreditsProcessingFeeAmount_082;
+SET outpayLoadRef.CreditsTransactionFeeAmount_083=inRef.CreditsTransactionFeeAmount_083;
+SET outpayLoadRef.DebitsProcessingFeeAmount_084=inRef.DebitsProcessingFeeAmount_084;
+SET outpayLoadRef.DebitsTransactionFeeAmount_085=inRef.DebitsTransactionFeeAmount_085;
+SET outpayLoadRef.CreditsAmount_086=inRef.CreditsAmount_086;
+SET outpayLoadRef.CreditsReversalAmount_087=inRef.CreditsReversalAmount_087;
+SET outpayLoadRef.DebitsAmount_088=inRef.DebitsAmount_088;
+SET outpayLoadRef.DebitsReversalAmount_089=inRef.DebitsReversalAmount_089;
+SET outpayLoadRef.OriginalDataElements_090=inRef.OriginalDataElements_090;
+SET outpayLoadRef.FileUpdateCode_091=inRef.FileUpdateCode_091;
+SET outpayLoadRef.FileSecurityCode_092=inRef.FileSecurityCode_092;
+
+
+
+SET outpayLoadRef.ResponseIndicator_093=inRef.ResponseIndicator_093;
+SET outpayLoadRef.ServiceIndicator_094=inRef.ServiceIndicator_094;
+SET outpayLoadRef.ReplacementAmounts_095=inRef.ReplacementAmounts_095;
+SET outpayLoadRef.MessageSecurityCode_096=inRef.MessageSecurityCode_096;
+SET outpayLoadRef.AmountNetSettlement_097=inRef.AmountNetSettlement_097;
+SET outpayLoadRef.Payee_098=inRef.Payee_098;
+SET outpayLoadRef.SettlementInstitutionIdentificationCode_099=inRef.SettlementInstitutionIdentificationCode_099;
+SET outpayLoadRef.ReceivingInstitutionIdentificationCode_100=inRef.ReceivingInstitutionIdentificationCode_100;
+SET outpayLoadRef.FileName_101=inRef.FileName_101;
+SET outpayLoadRef.AccountIdentification1_102=inRef.AccountIdentification1_102;
+SET outpayLoadRef.AccountIdentification2_103=inRef.AccountIdentification2_103;
+SET outpayLoadRef.TransactionDescription_104=inRef.TransactionDescription_104;
+SET outpayLoadRef.ReservedISO_105=inRef.ReservedISO_105;
+SET outpayLoadRef.ReservedISO_106=inRef.ReservedISO_106;
+SET outpayLoadRef.ReservedISO_107=inRef.ReservedISO_107;
+SET outpayLoadRef.ReservedISO_108=inRef.ReservedISO_108;
+SET outpayLoadRef.ReservedISO_109=inRef.ReservedISO_109;
+SET outpayLoadRef.ReservedISO_110=inRef.ReservedISO_110;
+SET outpayLoadRef.ReservedISO_111=inRef.ReservedISO_111;
+SET outpayLoadRef.ReservedNational_112=inRef.ReservedNational_112;
+SET outpayLoadRef.ReservedNational_113=inRef.ReservedNational_113;
+SET outpayLoadRef.ReservedNational_114=inRef.ReservedNational_114;
+SET outpayLoadRef.ReservedNational_115=inRef.ReservedNational_115;
+SET outpayLoadRef.ReservedNational_116=inRef.ReservedNational_116;
+SET outpayLoadRef.ReservedNational_117=inRef.ReservedNational_117;
+SET outpayLoadRef.ReservedNational_118=inRef.ReservedNational_118;
+SET outpayLoadRef.ReservedNational_119=inRef.ReservedNational_119;
+SET outpayLoadRef.ReservedPrivate_120=inRef.ReservedPrivate_120;
+SET outpayLoadRef.ReservedPrivate_121=inRef.ReservedPrivate_121;
+SET outpayLoadRef.ReservedPrivate_122=inRef.ReservedPrivate_122;
+SET outpayLoadRef.ReservedPrivate_123=inRef.ReservedPrivate_123;
+SET outpayLoadRef.ReservedPrivate_124=inRef.ReservedPrivate_124;
+SET outpayLoadRef.ReservedPrivate_125=inRef.ReservedPrivate_125;
+SET outpayLoadRef.ReservedPrivate_126=inRef.ReservedPrivate_126;
+SET outpayLoadRef.ReservedPrivate_127=inRef.ReservedPrivate_127;
+SET outpayLoadRef.MessageAuthenticationCode_128=inRef.MessageAuthenticationCode_128;
+
+	
+		 CALL updateMsgWithAsciiBitMap(outpayLoadRef);		
+	
+	propagate TO TERMINAL 'out';
+
+ 
+
+	 	  	WHEN domainFldName ='JSON' THEN
+
+			DECLARE msgId CHARACTER CAST(InputRoot.MQMD.MsgId AS CHARACTER);  
+			DECLARE serverIp,brokerName,egName,payload CHARACTER'';
+			DECLARE msgTime TIMESTAMP CURRENT_TIMESTAMP;
+			SET req = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			SET OutputRoot.JSON.Data.DB_LOGGING.msgId = msgId;
+			SET OutputRoot.JSON.Data.DB_LOGGING.serverIp='192.168.2.15';
+			SET OutputRoot.JSON.Data.DB_LOGGING.brokerName ='ESB';
+			SET OutputRoot.JSON.Data.DB_LOGGING.egName ='IT';
+			SET OutputRoot.JSON.Data.DB_LOGGING.createdBy ='ESB';
+			SET OutputRoot.JSON.Data.DB_LOGGING.msgTime = msgTime;
+			SET OutputRoot.JSON.Data.DB_LOGGING.payload = req;
+			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTime=msgTime;
+			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTP =req;
+			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTPTime =msgTime;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'DB_AUDIT';
+			PROPAGATE TO TERMINAL 'out3';                 
+
+
+			SET Environment.MSG.Properties = InputRoot.Properties;
+			SET Environment.MSG.MQMD = InputRoot.MQMD;
+
+			DECLARE outPayLoadRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+			DECLARE inPayLoadRef REFERENCE TO InputRoot.JSON.Data.ISO8583_1987;
+			-- Assigning MessageType Properties with Required ISO message
+			SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
+			-- Creating Domain and ISO type
+			CREATE LASTCHILD OF OutputRoot AS outPayLoadRef DOMAIN 'DFDL';
+			CREATE LASTCHILD OF outPayLoadRef AS outPayLoadRef NAME 'ISO8583_1987';
+			-- Adding MTI header
+			SET outPayLoadRef.MTI_Version = inPayLoadRef.MTI_Version;
+			SET outPayLoadRef.MTI_MessageClass = inPayLoadRef.MTI_MessageClass;
+			SET outPayLoadRef.MTI_MessageFunction = inPayLoadRef.MTI_MessageFunction;
+			SET outPayLoadRef.MTI_MessageOrigin = inPayLoadRef.MTI_MessageFunction;
+			-- method for initialising Field list
+			 CALL GenJSONReqToISO();
+			--CALL updateMsgWithHexBitMap(outPayLoadRef);
+	 	  	CALL updateMsgWithAsciiBitMap(outPayLoadRef);		
+
+                 
+			-- propagate TO TERMINAL 'out2' DELETE NONE;
+			propagate TO TERMINAL 'out1';
+		END CASE;
+	END;   
+		  
+
+	
+	  CREATE PROCEDURE GenJSONReqToISO ()
+	BEGIN
+		DECLARE outISOMsgRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		DECLARE inBodyRef REFERENCE TO InputRoot.JSON.Data.ISO8583_1987;
+		/*SET outISOMsgRef.ProcessingCode_003= '950000';
+		SET outISOMsgRef.ReservedPrivate_062='12345678050';
+		SET outISOMsgRef.AccountIdentification1_102 = '123456789101112';
+		*/
+		SET outISOMsgRef.PrimaryAccountNumber_002= inBodyRef.PrimaryAccountNumber_002;
+		SET outISOMsgRef.ProcessingCode_003= inBodyRef.ProcessingCode_003;
+		SET outISOMsgRef.AmountTransaction_004=inBodyRef.AmountTransaction_004;
+		SET outISOMsgRef.AmountSettlement_005=inBodyRef.AmountSettlement_005;
+		SET outISOMsgRef.AmountCardHolderBilling_006=inBodyRef.AmountCardHolderBilling_006;
+		SET outISOMsgRef.TransmissionDatetime_007=CAST(inBodyRef.TransmissionDatetime_007 AS TIMESTAMP FORMAT 'MMddHHmmss');
+		SET outISOMsgRef.AmountCardHolderBillingFee_008 = inBodyRef.AmountCardHolderBillingFee_008;
+		SET outISOMsgRef.ConversionRateSettlement_009=inBodyRef.ConversionRateSettlement_009;
+		SET outISOMsgRef.ConversionRateCardholderBilling_010=inBodyRef.ConversionRateCardholderBilling_010;
+		SET outISOMsgRef.SystemsTraceAuditNumber_011=inBodyRef.SystemsTraceAuditNumber_011;
+		SET outISOMsgRef.TimeLocalTransaction_012=inBodyRef.TimeLocalTransaction_012;
+		SET outISOMsgRef.DateLocalTransaction_013=CAST(inBodyRef.DateLocalTransaction_013 AS DATE FORMAT 'MMdd');
+		SET outISOMsgRef.DateExpiration_014=CAST(inBodyRef.DateExpiration_014 AS TIMESTAMP FORMAT 'yyMM');
+		SET outISOMsgRef.DateSettlement_015=CAST(inBodyRef.DateSettlement_015 AS DATE FORMAT 'MMdd');
+		SET outISOMsgRef.DateConversion_016=CAST(inBodyRef.DateConversion_016 AS DATE FORMAT 'MMdd');
+		SET outISOMsgRef.DateCapture_017=CAST(inBodyRef.DateCapture_017 AS DATE FORMAT 'MMdd');
+		SET outISOMsgRef.MerchantType_018=inBodyRef.MerchantType_018;
+		SET outISOMsgRef.AcquiringInstitutionCountryCode_019=inBodyRef.AcquiringInstitutionCountryCode_019;
+		SET outISOMsgRef.PANExtendedCountryCode_020=inBodyRef.PANExtendedCountryCode_020;
+		SET outISOMsgRef.ForwardingInstitutionCountryCode_021=inBodyRef.ForwardingInstitutionCountryCode_021;
+		SET outISOMsgRef.PointOfServiceEntryMode_022=inBodyRef.PointOfServiceEntryMode_022;
+		SET outISOMsgRef.CardSequenceNumber_023=inBodyRef.CardSequenceNumber_023 ;
+		SET outISOMsgRef.NetworkInternationalIdentifier_024=inBodyRef.NetworkInternationalIdentifier_024;
+		SET outISOMsgRef.PointOfServiceConditionCode_025=inBodyRef.PointOfServiceConditionCode_025;
+		SET outISOMsgRef.PointOfServiceCaptureCode_026=inBodyRef.PointOfServiceCaptureCode_026;
+		SET outISOMsgRef.AuthorizingIdentificationResponseLength_027=inBodyRef.AuthorizingIdentificationResponseLength_027;
+		SET outISOMsgRef.AmountTransactionFee_028=inBodyRef.AmountTransactionFee_028;
+		SET outISOMsgRef.AmountSettlementFee_029=inBodyRef.AmountSettlementFee_029;
+		SET outISOMsgRef.AmountTransactionProcessingFee_030=inBodyRef.AmountTransactionProcessingFee_030;
+		SET outISOMsgRef.AmountSettlementProcessingFee_031=inBodyRef.AmountSettlementProcessingFee_031;
+		SET outISOMsgRef.AcquiringInstitutionIdentificationCode_032=inBodyRef.AcquiringInstitutionIdentificationCode_032;
+		SET outISOMsgRef.ForwardingInstitutionIdentificationCode_033=inBodyRef.ForwardingInstitutionIdentificationCode_033;
+		SET outISOMsgRef.PrimaryAccountNumberExtended_034=inBodyRef.PrimaryAccountNumberExtended_034;
+		SET outISOMsgRef.Track2Data_035=inBodyRef.Track2Data_035;
+		SET outISOMsgRef.Track3Data_036=inBodyRef.Track3Data_036;
+		SET outISOMsgRef.RetrievalReferenceNumber_037=inBodyRef.RetrievalReferenceNumber_037;
+		SET outISOMsgRef.AuthorizationIdentificationResponse_038=inBodyRef.AuthorizationIdentificationResponse_038;
+		SET outISOMsgRef.ResponseCode_039=inBodyRef.ResponseCode_039;
+		SET outISOMsgRef.ServiceRestrictionCode_040=inBodyRef.ServiceRestrictionCode_040;
+		SET outISOMsgRef.CardAcceptorTerminalIdentification_041=inBodyRef.CardAcceptorTerminalIdentification_041;
+		SET outISOMsgRef.CardAcceptorIdentificationCode_042=inBodyRef.CardAcceptorIdentificationCode_042;
+		SET outISOMsgRef.CardAcceptorNameLocation_043=inBodyRef.CardAcceptorNameLocation_043;
+		SET outISOMsgRef.AdditionalResponseData_044=inBodyRef.AdditionalResponseData_044;
+		SET outISOMsgRef.Track1Data_045=inBodyRef.Track1Data_045;
+		SET outISOMsgRef.AdditionalDataISO_046=inBodyRef.AdditionalDataISO_046;
+		SET outISOMsgRef.AdditionalDataNational_047=inBodyRef.AdditionalDataNational_047;
+		SET outISOMsgRef.AdditionalDataPrivate_048=inBodyRef.AdditionalDataPrivate_048;
+		SET outISOMsgRef.CurrencyCodeTransaction_049=inBodyRef.CurrencyCodeTransaction_049;
+		SET outISOMsgRef.CurrencyCodeSettlement_050=inBodyRef.CurrencyCodeSettlement_050;
+		SET outISOMsgRef.CurrencyCodeCardholderBilling_051=inBodyRef.CurrencyCodeCardholderBilling_051;
+		SET outISOMsgRef.PersonalIdentificationNumberData_052=inBodyRef.PersonalIdentificationNumberData_052;
+		SET outISOMsgRef.SecurityRelatedControlInformation_053=inBodyRef.SecurityRelatedControlInformation_053;
+		SET outISOMsgRef.AdditionalAmounts_054=inBodyRef.AdditionalAmounts_054;
+		SET outISOMsgRef.ReservedISO_055=inBodyRef.ReservedISO_055;
+		SET outISOMsgRef.ReservedISO_056=inBodyRef.ReservedISO_056;
+		SET outISOMsgRef.ReservedNational_057=inBodyRef.ReservedNational_057;
+		SET outISOMsgRef.ReservedNational_058=inBodyRef.ReservedNational_058;
+		SET outISOMsgRef.ReservedNational_059=inBodyRef.ReservedNational_059;
+		SET outISOMsgRef.AdviceReasonCode_060=inBodyRef.AdviceReasonCode_060;
+		SET outISOMsgRef.ReservedPrivate_061=inBodyRef.ReservedPrivate_061;
+		SET outISOMsgRef.ReservedPrivate_062=inBodyRef.ReservedPrivate_062;
+		SET outISOMsgRef.ReservedPrivate_063=inBodyRef.ReservedPrivate_063;
+		SET outISOMsgRef.MessageAuthenticationCode_064=inBodyRef.MessageAuthenticationCode_064;
+		SET outISOMsgRef.TertiaryBitmap_065=inBodyRef.TertiaryBitmap_065;
+		SET outISOMsgRef.SettlementCode_066=inBodyRef.SettlementCode_066;
+		SET outISOMsgRef.ExtendedPaymentCode_067=inBodyRef.ExtendedPaymentCode_067;
+		SET outISOMsgRef.ReceivingInstitutionCountryCode_068=inBodyRef.ReceivingInstitutionCountryCode_068;
+		SET outISOMsgRef.SettlementInstitutionCountryCode_069=inBodyRef.SettlementInstitutionCountryCode_069;
+		SET outISOMsgRef.NetworkManagementInformationCode_070=inBodyRef.NetworkManagementInformationCode_070;
+		SET outISOMsgRef.MessageNumber_071=inBodyRef.MessageNumber_071;
+		SET outISOMsgRef.MessageNumberLast_072=inBodyRef.MessageNumberLast_072;
+		SET outISOMsgRef.DateAction_073=CAST(inBodyRef.DateAction_073 AS TIMESTAMP FORMAT 'yyMMdd');
+		SET outISOMsgRef.CreditsNumber_074=inBodyRef.CreditsNumber_074;
+		SET outISOMsgRef.CreditsReversalNumber_075=inBodyRef.CreditsReversalNumber_075;
+		SET outISOMsgRef.DebitsNumber_076=inBodyRef.DebitsNumber_076;
+		SET outISOMsgRef.DebitsReversalNumber_077=inBodyRef.DebitsReversalNumber_077;
+		SET outISOMsgRef.TransferNumber_078=inBodyRef.TransferNumber_078;
+		SET outISOMsgRef.TransferReversalNumber_079=inBodyRef.TransferReversalNumber_079;
+		SET outISOMsgRef.InquiriesNumber_080=inBodyRef.InquiriesNumber_080;
+		SET outISOMsgRef.AuthorizationsNumber_081=inBodyRef.AuthorizationsNumber_081;
+		SET outISOMsgRef.CreditsProcessingFeeAmount_082=inBodyRef.CreditsProcessingFeeAmount_082;
+		SET outISOMsgRef.CreditsTransactionFeeAmount_083=inBodyRef.CreditsTransactionFeeAmount_083;
+		SET outISOMsgRef.DebitsProcessingFeeAmount_084=inBodyRef.DebitsProcessingFeeAmount_084;
+		SET outISOMsgRef.DebitsTransactionFeeAmount_085=inBodyRef.DebitsTransactionFeeAmount_085;
+		SET outISOMsgRef.CreditsAmount_086=inBodyRef.CreditsAmount_086;
+		SET outISOMsgRef.CreditsReversalAmount_087=inBodyRef.CreditsReversalAmount_087;
+		SET outISOMsgRef.DebitsAmount_088=inBodyRef.DebitsAmount_088;
+		SET outISOMsgRef.DebitsReversalAmount_089=inBodyRef.DebitsReversalAmount_089;
+		SET outISOMsgRef.OriginalDataElements_090=inBodyRef.OriginalDataElements_090;
+		SET outISOMsgRef.FileUpdateCode_091=inBodyRef.FileUpdateCode_091;
+		SET outISOMsgRef.FileSecurityCode_092=inBodyRef.FileSecurityCode_092;
+		SET outISOMsgRef.ResponseIndicator_093=inBodyRef.inBodyRef.ResponseIndicator_093;
+		SET outISOMsgRef.ServiceIndicator_094=inBodyRef.ServiceIndicator_094;
+		SET outISOMsgRef.ReplacementAmounts_095=inBodyRef.ReplacementAmounts_095;
+		SET outISOMsgRef.MessageSecurityCode_096=inBodyRef.MessageSecurityCode_096;
+		SET outISOMsgRef.AmountNetSettlement_097=inBodyRef.AmountNetSettlement_097;
+		SET outISOMsgRef.Payee_098=inBodyRef.Payee_098;
+		SET outISOMsgRef.SettlementInstitutionIdentificationCode_099=inBodyRef.SettlementInstitutionIdentificationCode_099;
+		SET outISOMsgRef.ReceivingInstitutionIdentificationCode_100=inBodyRef.ReceivingInstitutionIdentificationCode_100;
+		SET outISOMsgRef.FileName_101=inBodyRef.FileName_101;
+		SET outISOMsgRef.AccountIdentification1_102=inBodyRef.AccountIdentification1_102;
+		SET outISOMsgRef.AccountIdentification2_103=inBodyRef.AccountIdentification2_103;
+		SET outISOMsgRef.TransactionDescription_104=inBodyRef.TransactionDescription_104;
+		SET outISOMsgRef.ReservedISO_105=inBodyRef.ReservedISO_105;
+		SET outISOMsgRef.ReservedISO_106=inBodyRef.ReservedISO_106;
+		SET outISOMsgRef.ReservedISO_107=inBodyRef.ReservedISO_107;
+		SET outISOMsgRef.ReservedISO_108=inBodyRef.ReservedISO_108;
+		SET outISOMsgRef.ReservedISO_109=inBodyRef.ReservedISO_109;
+		SET outISOMsgRef.ReservedISO_110=inBodyRef.ReservedISO_110;
+		SET outISOMsgRef.ReservedISO_111=inBodyRef.ReservedISO_111;
+		SET outISOMsgRef.ReservedNational_112=inBodyRef.ReservedNational_112;
+		SET outISOMsgRef.ReservedNational_113=inBodyRef.ReservedNational_113;
+		SET outISOMsgRef.ReservedNational_114=inBodyRef.ReservedNational_114;
+		SET outISOMsgRef.ReservedNational_115=inBodyRef.ReservedNational_115;
+		SET outISOMsgRef.ReservedNational_116=inBodyRef.ReservedNational_116;
+		SET outISOMsgRef.ReservedNational_117=inBodyRef.ReservedNational_117;
+		SET outISOMsgRef.ReservedNational_118=inBodyRef.ReservedNational_118;
+		SET outISOMsgRef.ReservedNational_119=inBodyRef.ReservedNational_119;
+		SET outISOMsgRef.ReservedPrivate_120=inBodyRef.ReservedPrivate_120;
+		SET outISOMsgRef.ReservedPrivate_121=inBodyRef.ReservedPrivate_121;
+		SET outISOMsgRef.ReservedPrivate_122=inBodyRef.ReservedPrivate_122;
+		SET outISOMsgRef.ReservedPrivate_123=inBodyRef.ReservedPrivate_123;
+		SET outISOMsgRef.ReservedPrivate_124=inBodyRef.ReservedPrivate_124;
+		SET outISOMsgRef.ReservedPrivate_125=inBodyRef.ReservedPrivate_125;
+		SET outISOMsgRef.ReservedPrivate_126=inBodyRef.ReservedPrivate_126;
+		SET outISOMsgRef.ReservedPrivate_127 = inBodyRef.isomsg.field[1].value || inBodyRef.isomsg.field[2].value||inBodyRef.isomsg.field[3].value||inBodyRef.isomsg.field[4].value||inBodyRef.isomsg.field[5].value||inBodyRef.isomsg.field[6].value;
+		SET outISOMsgRef.MessageAuthenticationCode_128=inBodyRef.MessageAuthenticationCode_128;
+	END;
+
+	END MODULE;
+	
+	
+	
+	
+	CREATE FUNCTION initLog(IN CONFIG_FILE_NAME CHARACTER) RETURNS BOOLEAN  -->this config name in udp
+	LANGUAGE JAVA
+	EXTERNAL NAME "com.ibm.broker.IAM3.Log4jNode.initLog4j";
+
+	CREATE FUNCTION writerToLogFile (IN COMPONENT_NAME CHARACTER,IN LOGGER_NAME CHARACTER,IN LEVEL CHARACTER,IN TEXT CHARACTER ) RETURNS BOOLEAN
+	LANGUAGE JAVA
+	EXTERNAL NAME "com.ibm.broker.IAM3.Log4jNode.log";
+
+

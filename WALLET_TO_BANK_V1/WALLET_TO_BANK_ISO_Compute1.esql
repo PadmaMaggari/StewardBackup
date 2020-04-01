@@ -1,0 +1,239 @@
+PATH CommonBitMapGen;
+
+CREATE COMPUTE MODULE WALLET_TO_BANK_ISO_Compute1
+	DECLARE rc BOOLEAN;
+	DECLARE Config_File EXTERNAL CHARACTER  '';
+	DECLARE IsLogRequired EXTERNAL CHARACTER '';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL initLog (Config_File) INTO rc;
+		 CALL wallet_To_Bank();
+		RETURN FALSE;
+	END;
+CREATE PROCEDURE wallet_To_Bank() BEGIN
+		
+		SET Environment.msgID = InputRoot.MQMD.MsgId;	
+		DECLARE req CHARACTER ''; 
+		
+		IF IsLogRequired LIKE 'Y' THEN  
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO','=================== REQUEST Received  FROM T24 ================') INTO rc;
+			SET req = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO',req) INTO rc;
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO','=================== ***REQUEST RECEIVED***  ================') INTO rc;
+
+		END IF;		
+	CASE	   
+
+WHEN Environment.Domain = 'JSON' THEN 
+	
+--			DECLARE msgId CHARACTER  CAST(Environment.msgID AS CHARACTER);  
+--			DECLARE serverIp,brokerName,egName,payload CHARACTER'';
+--			DECLARE msgTime TIMESTAMP CURRENT_TIMESTAMP;    
+--			SET req = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+--			SET OutputRoot.JSON.Data.DB_LOGGING.msgId = msgId; 
+--			SET OutputRoot.JSON.Data.DB_LOGGING.serverIp='192.168.2.15';
+--			SET OutputRoot.JSON.Data.DB_LOGGING.brokerName ='ESB';
+--			SET OutputRoot.JSON.Data.DB_LOGGING.egName ='IT';
+--			SET OutputRoot.JSON.Data.DB_LOGGING.createdBy ='ESB'; 
+--			SET OutputRoot.JSON.Data.DB_LOGGING.msgTime = msgTime;
+--			SET OutputRoot.JSON.Data.DB_LOGGING.payload = req;   
+--			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTime=msgTime;
+--			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTP =req;
+--			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTPTime =msgTime;
+--			
+--		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'DB_AUDIT';   
+--		PROPAGATE TO TERMINAL 'out1';  
+--	
+	CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+	CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+	CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'ISO8583_1987';
+	
+	DECLARE outISOMsgRef REFERENCE TO OutputRoot.JSON.Data.ISO8583_1987;
+	DECLARE inBodyRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+	
+	SET outISOMsgRef.*[] = inBodyRef.*[];    
+	
+	
+--		SET outISOMsgRef.MTI_Version = inBodyRef.MTI_Version;
+--		SET outISOMsgRef.MTI_MessageClass = inBodyRef.MTI_MessageClass;
+--		SET outISOMsgRef.MTI_MessageFunction = inBodyRef.MTI_MessageFunction;   
+--		SET outISOMsgRef.MTI_MessageOrigin = inBodyRef.MTI_MessageFunction;    
+--	
+--		  
+--		SET outISOMsgRef.PrimaryAccountNumber_002  = inBodyRef.PrimaryAccountNumber_002;  
+--		SET outISOMsgRef.ProcessingCode_003= inBodyRef.ProcessingCode_003;
+--		SET outISOMsgRef.AmountTransaction_004=inBodyRef.AmountTransaction_004;
+--		SET outISOMsgRef.AmountSettlement_005=inBodyRef.AmountSettlement_005;
+--		SET outISOMsgRef.AmountCardHolderBilling_006=inBodyRef.AmountCardHolderBilling_006;
+--		SET outISOMsgRef.TransmissionDatetime_007=CAST(inBodyRef.TransmissionDatetime_007 AS TIMESTAMP FORMAT 'MMddHHmmss');
+--		SET outISOMsgRef.AmountCardHolderBillingFee_008 = inBodyRef.AmountCardHolderBillingFee_008;
+--		SET outISOMsgRef.ConversionRateSettlement_009=inBodyRef.ConversionRateSettlement_009;
+--		SET outISOMsgRef.ConversionRateCardholderBilling_010=inBodyRef.ConversionRateCardholderBilling_010;
+--		SET outISOMsgRef.SystemsTraceAuditNumber_011=inBodyRef.SystemsTraceAuditNumber_011;
+--		SET outISOMsgRef.TimeLocalTransaction_012=inBodyRef.TimeLocalTransaction_012;
+--		SET outISOMsgRef.DateLocalTransaction_013=CAST(inBodyRef.DateLocalTransaction_013 AS DATE FORMAT 'MMdd');
+--		SET outISOMsgRef.DateExpiration_014=CAST(inBodyRef.DateExpiration_014 AS TIMESTAMP FORMAT 'yyMM');
+--		SET outISOMsgRef.DateSettlement_015=CAST(inBodyRef.DateSettlement_015 AS DATE FORMAT 'MMdd');
+--		SET outISOMsgRef.DateConversion_016=CAST(inBodyRef.DateConversion_016 AS DATE FORMAT 'MMdd');
+--		SET outISOMsgRef.DateCapture_017=CAST(inBodyRef.DateCapture_017 AS DATE FORMAT 'MMdd');
+--		SET outISOMsgRef.MerchantType_018=inBodyRef.MerchantType_018;
+--		SET outISOMsgRef.AcquiringInstitutionCountryCode_019=inBodyRef.AcquiringInstitutionCountryCode_019;
+--		SET outISOMsgRef.PANExtendedCountryCode_020=inBodyRef.PANExtendedCountryCode_020;
+--		SET outISOMsgRef.ForwardingInstitutionCountryCode_021=inBodyRef.ForwardingInstitutionCountryCode_021;
+--		SET outISOMsgRef.PointOfServiceEntryMode_022=inBodyRef.PointOfServiceEntryMode_022;
+--		SET outISOMsgRef.CardSequenceNumber_023=inBodyRef.CardSequenceNumber_023 ;
+--		SET outISOMsgRef.NetworkInternationalIdentifier_024=inBodyRef.NetworkInternationalIdentifier_024;
+--		SET outISOMsgRef.PointOfServiceConditionCode_025=inBodyRef.PointOfServiceConditionCode_025;
+--		SET outISOMsgRef.PointOfServiceCaptureCode_026=inBodyRef.PointOfServiceCaptureCode_026;
+--		SET outISOMsgRef.AuthorizingIdentificationResponseLength_027=inBodyRef.AuthorizingIdentificationResponseLength_027;
+--		SET outISOMsgRef.AmountTransactionFee_028=inBodyRef.AmountTransactionFee_028;
+--		SET outISOMsgRef.AmountSettlementFee_029=inBodyRef.AmountSettlementFee_029;
+--		SET outISOMsgRef.AmountTransactionProcessingFee_030=inBodyRef.AmountTransactionProcessingFee_030;
+--		SET outISOMsgRef.AmountSettlementProcessingFee_031=inBodyRef.AmountSettlementProcessingFee_031;
+--		SET outISOMsgRef.AcquiringInstitutionIdentificationCode_032=inBodyRef.AcquiringInstitutionIdentificationCode_032;
+--		SET outISOMsgRef.ForwardingInstitutionIdentificationCode_033=inBodyRef.ForwardingInstitutionIdentificationCode_033;
+--		SET outISOMsgRef.PrimaryAccountNumberExtended_034=inBodyRef.PrimaryAccountNumberExtended_034;
+--		SET outISOMsgRef.Track2Data_035=inBodyRef.Track2Data_035;
+--		SET outISOMsgRef.Track3Data_036=inBodyRef.Track3Data_036;
+--		SET outISOMsgRef.RetrievalReferenceNumber_037=inBodyRef.RetrievalReferenceNumber_037;
+--		SET outISOMsgRef.AuthorizationIdentificationResponse_038=inBodyRef.AuthorizationIdentificationResponse_038;
+--		SET outISOMsgRef.ResponseCode_039=inBodyRef.ResponseCode_039;
+--		SET outISOMsgRef.ServiceRestrictionCode_040=inBodyRef.ServiceRestrictionCode_040;
+--		SET outISOMsgRef.CardAcceptorTerminalIdentification_041=inBodyRef.CardAcceptorTerminalIdentification_041;
+--		SET outISOMsgRef.CardAcceptorIdentificationCode_042=inBodyRef.CardAcceptorIdentificationCode_042;
+--		SET outISOMsgRef.CardAcceptorNameLocation_043=inBodyRef.CardAcceptorNameLocation_043;
+--		SET outISOMsgRef.AdditionalResponseData_044=inBodyRef.AdditionalResponseData_044;
+--		SET outISOMsgRef.Track1Data_045=inBodyRef.Track1Data_045;
+--		SET outISOMsgRef.AdditionalDataISO_046=inBodyRef.AdditionalDataISO_046;
+--		SET outISOMsgRef.AdditionalDataNational_047=inBodyRef.AdditionalDataNational_047;
+--		SET outISOMsgRef.AdditionalDataPrivate_048=inBodyRef.AdditionalDataPrivate_048;
+--		SET outISOMsgRef.CurrencyCodeTransaction_049=inBodyRef.CurrencyCodeTransaction_049;
+--		SET outISOMsgRef.CurrencyCodeSettlement_050=inBodyRef.CurrencyCodeSettlement_050;
+--		SET outISOMsgRef.CurrencyCodeCardholderBilling_051=inBodyRef.CurrencyCodeCardholderBilling_051;
+--		SET outISOMsgRef.PersonalIdentificationNumberData_052=inBodyRef.PersonalIdentificationNumberData_052;
+--		SET outISOMsgRef.SecurityRelatedControlInformation_053=inBodyRef.SecurityRelatedControlInformation_053;
+--		SET outISOMsgRef.AdditionalAmounts_054=inBodyRef.AdditionalAmounts_054;
+--		SET outISOMsgRef.ReservedISO_055=inBodyRef.ReservedISO_055;
+--		SET outISOMsgRef.ReservedISO_056=inBodyRef.ReservedISO_056;
+--		SET outISOMsgRef.ReservedNational_057=inBodyRef.ReservedNational_057;
+--		SET outISOMsgRef.ReservedNational_058=inBodyRef.ReservedNational_058;
+--		SET outISOMsgRef.ReservedNational_059=inBodyRef.ReservedNational_059;
+--		SET outISOMsgRef.AdviceReasonCode_060=inBodyRef.AdviceReasonCode_060;
+--		SET outISOMsgRef.ReservedPrivate_061=inBodyRef.ReservedPrivate_061;
+--		SET outISOMsgRef.ReservedPrivate_062=inBodyRef.ReservedPrivate_062;
+--		SET outISOMsgRef.ReservedPrivate_063=inBodyRef.ReservedPrivate_063;
+--		SET outISOMsgRef.MessageAuthenticationCode_064=inBodyRef.MessageAuthenticationCode_064;
+--		SET outISOMsgRef.TertiaryBitmap_065=inBodyRef.TertiaryBitmap_065;
+--		SET outISOMsgRef.SettlementCode_066=inBodyRef.SettlementCode_066;
+--		SET outISOMsgRef.ExtendedPaymentCode_067=inBodyRef.ExtendedPaymentCode_067;
+--		SET outISOMsgRef.ReceivingInstitutionCountryCode_068=inBodyRef.ReceivingInstitutionCountryCode_068;
+--		SET outISOMsgRef.SettlementInstitutionCountryCode_069=inBodyRef.SettlementInstitutionCountryCode_069;
+--		SET outISOMsgRef.NetworkManagementInformationCode_070=inBodyRef.NetworkManagementInformationCode_070;
+--		SET outISOMsgRef.MessageNumber_071=inBodyRef.MessageNumber_071;
+--		SET outISOMsgRef.MessageNumberLast_072=inBodyRef.MessageNumberLast_072;
+--		SET outISOMsgRef.DateAction_073=CAST(inBodyRef.DateAction_073 AS TIMESTAMP FORMAT 'yyMMdd');
+--		SET outISOMsgRef.CreditsNumber_074=inBodyRef.CreditsNumber_074;
+--		SET outISOMsgRef.CreditsReversalNumber_075=inBodyRef.CreditsReversalNumber_075;
+--		SET outISOMsgRef.DebitsNumber_076=inBodyRef.DebitsNumber_076;
+--		SET outISOMsgRef.DebitsReversalNumber_077=inBodyRef.DebitsReversalNumber_077;
+--		SET outISOMsgRef.TransferNumber_078=inBodyRef.TransferNumber_078;
+--		SET outISOMsgRef.TransferReversalNumber_079=inBodyRef.TransferReversalNumber_079;
+--		SET outISOMsgRef.InquiriesNumber_080=inBodyRef.InquiriesNumber_080;
+--		SET outISOMsgRef.AuthorizationsNumber_081=inBodyRef.AuthorizationsNumber_081;
+--		SET outISOMsgRef.CreditsProcessingFeeAmount_082=inBodyRef.CreditsProcessingFeeAmount_082;
+--		SET outISOMsgRef.CreditsTransactionFeeAmount_083=inBodyRef.CreditsTransactionFeeAmount_083;
+--		SET outISOMsgRef.DebitsProcessingFeeAmount_084=inBodyRef.DebitsProcessingFeeAmount_084;
+--		SET outISOMsgRef.DebitsTransactionFeeAmount_085=inBodyRef.DebitsTransactionFeeAmount_085;
+--		SET outISOMsgRef.CreditsAmount_086=inBodyRef.CreditsAmount_086;
+--		SET outISOMsgRef.CreditsReversalAmount_087=inBodyRef.CreditsReversalAmount_087;
+--		SET outISOMsgRef.DebitsAmount_088=inBodyRef.DebitsAmount_088;
+--		SET outISOMsgRef.DebitsReversalAmount_089=inBodyRef.DebitsReversalAmount_089;
+--		SET outISOMsgRef.OriginalDataElements_090=inBodyRef.OriginalDataElements_090;
+--		SET outISOMsgRef.FileUpdateCode_091=inBodyRef.FileUpdateCode_091;
+--		SET outISOMsgRef.FileSecurityCode_092=inBodyRef.FileSecurityCode_092;
+--		SET outISOMsgRef.ResponseIndicator_093=inBodyRef.inBodyRef.ResponseIndicator_093;
+--		SET outISOMsgRef.ServiceIndicator_094=inBodyRef.ServiceIndicator_094;
+--		SET outISOMsgRef.ReplacementAmounts_095=inBodyRef.ReplacementAmounts_095;
+--		SET outISOMsgRef.MessageSecurityCode_096=inBodyRef.MessageSecurityCode_096;
+--		SET outISOMsgRef.AmountNetSettlement_097=inBodyRef.AmountNetSettlement_097;
+--		SET outISOMsgRef.Payee_098=inBodyRef.Payee_098;
+--		SET outISOMsgRef.SettlementInstitutionIdentificationCode_099=inBodyRef.SettlementInstitutionIdentificationCode_099;
+--		SET outISOMsgRef.ReceivingInstitutionIdentificationCode_100=inBodyRef.ReceivingInstitutionIdentificationCode_100;
+--		SET outISOMsgRef.FileName_101=inBodyRef.FileName_101;
+--		SET outISOMsgRef.AccountIdentification1_102=inBodyRef.AccountIdentification1_102;
+--		SET outISOMsgRef.AccountIdentification2_103=inBodyRef.AccountIdentification2_103;
+--		SET outISOMsgRef.TransactionDescription_104=inBodyRef.TransactionDescription_104;
+--		SET outISOMsgRef.ReservedISO_105=inBodyRef.ReservedISO_105;
+--		SET outISOMsgRef.ReservedISO_106=inBodyRef.ReservedISO_106;
+--		SET outISOMsgRef.ReservedISO_107=inBodyRef.ReservedISO_107;
+--		SET outISOMsgRef.ReservedISO_108=inBodyRef.ReservedISO_108;
+--		SET outISOMsgRef.ReservedISO_109=inBodyRef.ReservedISO_109;
+--		SET outISOMsgRef.ReservedISO_110=inBodyRef.ReservedISO_110;
+--		SET outISOMsgRef.ReservedISO_111=inBodyRef.ReservedISO_111;
+--		SET outISOMsgRef.ReservedNational_112=inBodyRef.ReservedNational_112;
+--		SET outISOMsgRef.ReservedNational_113=inBodyRef.ReservedNational_113;
+--		SET outISOMsgRef.ReservedNational_114=inBodyRef.ReservedNational_114;
+--		SET outISOMsgRef.ReservedNational_115=inBodyRef.ReservedNational_115;
+--		SET outISOMsgRef.ReservedNational_116=inBodyRef.ReservedNational_116;
+--		SET outISOMsgRef.ReservedNational_117=inBodyRef.ReservedNational_117;
+--		SET outISOMsgRef.ReservedNational_118=inBodyRef.ReservedNational_118;
+--		SET outISOMsgRef.ReservedNational_119=inBodyRef.ReservedNational_119;
+--		SET outISOMsgRef.ReservedPrivate_120=inBodyRef.ReservedPrivate_120;
+--		SET outISOMsgRef.ReservedPrivate_121=inBodyRef.ReservedPrivate_121;
+--		SET outISOMsgRef.ReservedPrivate_122=inBodyRef.ReservedPrivate_122;
+--		SET outISOMsgRef.ReservedPrivate_123=inBodyRef.ReservedPrivate_123;
+--		SET outISOMsgRef.ReservedPrivate_124=inBodyRef.ReservedPrivate_124;
+--		SET outISOMsgRef.ReservedPrivate_125=inBodyRef.ReservedPrivate_125;
+--		SET outISOMsgRef.ReservedPrivate_126=inBodyRef.ReservedPrivate_126;
+--		SET outISOMsgRef.ReservedPrivate_127=inBodyRef.ReservedPrivate_127;
+--		SET outISOMsgRef.MessageAuthenticationCode_128 = inBodyRef.MessageAuthenticationCode_128;  
+	
+	IF IsLogRequired LIKE 'Y' THEN
+
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO','=================== RESPONSE Received  FROM T24 JSON_DATA ================') INTO rc;
+			SET req = CAST(ASBITSTREAM(OutputRoot CCSID  InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO',req) INTO rc;
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO','=================== ***RESPONSE RECEIVED***  ================') INTO rc;
+
+		END IF;		
+		
+		propagate TO TERMINAL 'out'; 
+	
+WHEN Environment.Domain = 'DFDL' THEN
+
+
+	IF IsLogRequired LIKE 'Y' THEN
+
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO','=================== RESPONSE Received  FROM T24 DFDL_DATA ================') INTO rc;
+			SET req = CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO',req) INTO rc;
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO','=================== ***RESPONSE RECEIVED***  ================') INTO rc;
+
+		END IF;	
+--			DECLARE msgId CHARACTER  CAST(Environment.msgID AS CHARACTER); 
+--			DECLARE serverIp,brokerName,egName,payload CHARACTER'';
+--			DECLARE msgTime TIMESTAMP CURRENT_TIMESTAMP;    
+--			SET req = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+--			SET OutputRoot.JSON.Data.DB_LOGGING.msgId = msgId;   
+--			SET OutputRoot.JSON.Data.DB_LOGGING.serverIp='192.168.2.15';
+--			SET OutputRoot.JSON.Data.DB_LOGGING.brokerName ='ESB';
+--			SET OutputRoot.JSON.Data.DB_LOGGING.egName ='IT';
+--			SET OutputRoot.JSON.Data.DB_LOGGING.createdBy ='ESB'; 
+--			SET OutputRoot.JSON.Data.DB_LOGGING.msgTime = msgTime;
+--			SET OutputRoot.JSON.Data.DB_LOGGING.payload = req;   
+--			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTime=msgTime;
+--			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTP =req;
+--			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTPTime =msgTime;
+--			
+--		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'DB_AUDIT';   
+--		PROPAGATE TO TERMINAL 'out3';  
+--		
+		SET OutputRoot = InputRoot;	
+	propagate TO TERMINAL 'out1';   
+END CASE; 
+	
+	END; 
+	END MODULE; 
+
+
+                 
