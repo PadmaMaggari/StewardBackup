@@ -1,0 +1,49 @@
+
+  PATH CommonBitMapGen;
+CREATE COMPUTE MODULE WALLET_TO_BANK_ISO_Compute3
+	DECLARE rc CHARACTER;
+	DECLARE Config_File EXTERNAL CHARACTER '';
+	DECLARE IsLogRequired EXTERNAL CHARACTER ''; 
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL initLog (Config_File) INTO rc;
+		 CALL CopyEntireMessage();
+		RETURN FALSE;
+	END;
+
+	
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		DECLARE req CHARACTER '';
+		IF IsLogRequired LIKE 'Y' THEN
+
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO','=================== Response Received from POSTLION ================') INTO rc;
+			SET req = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO',req) INTO rc;
+			CALL writerToLogFile (MessageFlowLabel,'Log','INFO','=================== Request Sent to T24 ================') INTO rc;  	 		
+		END IF;
+	
+			DECLARE msgId CHARACTER  CAST(InputRoot.MQMD.AccountingToken AS CHARACTER);          
+			DECLARE serverIp,brokerName,egName,payload CHARACTER'';
+			DECLARE msgTime TIMESTAMP CURRENT_TIMESTAMP;    
+			SET req = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			SET OutputRoot.JSON.Data.DB_LOGGING.msgId = msgId;      
+			SET OutputRoot.JSON.Data.DB_LOGGING.serverIp='192.168.2.15'; 
+			SET OutputRoot.JSON.Data.DB_LOGGING.brokerName ='ESB';
+			SET OutputRoot.JSON.Data.DB_LOGGING.egName ='IT';
+			SET OutputRoot.JSON.Data.DB_LOGGING.createdBy ='ESB'; 
+			SET OutputRoot.JSON.Data.DB_LOGGING.msgTime = msgTime;
+			SET OutputRoot.JSON.Data.DB_LOGGING.payload = req;   
+			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTime=msgTime;
+			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTP =req;
+			SET OutputRoot.JSON.Data.DB_LOGGING.payloadTPTime =msgTime;
+			
+		    SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'DB_AUDIT';
+		    PROPAGATE TO TERMINAL 'out1'; 
+		 
+			SET OutputRoot =InputRoot;
+			PROPAGATE TO TERMINAL 'out';  
+		
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
