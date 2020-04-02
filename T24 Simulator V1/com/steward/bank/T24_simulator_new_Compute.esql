@@ -1,0 +1,38 @@
+/*
+Application Name : ZIPIT.
+Description :
+1)Here we are taking the Response data from Database dynamically by checking with ProcessingCode for T24 Simulator.
+2)The respective service holders just have to add there response data in there databases(RESPONSE).
+Date :27-3-2020 .
+Modified Date : .
+Author : G Raghavender.
+=================================================================================================================== */
+BROKER SCHEMA com.steward.bank
+
+DECLARE DSN EXTERNAL CHARACTER '';
+CREATE COMPUTE MODULE T24_simulator_new_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+
+		CALL t24ResponseFrame();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE t24ResponseFrame() BEGIN
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		-- DECLARE mtiRes CHARACTER '';
+		-- DECLARE version CHARACTER inRef.MTI_Version;
+		-- DECLARE class CHARACTER inRef.MTI_MessageClass;
+		-- DECLARE funct CHARACTER inRef.MTI_MessageFunction;
+		-- DECLARE origin CHARACTER inRef.MTI_MessageOrigin;
+		Declare refProcessingCode CHARACTER;  
+		DECLARE Response ROW;
+		--DECLARE refProcessingCode CHARACTER inRef.ProcessingCode_003;
+		SET refProcessingCode=SUBSTRING(inRef.ProcessingCode_003 FROM 1 FOR 2); 
+		DECLARE sql CHARACTER;
+		SET sql= 'SELECT RESPONSE FROM T24RESPONSE WHERE PCODE='||refProcessingCode;  
+		 SET Response.ROW[]=PASSTHRU(sql); 
+	--	SET Response.ROW[]=PASSTHRU(SELECT RESPONSE  FROM Database.DSN.SYSTEM.T24RESPONSE   WHERE PCODE=refProcessingCode);   		
+		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(Response.ROW[2].RESPONSE  ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO_Lib}' TYPE '{}:ISO8583_1987');
+	END; 
+END MODULE;
