@@ -43,10 +43,10 @@ CREATE COMPUTE MODULE T24_Compute
 	*/
 	IF 	refProcessingCode LIKE '40%' OR  refProcessingCode LIKE '54%' THEN
 		--CALL MTIResponse(version,class,funct,origin) into mtiRes;
-		DECLARE sql CHARACTER 'SELECT RESPONSE FROM T24RESPONSE WHERE MTIREQ=?';
+		DECLARE sql CHARACTER 'SELECT RESPONSE FROM T24RESPONSE WHERE MTIRE=?';
 		SET Environment.T24.Response[]=PASSTHRU(sql TO Database.{DSN} VALUES(version||class||funct||origin));
 		--SET OutputRoot.BLOB.BLOB = Environment.T24.Response[1].RESPONSE;
-		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(Environment.T24.Response[1].RESPONSE  ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO_Lib}' TYPE '{}:ISO8583_1987');
+		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(Environment.T24.Response[1].RESPONSE  ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 	END IF;
 	END;
 END MODULE;
