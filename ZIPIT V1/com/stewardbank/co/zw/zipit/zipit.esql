@@ -2,14 +2,15 @@
 /*
 Application Name : ZIPIT.
 Description :
-
-Date : .
+1) From TCP router we get the ISO data, here we are generating request to T24.
+2) Audit logging has been done here.
+Date :27-3-2020 .
 Modified Date : .
 Author : G Raghavender.
 =================================================================================================================== */
 BROKER SCHEMA com.stewardbank.co.zw.zipit
-path StewardBankCommonEsql;
-Declare Config_File EXTERNAL CHARACTER '';
+PATH StewardBankCommonEsql;
+DECLARE Config_File EXTERNAL CHARACTER '';
 
 CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 	DECLARE Config_File EXTERNAL CHARACTER;
@@ -42,8 +43,8 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','..............start IFT logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Request to IFT_INQ::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','..............Start ZIPIT logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Request to ZIPIT_INQ::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef);
@@ -75,6 +76,15 @@ CREATE COMPUTE MODULE Zipit_RouteBasedOnProtocol
 		SET OutputRoot = InputRoot;
 	END;
 END MODULE;
+/*==================================================================================================================
+Application Name : ZIPIT.
+Description : 
+1)Here we're handling the exceptions that occur in ESB with the Name of the Service ZIPIT.
+
+Date :27-3-2020 .
+Modified Date : .
+Author : G Raghavender.
+=================================================================================================================== */
 
 CREATE COMPUTE MODULE Zipit_BuildExceptionDetails 
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -97,11 +107,20 @@ CREATE COMPUTE MODULE Zipit_BuildExceptionDetails
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'IFT';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'ZIPIT';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'IFT');
+		CALL BuildExceptionDetails(excpRef,outRef,'ZIPIT'); 
 	END;
 END MODULE;
+/*==================================================================================================================
+Application Name : ZIPIT.
+Description : 
+1)From T24 Simulator we get the response, here we are generating Response to Positlion. 
+2) Audit logging has been done here.
+Date :27-3-2020 .
+Modified Date : .
+Author : G Raghavender.
+=================================================================================================================== */
 
 CREATE COMPUTE MODULE Zipit_GenerateResToPostilion 
 	DECLARE Config_File EXTERNAL CHARACTER;
