@@ -1,0 +1,46 @@
+BROKER SCHEMA com.stewardbank.co.zw.WalletToBank
+
+
+-- ................Generating Request To T24 Esql Module...........
+ 
+CREATE COMPUTE MODULE WalletToBankFlow_ReqGenerationToT24
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL FrameReqToT24();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE FrameReqToT24() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
+
+-- ..............Response Esql Module For Postilion..........
+
+CREATE COMPUTE MODULE WalletToBankFlow_ResGenerationToPostilion
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL ResFramingToPostilion(); 
+		RETURN TRUE;
+	END;
+
+		CREATE PROCEDURE ResFramingToPostilion() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
+
+
+--..............Framing  Exception Details .............
+
+
+CREATE COMPUTE MODULE WalletToBankFlow_FramimgExceptionDetails
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL FrameException();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE FrameException() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
