@@ -33,6 +33,6 @@ CREATE COMPUTE MODULE T24_simulator_new_Compute
 		SET sql= 'SELECT RESPONSE FROM T24RESPONSE WHERE PCODE='||refProcessingCode;  
 		 SET Response.ROW[]=PASSTHRU(sql); 
 	--	SET Response.ROW[]=PASSTHRU(SELECT RESPONSE  FROM Database.DSN.SYSTEM.T24RESPONSE   WHERE PCODE=refProcessingCode);   		
-		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(Response.ROW[2].RESPONSE  ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO_Lib}' TYPE '{}:ISO8583_1987');
+		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(Response.ROW[1].RESPONSE  ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 	END; 
 END MODULE;
