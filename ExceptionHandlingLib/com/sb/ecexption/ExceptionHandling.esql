@@ -36,6 +36,10 @@ CREATE COMPUTE MODULE ExceptionHandling
 			SET outRef.excpNumber = excpRef.Number;
 			SET outRef.excpLable = excpRef.Label;
 			SET outRef.excpText = excpRef.Text; 
+		ELSE
+			IF FIELDVALUE(excpRef) <> '' AND LENGTH(FIELDVALUE(excpRef)) > 15 THEN
+				SET outRef.excpText = FIELDVALUE(excpRef); 
+			END IF;
 		END IF;
 		move excpRef lastchild;
 	END WHILE;
