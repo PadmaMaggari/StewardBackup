@@ -3,14 +3,20 @@
     xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/WalletToBank/WalletToBankT24ReqMesFlow.msgflow" nsPrefix="com_stewardbank_co_zw_WalletToBank_WalletToBankT24ReqMesFlow.msgflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.Config_File" name="Config_File" defaultValueLiteral="C:\LOG4J\samples\brokerlog.xml">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.IsLogRequired" name="IsLogRequired" defaultValueLiteral="Y">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="WalletToBankT24ReqMesFlow" bundleName="com/stewardbank/co/zw/WalletToBank/WalletToBankT24ReqMesFlow" pluginId="StewardBankWalletToBankApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankWalletToBankApp/icons/full/obj16/WalletToBankT24ReqMesFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankWalletToBankApp/icons/full/obj30/WalletToBankT24ReqMesFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="57,78" queueName="WalletToBankInQ" destinationQueueManagerName="QM1" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="57,78" queueName="WTOB_REQ_INQ" destinationQueueManagerName="QM1" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
         <translation xmi:type="utility:ConstantString" string="WalletToBank_InQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="605,60" queueName="WalletToBankOutQ">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="605,60" queueName="WTOB_REQ_OUTQ" destinationQueueManagerName="QM1">
         <translation xmi:type="utility:ConstantString" string="WalletToBank_OutQ"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="184,19" dataSource="SWDSN" computeExpression="esql://routine/com.stewardbank.co.zw.WalletToBank#WalletToBankFlow_ReqGenerationToT24.Main">
@@ -31,7 +37,7 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="321,157" computeExpression="esql://routine/com.stewardbank.co.zw.WalletToBank#WalletToBankFlow_FramimgExceptionDetails.Main">
         <translation xmi:type="utility:ConstantString" string="FramimgExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="500,161" queueName="ExceptionQ">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="500,161" queueName="ExceptionQ" destinationQueueManagerName="QM1">
         <translation xmi:type="utility:ConstantString" string="ExceptionQ"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
@@ -44,7 +50,14 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_9" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_10" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
     </composition>
-    <propertyOrganizer/>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.Config_File">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.Config_File" bundleName="com/stewardbank/co/zw/WalletToBank/WalletToBankT24ReqMesFlow" pluginId="StewardBankWalletToBankApp"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/WalletToBank/WalletToBankT24ReqMesFlow" pluginId="StewardBankWalletToBankApp"/>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
     <stickyBoard/>
   </eClassifiers>
 </ecore:EPackage>
