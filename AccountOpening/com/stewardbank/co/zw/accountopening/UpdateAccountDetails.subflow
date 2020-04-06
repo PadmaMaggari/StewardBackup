@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:com_stewardbank_co_zw_accountopening_CallPostilion.subflow="com/stewardbank/co/zw/accountopening/CallPostilion.subflow" xmlns:com_stewardbank_co_zw_accountopening_CallZSS.subflow="com/stewardbank/co/zw/accountopening/CallZSS.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility"
+    nsURI="com/stewardbank/co/zw/accountopening/UpdateAccountDetails.subflow" nsPrefix="com_stewardbank_co_zw_accountopening_UpdateAccountDetails.subflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1" useDefaults="true" udpSupport="true">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <translation xmi:type="utility:TranslatableString" key="UpdateAccountDetails" bundleName="com/stewardbank/co/zw/accountopening/UpdateAccountDetails" pluginId="StewardBankAccountOpeningApp"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankAccountOpeningApp/icons/full/obj16/UpdateAccountDetails.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankAccountOpeningApp/icons/full/obj30/UpdateAccountDetails.gif"/>
+    <composition>
+      <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="95,23">
+        <translation xmi:type="utility:TranslatableString" key="InTerminal.Input" bundleName="com/stewardbank/co/zw/accountopening/UpdateAccountDetails" pluginId="StewardBankAccountOpeningApp"/>
+      </nodes>
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="539,31">
+        <translation xmi:type="utility:TranslatableString" key="OutTerminal.Output" bundleName="com/stewardbank/co/zw/accountopening/UpdateAccountDetails" pluginId="StewardBankAccountOpeningApp"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_accountopening_CallZSS.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="247,23">
+        <translation xmi:type="utility:ConstantString" string="CallZSS"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_accountopening_CallPostilion.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="482,164">
+        <translation xmi:type="utility:ConstantString" string="CallPostilion"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="262,163" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_GenerateReqToPostilion.Main">
+        <translation xmi:type="utility:ConstantString" string="GenerateReqToPostilion"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="OutTerminal.Output" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_3" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+    </composition>
+    <propertyOrganizer/>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>
