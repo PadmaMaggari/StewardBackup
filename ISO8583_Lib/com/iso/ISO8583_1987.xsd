@@ -1156,10 +1156,11 @@
                         </xs:restriction>
                     </xs:simpleType>
                 </xs:element>
-                <xs:element dfdl:length="6" dfdl:lengthKind="explicit" dfdl:lengthUnits="characters" dfdl:occursCount="{xs:nonNegativeInteger(if ($isofmt:secondaryBitmapExists) then /ISO8583_1987/SecondaryBitmap/Bit127 else 0)}" ibmDfdlExtn:sampleValue="a1#a1#a1#" minOccurs="0" name="ReservedPrivate_127">
+                <xs:element dfdl:occursCount="{xs:nonNegativeInteger(if ($isofmt:secondaryBitmapExists) then /ISO8583_1987/SecondaryBitmap/Bit127 else 0)}" ibmDfdlExtn:sampleValue="a1#a1#a1#" minOccurs="0" name="ReservedPrivate_127">
                     <xs:simpleType>
-                        <xs:restriction base="isotyp:Type_ans_string">
-                            
+                        <xs:restriction base="isotyp:Type_ans_LLL">
+                            <xs:minLength value="1"/>
+                            <xs:maxLength value="999"/>
                         </xs:restriction>
                     </xs:simpleType>
                 </xs:element>
