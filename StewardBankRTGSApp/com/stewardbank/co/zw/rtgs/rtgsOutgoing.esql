@@ -1,16 +1,16 @@
 /*
 Author:Rathod Veerender
 Version:0.0.1
-Date of Creation:30-03-2020
+Date of Creation:02-03-2020
 Date of Modification:04-04-2020
-Description:Internal fund transfer ESB application for steward bank.It will pass the
+Description:RTGS ESB application for steward bank.It will pass the
  			request coming from Postilion system to T24 system and response from t24 is given 
  			back to Postilion system.
 */
-BROKER SCHEMA com.stewardbank.co.zw.internalfundtransfer
-path StewardBankCommonEsql;
+BROKER SCHEMA com.stewardbank.co.zw.rtgs
+PATH StewardBankCommonEsql;
 
-CREATE COMPUTE MODULE InternalFundTransferFlow_GenerateReqTo24
+CREATE COMPUTE MODULE rtgsOutgoing_GenerateReqTo24
 	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -39,20 +39,21 @@ CREATE COMPUTE MODULE InternalFundTransferFlow_GenerateReqTo24
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','[Log4jError]Initializing the log4j path error') INTO rc;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','..............start IFT logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Request to IFT_INQ::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','..............start RTGS Outgoing logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Request to RTGS_OUT_SB_IN::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef);
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Request To T24::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 	END;
 	
 END MODULE;
 
-CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
+CREATE COMPUTE MODULE rtgsOutgoingPostilionReq_RouteBasedOnProtocol
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyMessageHeaders();
@@ -75,7 +76,7 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 	END;
 END MODULE;
 
-CREATE COMPUTE MODULE InternalFundTransferFlowCaptureException
+CREATE COMPUTE MODULE rtgsOutgoingCaptureException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyMessageHeaders();
@@ -96,13 +97,13 @@ CREATE COMPUTE MODULE InternalFundTransferFlowCaptureException
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'IFT';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'RTGSOutgoing';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'IFT');
+		CALL BuildExceptionDetails(excpRef,outRef,'RTGSOutgoing');
 	END;
 END MODULE;
 
-CREATE COMPUTE MODULE InternalFundTransferFlowT24Req_GenerateReqToPostilion
+CREATE COMPUTE MODULE rtgsOutgoingT24Req_GenerateReqToPostilion
 	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -130,12 +131,13 @@ CREATE COMPUTE MODULE InternalFundTransferFlowT24Req_GenerateReqToPostilion
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','[Log4jError]Initializing the log4j path error') INTO rc;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef);
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Response To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Response To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 	END;
 END MODULE;
 
