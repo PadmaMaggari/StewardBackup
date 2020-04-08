@@ -1,0 +1,113 @@
+
+
+
+
+BROKER SCHEMA tcpipRouter
+
+PATH StewardBankCommonEsql;
+CREATE COMPUTE MODULE tcpipRequest_Compute
+	DECLARE rc BOOLEAN;      
+	DECLARE Config_File EXTERNAL CHARACTER '';
+	DECLARE IsLogRequired EXTERNAL CHARACTER '';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL initLog4j (Config_File) INTO rc;
+		CALL TCPIP_ROUTER();
+		RETURN TRUE;
+	END;
+
+	
+	CREATE PROCEDURE TCPIP_ROUTER() BEGIN
+
+		DECLARE req CHARACTER '';
+
+		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
+		IF IsLogRequired LIKE 'Y' THEN
+			SET req = CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writeToLogFile(MessageFlowLabel,'Log','INFO',req) INTO rc ;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO',tcpipDetails.Id)INTO rc;
+			CALL writeToLogFile(MessageFlowLabel,'Log1','DEBUG',req) INTO rc ;
+			CALL writeToLogFile (MessageFlowLabel,'Log1','DEBUG',tcpipDetails.Id)INTO rc;
+		ELSE 
+			
+		END IF;
+
+
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+
+		DECLARE procCodeData CHARACTER;
+		DECLARE data ROW;
+		DECLARE procCode CHARACTER InputRoot.DFDL.ISO8583_1987.ProcessingCode_003;
+		SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
+		-- ==================== TCPIP DETAILS =========================
+		Set OutputRoot.MQRFH2.usr.Type = tcpipDetails.Type;
+		Set OutputRoot.MQRFH2.usr.Hostname = tcpipDetails.Hostname;
+		Set OutputRoot.MQRFH2.usr.Port = tcpipDetails.Port;
+		Set OutputRoot.MQRFH2.usr.Id = tcpipDetails.Id;
+		Set OutputRoot.MQRFH2.usr.ReplyId = tcpipDetails.ReplyId;
+		Set OutputRoot.MQRFH2.usr.OpenTimestamp = tcpipDetails.OpenTimestamp;
+
+
+
+		IF domainName LIKE 'DFDL' THEN
+
+			SET data.values[] = select A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData and A.DOMAIN = domainName;
+			DECLARE Queuename CHARACTER '';
+			SET Queuename = data.values.REQ_QUEUE_NAME;
+			SET OutputRoot.MQRFH2.usr.resQueueName = data.values.RESQ_QUEUE_NAME;
+			SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
+			SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
+		    
+
+			SET OutputRoot.DFDL = InputRoot.DFDL;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Queuename;
+		END IF;
+
+	END;
+END MODULE;
+
+
+
+
+
+
+CREATE COMPUTE MODULE tcpipResponse_Compute
+	DECLARE rc BOOLEAN;
+	DECLARE Config_File EXTERNAL CHARACTER '';
+	DECLARE IsLogRequired EXTERNAL CHARACTER '';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL initLog4j (Config_File) INTO rc;
+		-- CALL CopyMessageHeaders();
+		CALL TCPIP_RESPONSE_FLOW();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE TCPIP_RESPONSE_FLOW() BEGIN
+		DECLARE resData CHARACTER '';
+		SET resData = CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+		CALL writeToLogFile(MessageFlowLabel,'Log','INFO',resData) INTO rc ;
+		CALL writeToLogFile(MessageFlowLabel,'Log1','DEBUG',resData) INTO rc ;
+
+
+
+		DECLARE ref REFERENCE TO InputRoot.MQRFH2.usr;
+		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
+		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
+
+		SET OutputRoot.DFDL = InputRoot.DFDL;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'BAL_ENQ_DATA_QUEUE';
+		-- SET OutputLocalEnvironment.TCPIP.Output.Id = ref;
+
+	END;
+END MODULE;

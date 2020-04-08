@@ -1,0 +1,135 @@
+BROKER SCHEMA com.stewardbank.co.zw.rtgsoutgoing
+PATH com.stewardbank.co.zw.common.esql;
+
+CREATE COMPUTE MODULE rtgsOutgoing_GenerateReqTo24
+	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL CopyMessageHeaders();
+		CALL GenerateReqToT24();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		DECLARE env REFERENCE TO Environment.Variables;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
+		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','[Log4jError]Initializing the log4j path error') INTO rc;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','..............start RTGS Outgoing logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Request to RTGS_OUT_SB_IN::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		--field to field mapping
+		CALL FieldToFieldMapping(inRef,outRef);
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Request To T24::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+	END;
+	
+END MODULE;
+
+CREATE COMPUTE MODULE rtgsOutgoingPostilionReq_RouteBasedOnProtocol
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL CopyMessageHeaders();
+		 CALL CopyEntireMessage();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE rtgsOutgoingCaptureException
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL CopyMessageHeaders();
+		CALL BuildErrorMsg();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE BuildErrorMsg() BEGIN
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'RTGSOutgoing';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'RTGSOutgoing');
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE rtgsOutgoingT24Req_GenerateReqToPostilion
+	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL CopyMessageHeaders();
+		 CALL GenerateResToPostilion();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE GenerateResToPostilion() BEGIN
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
+		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','[Log4jError]Initializing the log4j path error') INTO rc;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+		--field to field mapping
+		CALL FieldToFieldMapping(inRef,outRef);
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Response To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+	END;
+END MODULE;
+
+
