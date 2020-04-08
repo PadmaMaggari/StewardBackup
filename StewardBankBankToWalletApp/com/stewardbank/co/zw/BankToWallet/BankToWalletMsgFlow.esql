@@ -1,0 +1,114 @@
+BROKER SCHEMA com.stewardbank.co.zw.BankToWallet
+
+
+path StewardBankCommonEsql;
+
+-- ................Generating Request To T24 Esql Module...........
+
+ 	
+	DECLARE Config_File EXTERNAL CHARACTER '';
+	DECLARE IsLogRequired EXTERNAL CHARACTER '';
+	
+	
+CREATE COMPUTE MODULE WalletToBankFlow_ReqGenerationToT24
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		CALL FrameReqToT24();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE FrameReqToT24() BEGIN
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
+		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
+		
+		
+		DECLARE req CHARACTER '';
+		DECLARE rc BOOLEAN FALSE;	
+		 CALL initLog4j(Config_File) INTO rc;		
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','=================== Request Received ================') INTO rc;
+			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO',req) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','=================== Request End ================') INTO rc;
+		--Mapping field to field...
+		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
+		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
+		CALL FieldToFieldMapping(inRef,outRef);
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'INFO','******Request To T24****') INTO rc;
+	END;
+END MODULE;
+
+-- ..............Response Esql Module For Postilion..........
+
+
+CREATE COMPUTE MODULE BankToWalletMsgFlow_ResToPostilion
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL ResFramingToPostilion(); 
+		RETURN TRUE;
+	END;
+
+		CREATE PROCEDURE ResFramingToPostilion() BEGIN
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
+		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
+		DECLARE req CHARACTER '';
+		DECLARE rc BOOLEAN FALSE;	
+		CALL initLog4j(Config_File) INTO rc;		
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','=================== Response Received from T24  ================') INTO rc;
+			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO',req) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','=================== Request End ================') INTO rc;
+		--Mapping field to field...
+		CALL FieldToFieldMapping(inRef,outRef);
+		
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'INFO','****Response To TCPIP Router****') INTO rc;
+	END;
+END MODULE;
+	
+
+
+--..............Framing  Exception Details .............
+
+CREATE COMPUTE MODULE BankToWalletMsgFlow_FramimgException
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL FrameException();
+		DECLARE req CHARACTER '';
+		DECLARE rc BOOLEAN FALSE;	
+		CALL initLog4j(Config_File) INTO rc;		
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','=================== Framimg Ecxeption Details  ================') INTO rc;
+			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO',req) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','=================== End Logging ================') INTO rc;
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE FrameException() BEGIN
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'WTB';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'WTB'); 
+	END;
+END MODULE;
+
+	
