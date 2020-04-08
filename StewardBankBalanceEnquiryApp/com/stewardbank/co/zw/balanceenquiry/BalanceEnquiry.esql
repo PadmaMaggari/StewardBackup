@@ -1,9 +1,7 @@
-
-
-
 BROKER SCHEMA com.stewardbank.co.zw.balanceenquiry
 path StewardBankCommonEsql;
-DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+
 CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateReqToT24
 	
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -35,13 +33,14 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateReqToT24
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'BELogger', 'DEBUG','..............Start BE logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BELogger', 'DEBUG','Request to BE::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BELogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG','..............Initializing Balance Enquiry logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryWarnLogger', 'WARN','..............ISO Message parsed successfully...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG','Request from Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef);
-		CALL writeToLogFile(MessageFlowLabel, 'BELogger', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BELogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG','Request To T24::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 	END;
 	
 END MODULE;
@@ -77,11 +76,11 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateResToPostilion
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'BELogger', 'DEBUG','.........................') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef);
-		CALL writeToLogFile(MessageFlowLabel, 'BELogger', 'DEBUG','Request To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BELogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG','Balance Enquiry Response To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 
 	END;
 END MODULE;
@@ -99,8 +98,8 @@ CREATE COMPUTE MODULE BalanceEnquiryFlowCaptureException
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'BELogger', 'DEBUG','..............star Exception logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BELogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		
 		RETURN TRUE;
 	END;
