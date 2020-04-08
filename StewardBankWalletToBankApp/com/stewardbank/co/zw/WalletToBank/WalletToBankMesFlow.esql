@@ -9,7 +9,7 @@ path StewardBankCommonEsql;
 CREATE COMPUTE MODULE WalletToBankFlow_ReqGenerationToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL initLog4j(Config_File) INTO rc;
+		
 		CALL FrameReqToT24();
 		RETURN TRUE;
 	END;
@@ -19,20 +19,25 @@ CREATE COMPUTE MODULE WalletToBankFlow_ReqGenerationToT24
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
+		
+		
 		DECLARE req CHARACTER '';
-		DECLARE rc BOOLEAN FALSE;			
+		DECLARE rc BOOLEAN FALSE;	
+		 CALL initLog4j(Config_File) INTO rc;		
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
 
-			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','WtoBINFO','=================== Request Received ================') INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','=================== Request Received ================') INTO rc;
 			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
-			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','WtoBINFO',req) INTO rc;
-			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','WtoBINFO','=================== Request End ================') INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO',req) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','=================== Request End ================') INTO rc;
 		--Mapping field to field...
+		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
+		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		CALL FieldToFieldMapping(inRef,outRef);
-		CALL writeToLogFile(MessageFlowLabel, 'WToBLogger', 'WtoBINFO','******Request To T24****') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'INFO','******Request To T24****') INTO rc;
 	END;
 END MODULE;
 
@@ -41,7 +46,7 @@ END MODULE;
 CREATE COMPUTE MODULE WalletToBankFlow_ResGenerationToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL initLog4j(Config_File) INTO rc;
+		 
 		CALL ResFramingToPostilion(); 
 		RETURN TRUE;
 	END;
@@ -52,19 +57,21 @@ CREATE COMPUTE MODULE WalletToBankFlow_ResGenerationToPostilion
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		DECLARE req CHARACTER '';
-		DECLARE rc BOOLEAN FALSE;			
+		DECLARE rc BOOLEAN FALSE;	
+		CALL initLog4j(Config_File) INTO rc;		
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
 
-			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','WtoBINFO','=================== Response Received from T24  ================') INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','=================== Response Received from T24  ================') INTO rc;
 			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
-			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','WtoBINFO',req) INTO rc;
-			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','WtoBINFO','=================== Request End ================') INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO',req) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','=================== Request End ================') INTO rc;
 		--Mapping field to field...
 		CALL FieldToFieldMapping(inRef,outRef);
-		CALL writeToLogFile(MessageFlowLabel, 'WToBLogger', 'WtoBINFO','****Response To TCPIP Router****') INTO rc;
+		
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'INFO','****Response To TCPIP Router****') INTO rc;
 	END;
 END MODULE;
 
@@ -75,27 +82,28 @@ END MODULE;
 CREATE COMPUTE MODULE WalletToBankFlow_FramimgExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL initLog4j(Config_File) INTO rc;
+		 
 		CALL FrameException();
 		DECLARE req CHARACTER '';
-		DECLARE rc BOOLEAN FALSE;			
+		DECLARE rc BOOLEAN FALSE;	
+		CALL initLog4j(Config_File) INTO rc;		
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
 
-			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','WtoBINFO','=================== Framimg Ecxeption Details  ================') INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','=================== Framimg Ecxeption Details  ================') INTO rc;
 			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
-			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','WtoBINFO',req) INTO rc;
-			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','WtoBINFO','=================== End Logging ================') INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO',req) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','=================== End Logging ================') INTO rc;
 		RETURN TRUE;
 	END;
 
 	CREATE PROCEDURE FrameException() BEGIN
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'BalanceEnquiry';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'WTB';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'BalanceEnquiry');
+		CALL BuildExceptionDetails(excpRef,outRef,'WTB'); 
 	END;
 END MODULE;

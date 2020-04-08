@@ -12,10 +12,10 @@
       <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="343,24">
         <translation xmi:type="utility:TranslatableString" key="OutTerminal.Output" bundleName="com/stewardbank/co/zw/WalletToBank/CallT24Subflow" pluginId="StewardBankWalletToBankApp"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="117,19" connectionDetails="192.168.1.8:3434">
+      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="117,19" connectionDetails="{TCPPOLICIES}:T24CLIENT">
         <translation xmi:type="utility:ConstantString" string="TCPIP Client Output"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="222,19" connectionDetails="192.168.1.8:3434" closeConnection="afterData" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
+      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="222,19" connectionDetails="{TCPPOLICIES}:T24CLIENT" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
         <translation xmi:type="utility:ConstantString" string="TCPIP Client Receive"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_1" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
