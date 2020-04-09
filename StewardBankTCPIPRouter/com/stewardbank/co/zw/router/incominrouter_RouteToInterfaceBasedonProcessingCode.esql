@@ -12,6 +12,7 @@ PATH com.stewardbank.co.zw.common.esql;
 DECLARE getDBDetailsCache SHARED ROW;
 CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 	DECLARE DSN EXTERNAL CHARACTER '';
+	DECLARE SCH EXTERNAL CHARACTER '';
 	DECLARE IsLogRequired EXTERNAL CHARACTER '';
 	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 	DECLARE rc BOOLEAN;
@@ -51,12 +52,15 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 		*/
 		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
 		DECLARE req CHARACTER;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
 			SET req = CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
 			CALL writeToLogFile(MessageFlowLabel,'Log','INFO','ISO Request: '||req) INTO rc ;
-			CALL writeToLogFile (MessageFlowLabel,'Log','INFO','TCPIP ID: '||tcpipDetails.Id)INTO rc;
-			CALL writeToLogFile(MessageFlowLabel,'Log1','DEBUG','ISO Request: '||req) INTO rc ;
-			CALL writeToLogFile (MessageFlowLabel,'Log1','DEBUG','TCPIP ID: '||tcpipDetails.Id)INTO rc;
+			CALL writeToLogFile(MessageFlowLabel,'Log','INFO','TCPIP ID: '||tcpipDetails.Id)INTO rc;
 		END IF;
 
 
@@ -76,13 +80,13 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 		Set OutputRoot.MQRFH2.usr.OpenTimestamp = tcpipDetails.OpenTimestamp;
 		--IF domainName LIKE 'DFDL' THEN
 		IF EXISTS(getDBDetailsCache.Values[]) THEN
-			CALL writeToLogFile (MessageFlowLabel,'Log1','DEBUG','Values available in shared cache: '||getDBDetailsCache.Values.*[])INTO rc;
+			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Values available in shared cache: '||getDBDetailsCache.Values.*[])INTO rc;
 			--SET DBDetails.values[] = select A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData and A.DOMAIN = domainName;
 
 			SET QueueName = getDBDetailsCache.Values.REQ_QUEUE;
 
 		ELSE
-			CALL writeToLogFile (MessageFlowLabel,'Log1','DEBUG','Calling the Cache')INTO rc;
+			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Calling the Cache')INTO rc;
 			CALL STORE_CACHE(procCodeData);
 			SET QueueName = getDBDetailsCache.Values.REQ_QUEUE;
 		END IF;
@@ -90,9 +94,9 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 		SET OutputRoot.MQRFH2.usr.resQueueName = getDBDetailsCache.Values.RES_QUEUE;
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
-
-
+		
 		SET OutputRoot.DFDL = InputRoot.DFDL;
+		
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;
 		--END IF;
 		--------********************This is commented block*************----------
@@ -104,14 +108,14 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 		--SET OutputRoot = InputRoot;
 		--------********************This is commented block*************----------
 
-
+		
 	END;
 
 	CREATE PROCEDURE STORE_CACHE (IN procCodeData CHARACTER)
 	BEGIN
 		-- A.PROC_CODE,A.REQ_QUEUE,A.RES_QUEUE
 		SET getDBDetailsCache.Values[] = SELECT A.PROC_CODE,A.REQ_QUEUE,A.RES_QUEUE FROM Database.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData;
-        CALL writeToLogFile (MessageFlowLabel,'Log1','DEBUG','Retrieved values from Database')INTO rc;
+        CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Retrieved values from Database')INTO rc;
 	END;
 END MODULE;
 

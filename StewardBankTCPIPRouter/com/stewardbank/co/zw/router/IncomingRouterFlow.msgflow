@@ -12,11 +12,14 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log4jConfig.xml">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.SCH" name="SCH" defaultValueLiteral="system">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="IncomingRouterFlow" bundleName="com/stewardbank/co/zw/router/IncomingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankTCPIPRouter/icons/full/obj16/IncomingRouterFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankTCPIPRouter/icons/full/obj30/IncomingRouterFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmTCPIPServerInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="106,37" connectionDetails="{ESBPolicies}:EsbPostilionServer" timeoutWaitingForData="20" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
+      <nodes xmi:type="ComIbmTCPIPServerInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="106,37" connectionDetails="{ESBPolicies}:EsbPostilionServer" closeInputStream="true" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
         <translation xmi:type="utility:ConstantString" string="BackendISOReq"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="267,97" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.router#incominrouter_RouteToInterfaceBasedonProcessingCode.Main" computeMode="destinationAndMessage">
@@ -43,6 +46,9 @@
           <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/router/IncomingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
           <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
             <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/router/IncomingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.SCH">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.SCH" bundleName="com/stewardbank/co/zw/router/IncomingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
+            </propertyDescriptor>
           </propertyDescriptor>
         </propertyDescriptor>
       </propertyDescriptor>
