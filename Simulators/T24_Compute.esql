@@ -6,7 +6,8 @@ CREATE COMPUTE MODULE T24_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		-- CALL CopyMessageHeaders();
-		 CALL CopyEntireMessage();
+		-- CALL CopyEntireMessage();
+		CALL t24ResponseFrame(); 
 		RETURN TRUE;
 	END;
 
@@ -49,4 +50,21 @@ CREATE COMPUTE MODULE T24_Compute
 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(Environment.T24.Response[1].RESPONSE  ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 	END IF;
 	END;
+	CREATE PROCEDURE t24ResponseFrame() BEGIN
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		-- DECLARE mtiRes CHARACTER '';
+		-- DECLARE version CHARACTER inRef.MTI_Version;
+		-- DECLARE class CHARACTER inRef.MTI_MessageClass;
+		-- DECLARE funct CHARACTER inRef.MTI_MessageFunction;
+		-- DECLARE origin CHARACTER inRef.MTI_MessageOrigin;
+		Declare refProcessingCode CHARACTER;  
+		DECLARE Response ROW;
+		--DECLARE refProcessingCode CHARACTER inRef.ProcessingCode_003;
+		SET refProcessingCode=SUBSTRING(inRef.ProcessingCode_003 FROM 1 FOR 2); 
+		DECLARE sql CHARACTER;
+		SET sql= 'SELECT RESPONSE FROM T24RESPONSE WHERE PCODE='||refProcessingCode;  
+		 SET Response.ROW[]=PASSTHRU(sql); 
+	--	SET Response.ROW[]=PASSTHRU(SELECT RESPONSE  FROM Database.DSN.SYSTEM.T24RESPONSE   WHERE PCODE=refProcessingCode);   		
+		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(Response.ROW[1].RESPONSE  ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+	END; 
 END MODULE;
