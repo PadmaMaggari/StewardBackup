@@ -1,12 +1,3 @@
-/*
-Author:Rathod Veerender
-Version:0.0.1
-Date of Creation:30-03-2020
-Date of Modification:04-04-2020
-Description:Internal fund transfer ESB application for steward bank.It will pass the
- 			request coming from Postilion system to T24 system and response from t24 is given 
- 			back to Postilion system.
-*/
 BROKER SCHEMA com.stewardbank.co.zw.internalfundtransfer
 path com.stewardbank.co.zw.common.esql;
 
@@ -36,7 +27,9 @@ CREATE COMPUTE MODULE InternalFundTransferFlow_GenerateReqTo24
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;	
+		SET Environment.Variables.ResponseQ = InputRoot.MQRFH2.usr.resQueueName;
+		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Storing the value in Environment from MQRFH2 Header') INTO rc;		
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
@@ -134,6 +127,7 @@ CREATE COMPUTE MODULE InternalFundTransferFlowT24Req_GenerateReqToPostilion
 		END IF;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Response To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 	END;
