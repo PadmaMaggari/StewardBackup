@@ -1,0 +1,31 @@
+BROKER SCHEMA com.stewardbank.co.zw.common.exceptionhandler
+
+
+CREATE COMPUTE MODULE ExceptionHandling
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';  
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.ExceptionDetails;
+		DECLARE excpRef REFERENCE TO InputExceptionList;
+		CALL getExceptionDesc(excpRef,outRef);
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE getExceptionDesc(IN excpRef REFERENCE,INOUT outRef REFERENCE)	
+	BEGIN
+		WHILE LASTMOVE(excpRef) DO
+		IF excpRef.Number is not null THEN
+			SET outRef.excpType = FIELDNAME(excpRef);
+			SET outRef.excpNumber = excpRef.Number;
+			SET outRef.excpLable = excpRef.Label;
+			SET outRef.excpText = excpRef.Text; 
+		ELSE
+			IF FIELDVALUE(excpRef) <> '' AND LENGTH(FIELDVALUE(excpRef)) > 15 THEN
+				SET outRef.excpText = FIELDVALUE(excpRef); 
+			END IF;
+		END IF;
+		move excpRef lastchild;
+		END WHILE;
+	END;
+END MODULE;
