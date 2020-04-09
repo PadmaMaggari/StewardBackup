@@ -9,7 +9,7 @@ Modified Date : .
 Author : G Raghavender.
 =================================================================================================================== */
 BROKER SCHEMA com.stewardbank.co.zw.zipit
-PATH StewardBankCommonEsql;
+PATH  com.stewardbank.co.zw.common.esql;    
 DECLARE Config_File EXTERNAL CHARACTER ''; 
 
 CREATE COMPUTE MODULE Zipit_GenerateReqToT24    
@@ -86,11 +86,11 @@ Modified Date : .
 Author : G Raghavender.
 =================================================================================================================== */
 
-CREATE COMPUTE MODULE Zipit_BuildExceptionDetails 
+CREATE COMPUTE MODULE ZipitFlowCaptureException 
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyMessageHeaders();
-		CALL BuildErrorMsg();
+		CALL BuildErrorMsg(); 
 		RETURN TRUE;
 	END;
 
@@ -99,17 +99,17 @@ CREATE COMPUTE MODULE Zipit_BuildExceptionDetails
 		DECLARE J INTEGER;
 		SET J = CARDINALITY(InputRoot.*[]);
 		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET OutputRoot.*[I] = InputRoot.*[I]; 
 			SET I = I + 1;
 		END WHILE;
 	END;
 
-	CREATE PROCEDURE BuildErrorMsg() BEGIN
+	CREATE PROCEDURE BuildErrorMsg() BEGIN  
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'ZIPIT';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'ZIPIT'); 
+		CALL BuildExceptionDetails(excpRef,outRef,'ZIPIT');  
 	END;
 END MODULE;
 /*==================================================================================================================
