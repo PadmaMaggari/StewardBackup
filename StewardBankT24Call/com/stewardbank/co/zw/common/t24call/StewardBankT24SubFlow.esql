@@ -16,9 +16,11 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow
 	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
+		--propagate exception to EXC_Q queue
 		SET OutputRoot = InputRoot;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'EXC_Q';--Environment.Variables.ExceptionQ;
 		propagate;
+		--propagate exception to front end system
 		DECLARE inRef REFERENCE TO Environment.Variables.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
