@@ -9,7 +9,7 @@ Modified Date : .
 Author : G Raghavender.
 =================================================================================================================== */
 BROKER SCHEMA com.stewardbank.co.zw.zipit
-PATH  com.stewardbank.co.zw.common.esql;    
+PATH  com.stewardbank.co.zw.common.esql;     
 DECLARE Config_File EXTERNAL CHARACTER ''; 
 
 CREATE COMPUTE MODULE Zipit_GenerateReqToT24    
@@ -47,7 +47,7 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Request to ZIPIT_INQ::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef);
+		CALL FieldToFieldMapping(inRef,outRef,''); 
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Request To T24::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 	END;
@@ -153,7 +153,7 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef); 
+		CALL FieldToFieldMapping(inRef,outRef,''); 
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Response To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 	END;
