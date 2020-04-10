@@ -1,3 +1,12 @@
+/*
+Author:Rathod Veerender
+Version:0.0.1
+Date of Creation:30-03-2020
+Date of Modification:10-04-2020 
+Description: Common Procedure and function used by all flows i.e Incoming,outgoing router and
+			Business flow.
+--do not delete this file at any cost,modification can be done--		
+*/
 BROKER SCHEMA com.stewardbank.co.zw.common.esql
 
 
@@ -20,7 +29,7 @@ BEGIN
 		MOVE inOutRef NEXTSIBLING;
 	END WHILE;
 END;
-CREATE PROCEDURE FieldToFieldMapping(IN inputRef REFERENCE,IN outRef REFERENCE)
+CREATE PROCEDURE FieldToFieldMapping(IN inputRef REFERENCE,IN outRef REFERENCE,IN err CHARACTER)
 BEGIN
 	SET outRef.TCPHeaderBitmap[]=inputRef.TCPHeaderBitmap[];
 	SET outRef.MTI_Version=inputRef.MTI_Version;
@@ -32,7 +41,9 @@ BEGIN
 	DECLARE isSecondaryBitMapExists,is127FieldExists BOOLEAN FALSE;
 	IF FIELDVALUE(inRef)= '1' THEN SET isSecondaryBitMapExists = TRUE; END IF;
 	CALL copyBitMap(inRef,inputRef,outRef,'PrimaryBitmap');
-	
+	--start of editing (Added for error response to postilion or zss)
+	IF err = 'Y' THEN SET outRef.PrimaryBitmap.Bit039=1; END IF;
+	--end of editing
 	IF isSecondaryBitMapExists = TRUE THEN
 		DECLARE secondBitMapRef REFERENCE TO inputRef.SecondaryBitmap.[1];
 		CALL copyBitMap(secondBitMapRef,inputRef,outRef,'SecondaryBitmap');
@@ -153,6 +164,9 @@ BEGIN
 	IF FIELDNAME(inputRef.ResponseCode_039) is NOT NULL THEN
 		SET outRef.ResponseCode_039= inputRef.ResponseCode_039;
 	END IF;
+	--start of editing  (Added for error response to postilion or zss)
+	IF err = 'Y' THEN SET outRef.ResponseCode_039='06'; END IF;
+	--end of editing
 	IF FIELDNAME(inputRef.ServiceRestrictionCode_040) is NOT NULL THEN
 		SET outRef.ServiceRestrictionCode_040= inputRef.ServiceRestrictionCode_040;
 	END IF;
@@ -550,22 +564,38 @@ CREATE FUNCTION getPayLoad(IN inputRef REFERENCE, IN encodeRef REFERENCE,IN prop
 		RETURN payload;
 	END;
 
-CREATE PROCEDURE MTIResponse(IN mtiVersion CHARACTER,IN mtiClass CHARACTER,IN mtiFunction CHARACTER,IN mtiOrigin CHARACTER,OUT env REFERENCE) 
+CREATE FUNCTION MTIResponse(IN mtiVersion CHARACTER,IN mtiClass CHARACTER,IN mtiFunction CHARACTER,IN mtiOrigin CHARACTER) RETURNS CHARACTER 
 	BEGIN
-		
+		DECLARE mtiRes CHARACTER '';
 		CASE
+			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0100' THEN
+				SET mtiRes = '0110';
 			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0200' THEN
-				SET env.mtiResponse = '0210';
+				SET mtiRes = '0210';
+			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0220' OR mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0221'THEN
+				SET mtiRes = '0230';
+			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0202' THEN
+				SET mtiRes = '0212';
 			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0400' THEN
-				SET env.mtiResponse = '0410';
+				SET mtiRes = '0410';
+			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0420' OR mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0421'THEN
+				SET mtiRes = '0430';
 			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0500' THEN
-				SET env.mtiResponse = '0510';
+				SET mtiRes = '0510';
+			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0520' OR mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0521' THEN
+				SET mtiRes = '0530';
 			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0300' THEN
-				SET env.mtiResponse = '0310';
+				SET mtiRes = '0310';
 			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0600' THEN
-				SET env.mtiResponse = '0610';
+				SET mtiRes = '0610';
+			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0800' THEN
+				SET mtiRes = '0810';
+			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0700' THEN
+				SET mtiRes = '0710';
 		ELSE
+			SET mtiRes = '0000';
 		END CASE;
+		RETURN mtiRes;
 	END;
 	CREATE PROCEDURE BuildExceptionDetails(IN excpRef REFERENCE,INOUT outRef REFERENCE,IN serviceName CHARACTER) BEGIN
 		SET outRef.excpType = FIELDNAME(excpRef);
