@@ -38,7 +38,6 @@ CREATE COMPUTE MODULE InternalFundTransferFlow_GenerateReqTo24
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		DECLARE rc BOOLEAN FALSE;
-		
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;	
 		SET Environment.Variables.ResponseQ = InputRoot.MQRFH2.usr.resQueueName;
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Storing the value in Environment from MQRFH2 Header') INTO rc;		

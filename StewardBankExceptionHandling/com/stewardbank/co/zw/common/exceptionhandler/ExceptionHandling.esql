@@ -7,33 +7,106 @@ Description: Generate a XML message which provide description for Exception whic
  			
 */
 BROKER SCHEMA com.stewardbank.co.zw.common.exceptionhandler
-
+PATH com.stewardbank.co.zw.common.esql;
 
 CREATE COMPUTE MODULE ExceptionHandling
+	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';  
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.ExceptionDetails;
-		DECLARE excpRef REFERENCE TO InputExceptionList;
-		CALL getExceptionDesc(excpRef,outRef);
+		DECLARE excpRef REFERENCE TO InputExceptionList.*[1];
+		DECLARE insertRef REFERENCE TO InputExceptionList.*[1];
+		CALL getExceptionDesc(excpRef,insertRef,outRef);
+		SET Environment.Variables.ExceptionData = OutputRoot.XMLNSC.ExceptionDetails;
+		DECLARE fnam CHARACTER excpRef.Name;
+		--start editing(If T24 is down or unavailable send error response to front end in ISO with ResponseCode(06))
+		IF EXISTS(InputExceptionList.*[]) AND CONTAINS(fnam,'StewardBankT24SubFlow') AND 
+			(CONTAINS(Environment.Variables.ExceptionData.excpText,'Connection refused') OR
+			CONTAINS(Environment.Variables.ExceptionData.excpText,'8808'))THEN
+				SET OutputRoot = null;
+				CALL revertBackToSystem();
+		END IF;
+		--end editing(If T24 is down or unavailable send error response to front end in ISO with ResponseCode(06))
+		-- start editing (log exception details in exception queue(EXC_Q))
+		SET OutputRoot.XMLNSC.ExceptionDetails = Environment.Variables.ExceptionData;
+		-- end editing (log exception details in exception queue(EXC_Q))
 		RETURN TRUE;
 	END;
-
-	CREATE PROCEDURE getExceptionDesc(IN excpRef REFERENCE,INOUT outRef REFERENCE)	
-	BEGIN
-		WHILE LASTMOVE(excpRef) DO
-		IF excpRef.Number is not null THEN
-			SET outRef.excpType = FIELDNAME(excpRef);
-			SET outRef.excpNumber = excpRef.Number;
-			SET outRef.excpLable = excpRef.Label;
-			SET outRef.excpText = excpRef.Text; 
-		ELSE
-			IF FIELDVALUE(excpRef) <> '' AND LENGTH(FIELDVALUE(excpRef)) > 15 THEN
-				SET outRef.excpText = FIELDVALUE(excpRef); 
-			END IF;
+	CREATE PROCEDURE revertBackToSystem()
+	BEGIN 
+		DECLARE inRef REFERENCE TO Environment.Variables.DFDL.ISO8583_1987;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
+		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE mtiRes CHARACTER '';
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
-		move excpRef lastchild;
+		--generate a error response in iso8583 to front end system in case of failure of t24
+		CALL FieldToFieldMapping(inRef,outRef,'Y');
+		
+		CALL MTIResponse(CAST(inRef.MTI_Version AS CHARACTER),CAST(inRef.MTI_MessageClass AS CHARACTER),CAST(inRef.MTI_MessageFunction AS CHARACTER),CAST(inRef.MTI_MessageOrigin AS CHARACTER)) into mtiRes;
+		SET outRef.MTI_Version=SUBSTRING(mtiRes FROM 1 FOR 1);
+		SET outRef.MTI_MessageClass=SUBSTRING(mtiRes FROM 2 FOR 1);
+		SET outRef.MTI_MessageFunction=SUBSTRING(mtiRes FROM 3 FOR 1); 
+		SET outRef.MTI_MessageOrigin=SUBSTRING(mtiRes FROM 4 FOR 1);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorRes', 'DEBUG','Response To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorRes', 'DEBUG',CAST(ASBITSTREAM(OutputRoot CCSID Environment.Variables.Properties.CodedCharSetId) AS CHARACTER CCSID Environment.Variables.Properties.CodedCharSetId)) INTO rc;
+		PROPAGATE TO TERMINAL 'out1';
+	END;
+	CREATE PROCEDURE getExceptionDesc(IN excpRef REFERENCE,IN insertRef REFERENCE,INOUT outRef REFERENCE)	
+	BEGIN
+		DECLARE messageText CHARACTER '';
+		DECLARE exceptionName CHARACTER '';
+		WHILE LASTMOVE(excpRef) DO
+			IF excpRef.Number is not null THEN
+				SET outRef.excpType = FIELDNAME(excpRef);
+				SET exceptionName = FIELDNAME(excpRef);
+				SET outRef.excpNumber = excpRef.Number;
+				SET outRef.excpLable = excpRef.Label;
+				IF stringValidation(excpRef.Text) THEN
+					SET messageText = messageText||','||excpRef.Text;
+				END IF;
+				--- fetch description from Insert[]
+				MOVE insertRef TO excpRef.Insert[>];
+				WHILE LASTMOVE(insertRef) AND FIELDNAME(insertRef) = 'Insert' DO 
+					IF NOT LENGTH(insertRef.Text) = 1 AND
+						stringValidation(insertRef.Text)THEN
+						SET messageText = messageText||','||insertRef.Text;
+					END IF;
+					MOVE insertRef NEXTSIBLING;
+				END WHILE;
+				
+			--started editing(removed since we are capturing all insert field data)
+			/*
+			ELSE
+				IF FIELDVALUE(excpRef) <> '' AND LENGTH(FIELDVALUE(excpRef)) > 15 THEN
+					SET outRef.excpText = FIELDVALUE(excpRef); 
+				END IF;
+			*/
+			--ended editing(removed since we are capturing all insert field data)
+			END IF;
+			move excpRef lastchild;
 		END WHILE;
+		SET outRef.excpText = exceptionName||''||OVERLAY(messageText PLACING ':' FROM 1 FOR 1);
+	END;
+	CREATE PROCEDURE stringValidation (IN text CHARACTER)
+	RETURNS BOOLEAN
+	BEGIN
+		IF NOT CONTAINS(text, 'Node throwing exception') AND
+			NOT CONTAINS(text, 'Caught exception and rethrowing') AND
+			NOT CONTAINS(text, 'Error detected, rethrowing') AND
+			NOT CONTAINS(text, 'Error occured in procedure') AND
+			NOT LENGTH(text) = 1 THEN
+			RETURN TRUE;
+		ELSE
+			RETURN FALSE;
+		END IF;
 	END;
 END MODULE;
