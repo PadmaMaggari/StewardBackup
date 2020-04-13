@@ -114,7 +114,7 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 	CREATE PROCEDURE STORE_CACHE (IN procCodeData CHARACTER)
 	BEGIN
 		-- A.PROC_CODE,A.REQ_QUEUE,A.RES_QUEUE
-		SET getDBDetailsCache.Values[] = SELECT A.PROC_CODE,A.REQ_QUEUE,A.RES_QUEUE FROM Database.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData;
+		SET getDBDetailsCache.Values[] = SELECT A.PROC_CODE,A.REQ_QUEUE,A.RES_QUEUE FROM Database.INTEGRATION_SOL_DETAILS AS A; --WHERE A.PROC_CODE = procCodeData;
         CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Retrieved values from Database')INTO rc;
 	END;
 END MODULE;
