@@ -688,16 +688,601 @@ CREATE FUNCTION MTIResponse(IN mtiVersion CHARACTER,IN mtiClass CHARACTER,IN mti
 			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
 		END CASE;
 	END;
+	CREATE FUNCTION GetISOFieldNames (fieldId CHARACTER) RETURNS CHARACTER
+BEGIN
+	DECLARE isoFieldName CHARACTER;
+	SET isoFieldName =
+	CASE fieldId
+	WHEN '2' THEN 'PrimaryAccountNumber_002'
+	WHEN '3' THEN 'ProcessingCode_003'
+	WHEN '4' THEN 'AmountTransaction_004'
+	WHEN '5' THEN 'AmountSettlement_005'
+	WHEN '6' THEN 'AmountCardHolderBilling_006'
+	WHEN '7' THEN 'TransmissionDatetime_007'
+	WHEN '8' THEN 'AmountCardHolderBillingFee_008'
+	WHEN '9' THEN 'ConversionRateSettlement_009'
+	WHEN '10' THEN 'ConversionRateCardholderBilling_010'
+	WHEN '11' THEN 'SystemsTraceAuditNumber_011'
+	WHEN '12' THEN 'TimeLocalTransaction_012'
+	WHEN '13' THEN 'DateLocalTransaction_013'
+	WHEN '14' THEN 'DateExpiration_014'
+	WHEN '15' THEN 'DateSettlement_015'
+	WHEN '16' THEN 'DateConversion_016'
+	WHEN '17' THEN 'DateCapture_017'
+	WHEN '18' THEN 'MerchantType_018'
+	WHEN '19' THEN 'AcquiringInstitutionCountryCode_019'
+	WHEN '20' THEN 'PANExtendedCountryCode_020'
+	WHEN '21' THEN 'ForwardingInstitutionCountryCode_021'
+	WHEN '22' THEN 'PointOfServiceEntryMode_022'
+	WHEN '23' THEN 'CardSequenceNumber_023'
+	WHEN '24' THEN 'NetworkInternationalIdentifier_024'
+	WHEN '25' THEN 'PointOfServiceConditionCode_025'
+	WHEN '26' THEN 'PointOfServiceCaptureCode_026'
+	WHEN '27' THEN 'AuthorizingIdentificationResponseLength_027'
+	WHEN '28' THEN 'AmountTransactionFee_028'
+	WHEN '29' THEN 'AmountSettlementFee_029'
+	WHEN '30' THEN 'AmountTransactionProcessingFee_030'
+	WHEN '31' THEN 'AmountSettlementProcessingFee_031'
+	WHEN '32' THEN 'AcquiringInstitutionIdentificationCode_032'
+	WHEN '33' THEN 'ForwardingInstitutionIdentificationCode_033'
+	WHEN '34' THEN 'PrimaryAccountNumberExtended_034'
+	WHEN '35' THEN 'Track2Data_035'
+	WHEN '36' THEN 'Track3Data_036'
+	WHEN '37' THEN 'RetrievalReferenceNumber_037'
+	WHEN '38' THEN 'AuthorizationIdentificationResponse_038'
+	WHEN '39' THEN 'ResponseCode_039'
+	WHEN '40' THEN 'ServiceRestrictionCode_040'
+	WHEN '41' THEN 'CardAcceptorTerminalIdentification_041'
+	WHEN '42' THEN 'CardAcceptorIdentificationCode_042'
+	WHEN '43' THEN 'CardAcceptorNameLocation_043'
+	WHEN '44' THEN 'AdditionalResponseData_044'
+	WHEN '45' THEN 'Track1Data_045'
+	WHEN '46' THEN 'AdditionalDataISO_046'
+	WHEN '47' THEN 'AdditionalDataNational_047'
+	WHEN '48' THEN 'AdditionalDataPrivate_048'
+	WHEN '49' THEN 'CurrencyCodeTransaction_049'
+	WHEN '50' THEN 'CurrencyCodeSettlement_050'
+	WHEN '51' THEN 'CurrencyCodeCardholderBilling_051'
+	WHEN '52' THEN 'PersonalIdentificationNumberData_052'
+	WHEN '53' THEN 'SecurityRelatedControlInformation_053'
+	WHEN '54' THEN 'AdditionalAmounts_054'
+	WHEN '55' THEN 'ReservedISO_055'
+	WHEN '56' THEN 'ReservedISO_056'
+	WHEN '57' THEN 'ReservedNational_057'
+	WHEN '58' THEN 'ReservedNational_058'
+	WHEN '59' THEN 'ReservedNational_059'
+	WHEN '60' THEN 'AdviceReasonCode_060'
+	WHEN '61' THEN 'ReservedPrivate_061'
+	WHEN '62' THEN 'ReservedPrivate_062'
+	WHEN '63' THEN 'ReservedPrivate_063'
+	WHEN '64' THEN 'MessageAuthenticationCode_064'
+	WHEN '65' THEN 'TertiaryBitmap_065'
+	WHEN '66' THEN 'SettlementCode_066'
+	WHEN '67' THEN 'ExtendedPaymentCode_067'
+	WHEN '68' THEN 'ReceivingInstitutionCountryCode_068'
+	WHEN '69' THEN 'SettlementInstitutionCountryCode_069'
+	WHEN '70' THEN 'NetworkManagementInformationCode_070'
+	WHEN '71' THEN 'MessageNumber_071'
+	WHEN '72' THEN 'MessageNumberLast_072'
+	WHEN '73' THEN 'DateAction_073'
+	WHEN '74' THEN 'CreditsNumber_074'
+	WHEN '75' THEN 'CreditsReversalNumber_075'
+	WHEN '76' THEN 'DebitsNumber_076'
+	WHEN '77' THEN 'DebitsReversalNumber_077'
+	WHEN '78' THEN 'TransferNumber_078'
+	WHEN '79' THEN 'TransferReversalNumber_079'
+	WHEN '80' THEN 'InquiriesNumber_080'
+	WHEN '81' THEN 'AuthorizationsNumber_081'
+	WHEN '82' THEN 'CreditsProcessingFeeAmount_082'
+	WHEN '83' THEN 'CreditsTransactionFeeAmount_083'
+	WHEN '84' THEN 'DebitsProcessingFeeAmount_084'
+	WHEN '85' THEN 'DebitsTransactionFeeAmount_085'
+	WHEN '86' THEN 'CreditsAmount_086'
+	WHEN '87' THEN 'CreditsReversalAmount_087'
+	WHEN '88' THEN 'DebitsAmount_088'
+	WHEN '89' THEN 'DebitsReversalAmount_089'
+	WHEN '90' THEN 'OriginalDataElements_090'
+	WHEN '91' THEN 'FileUpdateCode_091'
+	WHEN '92' THEN 'FileSecurityCode_092'
+	WHEN '93' THEN 'ResponseIndicator_093'
+	WHEN '94' THEN 'ServiceIndicator_094'
+	WHEN '95' THEN 'ReplacementAmounts_095'
+	WHEN '96' THEN 'MessageSecurityCode_096'
+	WHEN '97' THEN 'AmountNetSettlement_097'
+	WHEN '98' THEN 'Payee_098'
+	WHEN '99' THEN 'SettlementInstitutionIdentificationCode_099'
+	WHEN '100' THEN 'ReceivingInstitutionIdentificationCode_100'
+	WHEN '101' THEN 'FileName_101'
+	WHEN '102' THEN 'AccountIdentification1_102'
+	WHEN '103' THEN 'AccountIdentification2_103'
+	WHEN '104' THEN 'TransactionDescription_104'
+	WHEN '105' THEN 'ReservedISO_105'
+	WHEN '106' THEN 'ReservedISO_106'
+	WHEN '107' THEN 'ReservedISO_107'
+	WHEN '108' THEN 'ReservedISO_108'
+	WHEN '109' THEN 'ReservedISO_109'
+	WHEN '110' THEN 'ReservedISO_110'
+	WHEN '111' THEN 'ReservedISO_111'
+	WHEN '112' THEN 'ReservedNational_112'
+	WHEN '113' THEN 'ReservedNational_113'
+	WHEN '114' THEN 'ReservedNational_114'
+	WHEN '115' THEN 'ReservedNational_115'
+	WHEN '116' THEN 'ReservedNational_116'
+	WHEN '117' THEN 'ReservedNational_117'
+	WHEN '118' THEN 'ReservedNational_118'
+	WHEN '119' THEN 'ReservedNational_119'
+	WHEN '120' THEN 'ReservedPrivate_120'
+	WHEN '121' THEN 'ReservedPrivate_121'
+	WHEN '122' THEN 'ReservedPrivate_122'
+	WHEN '123' THEN 'ReservedPrivate_123'
+	WHEN '124' THEN 'ReservedPrivate_124'
+	WHEN '125' THEN 'ReservedPrivate_125'
+	WHEN '126' THEN 'ReservedPrivate_126'
+	WHEN '127' THEN 'ReservedPrivate_127'
+	WHEN '128' THEN 'MessageAuthenticationCode_128'
+	ELSE '0'
+	END;
+	RETURN isoFieldName;
+END;
+
+CREATE FUNCTION Get127_25FieldNames (fieldId CHARACTER ) RETURNS CHARACTER
+BEGIN
+	DECLARE field127_25 CHARACTER;
+	SET field127_25 =
+	CASE fieldId
+	WHEN '2' THEN 'AmountAuthorizedPostilionPrivate_127_25_2'
+	WHEN '3' THEN 'AmountOtherPostilionPrivate_127_25_3'
+	WHEN '4' THEN 'ApplicationIdentifierPostilionPrivate_127_25_4'
+	WHEN '5' THEN 'ApplicationInterchangeProfilePostilionPrivate_127_25_5'
+	WHEN '6' THEN 'ApplicationTransactionCounterPostilionPrivate_127_25_6'
+	WHEN '7' THEN 'ApplicationUsageControlPostilionPrivate_127_25_7'
+	WHEN '8' THEN 'AuthorizationResponseCodePostilionPrivate_127_25_8'
+	WHEN '9' THEN 'CardAuthReliabilityIndicatiorPostilionPrivate_127_25_9'
+	WHEN '10' THEN 'CardAuthResultsCodePostilionPrivate_127_25_10'
+	WHEN '11' THEN 'ChipConditionCodePostilionPrivate_127_25_11'
+	WHEN '12' THEN 'CryptogramPostilionPrivate_127_25_12'
+	WHEN '13' THEN 'CryptogramInformationDataPostilionPrivate_127_25_13'
+	WHEN '14' THEN 'CvmListPostilionPrivate_127_25_14'
+	WHEN '15' THEN 'CvmResultsPostilionPrivate_127_25_15'
+	WHEN '16' THEN 'InterfaceDeviceSerialNumberPostilionPrivate_127_25_16'
+	WHEN '17' THEN 'IssuerActionCodePostilionPrivate_127_25_17'
+	WHEN '18' THEN 'IssuerApplicationDataPostilionPrivate_127_25_18'
+	WHEN '19' THEN 'IssuerScriptResultsPostilionPrivate_127_25_19'
+	WHEN '20' THEN 'TerminalApplicationVersionNumberPostilionPrivate_127_25_20'
+	WHEN '21' THEN 'TerminalCapabilitiesPostilionPrivate_127_25_21'
+	WHEN '22' THEN 'TerminalCountryCodePostilionPrivate_127_25_22'
+	WHEN '23' THEN 'TerminalTypePostilionPrivate_127_25_23'
+	WHEN '24' THEN 'TerminalVerificationResultPostilionPrivate_127_25_24'
+	WHEN '25' THEN 'TerminalCategoryCodePostilionPrivate_127_25_25'
+	WHEN '26' THEN 'TransactionCurrencyCodePostilionPrivate_127_25_26'
+	WHEN '27' THEN 'TransactionDatePostilionPrivate_127_25_27'
+	WHEN '28' THEN 'TransactionSequenceCounterPostilionPrivate_127_25_28'
+	WHEN '29' THEN 'TransactionTypePostilionPrivate_127_25_29'
+	WHEN '30' THEN 'UnpredictableNumberResultPostilionPrivate_127_25_30'
+	WHEN '31' THEN 'IssuerAuthDataPostilionPrivate_127_25_31'
+	WHEN '32' THEN 'IssuerScriptTemplate1PostilionPrivate_127_25_32'
+	WHEN '33' THEN 'IssuerScriptTemplate2PostilionPrivate_127_25_33'
+	ELSE '0'
+	END;
+	RETURN field127_25;
+END;
+
+CREATE FUNCTION Get127FieldNames (fieldId CHARACTER) RETURNS CHARACTER
+BEGIN
+	DECLARE fields_127 CHARACTER;
+	SET fields_127 =
+	CASE fieldId
+	WHEN '2' THEN 'SwitchKeyPostilionPrivate_127_2'
+	WHEN '3' THEN 'RoutingInformationPostilionPrivate_127_3'
+	WHEN '4' THEN 'POSDataPostilionPrivate_127_4'
+	WHEN '5' THEN 'ServiceStationDataPostilionPrivate_127_5'
+	WHEN '6' THEN 'AuthorizationProfilePostilionPrivate_127_6'
+	WHEN '7' THEN 'CheckDataPostilionPrivate_127_7'
+	WHEN '8' THEN 'RetentionDataPostilionPrivate_127_8'
+	WHEN '9' THEN 'AdditionalNodeDataPostilionPrivate_127_9'
+	WHEN '10' THEN 'CVVPostilionPrivate_127_10'
+	WHEN '11' THEN 'OriginalKeyPostilionPrivate_127_11'
+	WHEN '12' THEN 'OriginalKeyPostilionPrivate_127_12'
+	WHEN '13' THEN 'PosGeographicDataPostilionPrivate_127_13'
+	WHEN '14' THEN 'SponsorBankPostilionPrivate_127_14'
+	WHEN '15' THEN 'AddressVerificationDataPostilionPrivate_127_15'
+	WHEN '16' THEN 'AddressVerificationResultPostilionPrivate_127_16'
+	WHEN '17' THEN 'CardHolderInformationPostilionPrivate_127_17'
+	WHEN '18' THEN 'ValidationDataPostilionPrivate_127_18'
+	WHEN '19' THEN 'BankDetailsPostilionPrivate_127_19'
+	WHEN '20' THEN 'OriginatorAuthorizerDatePostilionPrivate_127_20'
+	WHEN '21' THEN 'RecordIdentificationPostilionPrivate_127_21'
+	WHEN '22' THEN 'StructuredDataPostilionPrivate_127_22'
+	WHEN '23' THEN 'PayeeNameAddressPostilionPrivate_127_23'
+	WHEN '24' THEN 'PayerAccountPostilionPrivate_127_24'
+	WHEN '25' THEN 'ICCDataPostilionPrivate_127_25'
+	WHEN '26' THEN 'OriginalNodePostilionPrivate_127_26'
+	WHEN '27' THEN 'CardVerificationResultPostilionPrivate_127_27'
+	WHEN '28' THEN 'AmericanExpressCardIdentifierPostilionPrivate_127_28'
+	WHEN '29' THEN 'SecureData3DPostilionPrivate_127_29'
+	WHEN '30' THEN 'SecureData3DResultPostilionPrivate_127_30'
+	WHEN '31' THEN 'IssuerNetworkIDPostilionPrivate_127_31'
+	WHEN '32' THEN 'UCAFDataPostilionPrivate_127_32'
+	WHEN '33' THEN 'ExtendedTransactionTypePostilionPrivate_127_33'
+	WHEN '34' THEN 'AccountTypeQualifierPostilionPrivate_127_34'
+	WHEN '35' THEN 'AcquirerNetworkIDPostilionPrivate_127_35'
+	WHEN '36' THEN 'CustomerIDPostilionPrivate_127_36'
+	WHEN '37' THEN 'ExtendedResponseCodePostilionPrivate_127_37'
+	WHEN '38' THEN 'AdditionalPOSDataCodePostilionPrivate_127_38'
+	WHEN '39' THEN 'OriginalResponseCodePostilionPrivate_127_39'
+	ELSE '0'
+	END;
+	RETURN fields_127;
+END;
+/**
+* Method for to update Bit map with Ascii
+**/
+CREATE PROCEDURE UpdateMsgWithAsciiBitMap(INOUT outPayLoadRef REFERENCE)
+BEGIN
+	DECLARE tcpBitmapRef REFERENCE TO outPayLoadRef;
+	DECLARE mtiOrigin, primaryBitRef, secondryBitRef REFERENCE TO outPayLoadRef.MTI_MessageOrigin;
+	DECLARE SecondaryBitmap,PostilionBitmap,ICCDataBitmap BOOLEAN FALSE;
+	--Checking MtiOrigin populated or not
+	IF NOT LASTMOVE(mtiOrigin) THEN
+		THROW USER EXCEPTION SEVERITY 3 MESSAGE 0000 VALUES ('MTI Message Origin is not created. Should be before calling updateMsgWithHexBitMap method');
+	END IF;
+	CREATE FIRSTCHILD OF outPayLoadRef AS tcpBitmapRef NAME 'TCPHeaderBitmap';
+	CALL PopulatePackedBitmap(tcpBitmapRef,17);
+	CREATE NEXTSIBLING OF mtiOrigin AS primaryBitRef NAME 'PrimaryBitmap';
+	CALL PopulatePackedBitmap(primaryBitRef,65);
+	IF CAST(SUBSTRING(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '_')BEFORE '_') AS INT) > 64 THEN
+		SET SecondaryBitmap = TRUE;
+		SET outPayLoadRef.PrimaryBitmap.Bit001 = 1;
+		CREATE NEXTSIBLING OF primaryBitRef AS secondryBitRef NAME 'SecondaryBitmap';
+		CALL PopulatePackedBitmap(secondryBitRef,129);
+	END IF;
+	IF CAST(SUBSTRING(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '_')BEFORE '_') AS INT) = 127 THEN
+		SET PostilionBitmap = TRUE;
+		DECLARE postilionBitRef REFERENCE TO outPayLoadRef.ReservedPrivate_127;
+		CREATE NEXTSIBLING OF postilionBitRef AS postilionBitRef NAME 'PostilionBitmap';
+		CALL PopulatePackedBitmap(postilionBitRef,65);
+	END IF;
+	IF CAST(SUBSTRING(SUBSTRING(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '_')AFTER '_')BEFORE '_') AS CHAR) = '25' THEN
+		SET ICCDataBitmap = TRUE;
+		DECLARE iccDataBitRef REFERENCE TO outPayLoadRef.ICCDataPostilionPrivate_127_25;
+		CREATE NEXTSIBLING OF iccDataBitRef AS iccDataBitRef NAME 'ICCDataBitmap';
+		CALL PopulatePackedBitmap(iccDataBitRef,65);
+		--CALL PopulateUnpackedBitmaps(iccDataBitRef,iccDataBitRef,0);
+	END IF;
+	--Updating the fields based on available fields
+	CALL UpdateBitmapWithAvailableFields(outPayLoadRef, outPayLoadRef);
+END;
+
+CREATE PROCEDURE PopulateUnPackedBitmaps(IN DFDLPointerUnpack REFERENCE,IN DFDLPointer REFERENCE, IN SecondDigit INTEGER)
+BEGIN
+	DECLARE I2 INTEGER 1;
+	DECLARE I3 INTEGER 4;
+	DECLARE returnChar CHARACTER;
+	DECLARE primIndexChar,secIndexChar CHAR;
+	-- Create PrimaryBitmap structure, with all bits set to 0
+
+	WHILE I2 < 65 DO
+		CALL GenerateThreeDigitIndex(I2+SecondDigit,primIndexChar);
+		CALL GenerateThreeDigitIndex(I2+3+SecondDigit,secIndexChar);
+		SET returnChar = GetHexCode(CAST(DFDLPointer.*[I2] AS CHARACTER) ||
+		CAST(DFDLPointer.*[I2+1] AS CHARACTER)||
+		CAST(DFDLPointer.*[I2+2] AS CHARACTER) ||
+		CAST(DFDLPointer.*[I2+3] AS CHARACTER));
+		CREATE LASTCHILD OF DFDLPointerUnpack NAME ('Bits' || primIndexChar || 'to' ||secIndexChar)
+		VALUE returnChar;
+		SET I2 = I2 + 4;
+	END WHILE;
+END;
+
+
+CREATE FUNCTION GetHexCode (bitCode CHARACTER) RETURNS CHARACTER
+BEGIN
+	SET bitCode =
+	CASE bitCode
+	WHEN '0001' THEN '1'
+	WHEN '0010' THEN '2'
+	WHEN '0011' THEN '3'
+	WHEN '0100' THEN '4'
+	WHEN '0101' THEN '5'
+	WHEN '0110' THEN '6'
+	WHEN '0111' THEN '7'
+	WHEN '1000' THEN '8'
+	WHEN '1001' THEN '9'
+	WHEN '1010' THEN 'A'
+	WHEN '1011' THEN 'B'
+	WHEN '1100' THEN 'C'
+	WHEN '1101' THEN 'D'
+	WHEN '1110' THEN 'E'
+	WHEN '1111' THEN 'F'
+	ELSE '0'
+	END;
+	RETURN bitCode;
+END;
+
+
+CREATE FUNCTION GetUnPackedBitNames(bitCode CHAR) RETURNS CHARACTER
+BEGIN
+	DECLARE bitName CHARACTER;
+	SET bitName =
+	CASE bitCode
+	WHEN bitCode < '4' THEN 'Bits001to004'
+	WHEN bitCode < '8' THEN 'Bits005to008'
+	WHEN bitCode < '12' THEN 'Bits009to012'
+	WHEN bitCode < '16' THEN 'Bits013to016'
+	WHEN bitCode < '20' THEN 'Bits017to020'
+	WHEN bitCode < '24' THEN 'Bits021to024'
+	WHEN bitCode < '28' THEN 'Bits025to028'
+	WHEN bitCode < '32' THEN 'Bits029to032'
+	WHEN bitCode < '36' THEN 'Bits033to036'
+	WHEN bitCode < '40' THEN 'Bits037to040'
+	WHEN bitCode < '44' THEN 'Bits041to044'
+	WHEN bitCode < '48' THEN 'Bits045to048'
+	WHEN bitCode < '52' THEN 'Bits049to052'
+	WHEN bitCode < '56' THEN 'Bits053to056'
+	WHEN bitCode < '60' THEN 'Bits057to060'
+	WHEN bitCode < '64' THEN 'Bits061to064'
+	ELSE '0'
+	END;
+	RETURN bitName;
+END;
+
+
+CREATE PROCEDURE PopulatePackedBitmap(INOUT DFDLPointer REFERENCE,IN bitmapLength INT)
+BEGIN
+	DECLARE I INTEGER 1;
+	DECLARE IndexChar CHAR;
+	-- Create PrimaryBitmap structure, with all bits set to 0
+	IF bitmapLength = 65 THEN
+		WHILE I < bitmapLength DO
+			CALL GenerateThreeDigitIndex(I,IndexChar);
+			CREATE LASTCHILD OF DFDLPointer NAME ('Bit' || IndexChar) VALUE 0;
+			SET I = I + 1;
+		END WHILE;
+	ELSEIF bitmapLength = 129 THEN
+		SET I = 65;
+		WHILE I < bitmapLength DO
+			-- Create SecondaryBitmap structure, with all bits set to 0
+			CALL GenerateThreeDigitIndex(I,IndexChar);
+			CREATE LASTCHILD OF DFDLPointer NAME ('Bit' || IndexChar) VALUE 0;
+			SET I = I + 1;
+		END WHILE;
+	ELSE
+		WHILE I < bitmapLength DO
+			-- Create SecondaryBitmap structure, with all bits set to 0
+			CALL GenerateThreeDigitIndex(I,IndexChar);
+			CREATE LASTCHILD OF DFDLPointer NAME ('Bit' || IndexChar) VALUE 0;
+			SET I = I + 1;
+		END WHILE;
+	END IF;
+END;
+
+
+
+CREATE PROCEDURE PopulateSecondaryBitmap(INOUT DFDLPointer REFERENCE)
+BEGIN
+	DECLARE J INTEGER 65;
+	DECLARE IndexChar CHAR;
+	WHILE J < 129 DO
+		-- Create SecondaryBitmap structure, with all bits set to 0
+		CALL GenerateThreeDigitIndex(J,IndexChar);
+		CREATE LASTCHILD OF DFDLPointer NAME ('Bit' || IndexChar) VALUE 0;
+		SET J = J + 1;
+	END WHILE;
+END;
+
+
+
+CREATE PROCEDURE GenerateThreeDigitIndex(IN IndexInt INTEGER, OUT IndexChar CHAR)
+BEGIN
+	SET IndexChar =
+	CASE
+	WHEN IndexInt < 10 THEN ('00' || CAST(IndexInt AS CHAR))
+	WHEN IndexInt < 100 THEN ('0' || CAST(IndexInt AS CHAR))
+	ELSE CAST(IndexInt AS CHAR)
+	END;
+END;
+
+CREATE PROCEDURE UpdateTCPHeaderBitmaps(INOUT tcpBitmapRef REFERENCE )
+BEGIN
+	---Hardcoded values for TCPHeader '02D9'
+	SET tcpBitmapRef.Bit001 = 0;
+	SET tcpBitmapRef.Bit002 = 0;
+	SET tcpBitmapRef.Bit003 = 0;
+	SET tcpBitmapRef.Bit004 = 0;
+	SET tcpBitmapRef.Bit005 = 0;
+	SET tcpBitmapRef.Bit006 = 0;
+	SET tcpBitmapRef.Bit007 = 1;
+	SET tcpBitmapRef.Bit008 = 0;
+	SET tcpBitmapRef.Bit008 = 1;
+	SET tcpBitmapRef.Bit010 = 1;
+	SET tcpBitmapRef.Bit011 = 0;
+	SET tcpBitmapRef.Bit012 = 1;
+	SET tcpBitmapRef.Bit013 = 1;
+	SET tcpBitmapRef.Bit014 = 0;
+	SET tcpBitmapRef.Bit015 = 0;
+	SET tcpBitmapRef.Bit016 = 1;
+END;
+
+
+CREATE PROCEDURE UpdateBitmapWithAvailableFields(IN outPayloadRef REFERENCE, INOUT DFDLPointer REFERENCE)
+BEGIN
+	-- Loop over the fields which are present to update the Bitmaps ...
+	-- Moving outRef from bit map segments
+	DECLARE tcpBitmapRef REFERENCE TO outPayloadRef.TCPHeaderBitmap;
+	CALL UpdateTCPHeaderBitmaps(tcpBitmapRef);
+	DECLARE outRef REFERENCE TO outPayloadRef.SecondaryBitmap;
+	IF NOT LASTMOVE(outRef) THEN
+		MOVE outRef TO outPayloadRef.PrimaryBitmap;
+	END IF;
+	MOVE outRef NEXTSIBLING;
+	-- Now outRef is on first FieldsXXX
+	WHILE LASTMOVE(outRef) DO
+		DECLARE CurrentFieldName CHAR FIELDNAME(outRef);
+		DECLARE BitName CHAR ('Bit' || SUBSTRING(CurrentFieldName AFTER '_'));
+		IF CONTAINS(CurrentFieldName,'127_') AND LENGTH(SUBSTRING(CurrentFieldName AFTER '_')) < 7 THEN
+			IF LENGTH(SUBSTRING(BitName AFTER '_')) = 2 THEN
+				SET BitName = REPLACE(BitName,'127_','0');
+			ELSE
+				SET BitName = REPLACE(BitName,'127_','00');
+			END IF;
+			-- Current field relates to PostilionBitmap
+			SET DFDLPointer.PostilionBitmap.{BitName} = 1;
+		ELSEIF CONTAINS(CurrentFieldName,'127_25_') THEN
+			IF LENGTH(SUBSTRING(BitName AFTER '_')) = 2 THEN
+				SET BitName = REPLACE(BitName,'127_25_','0');
+			ELSE
+				SET BitName = REPLACE(BitName,'127_25_','00');
+			END IF;
+			-- Current field relates to ICCDataBitmap
+			SET DFDLPointer.ICCDataBitmap.{BitName} = 1;
+		ELSE
+			IF CAST(SUBSTRING(CurrentFieldName AFTER '_') AS INT) < 65 AND SUBSTRING(CurrentFieldName AFTER '_') <> '' THEN
+				-- Current field relates to PrimaryBitmap
+				SET DFDLPointer.PrimaryBitmap.{BitName} = 1;
+			ELSEIF CAST(SUBSTRING(CurrentFieldName AFTER '_') AS INT) > 64 AND SUBSTRING(CurrentFieldName AFTER '_') <> '' THEN
+				-- Current field relates to SecondaryBitmap
+				SET DFDLPointer.SecondaryBitmap.{BitName} = 1;
+			END IF;
+		END IF;
+		MOVE outRef NEXTSIBLING;
+	END WHILE;
+END;
+
+CREATE PROCEDURE ISOToJSONMapping (IN inputRef REFERENCE, IN outRef REFERENCE )
+BEGIN
+	DECLARE inRef REFERENCE TO inputRef.PrimaryBitmap;
+	CREATE FIELD outRef.FIELD IDENTITY (JSON.Array)FIELD;
+	DECLARE field127Ref,field127_25Ref REFERENCE TO outRef;
+	MOVE outRef TO outRef.FIELD;
+	DECLARE mtiVersion,mtiClass,mtiFunction,mtiOrigin CHARACTER;
+	DECLARE I,J,K INT 1;
+	DECLARE ID,VALUE CHARACTER;
+	SET mtiVersion = inputRef.MTI_Version;
+	SET mtiClass = inputRef.MTI_MessageClass;
+	SET mtiFunction = inputRef.MTI_MessageFunction;
+	SET mtiOrigin = inputRef.MTI_MessageOrigin;
+	CREATE LASTCHILD OF outRef.Item[I] NAME 'ID' VALUE '0';
+	CREATE LASTCHILD OF outRef.Item[I] NAME 'VALUE' VALUE (mtiVersion||mtiClass||mtiFunction||mtiOrigin);
+	SET I = I + 1;	
+	IF EXISTS(inputRef.SecondaryBitmap[]) THEN
+		MOVE inRef TO inputRef.SecondaryBitmap;
+		MOVE inRef NEXTSIBLING;
+	ELSE
+		MOVE inRef NEXTSIBLING;
+	END IF;
 	
-	CREATE FUNCTION writeToLogFile( IN COMPONENT_NAME CHARACTER,
+	WHILE LASTMOVE(inRef) DO
+		DECLARE CurrentFieldName CHAR FIELDNAME(inRef);
+		SET ID = SUBSTRING(CurrentFieldName AFTER '_');
+		SET VALUE = FIELDVALUE(inRef);
+		IF CONTAINS(CurrentFieldName,'127') THEN
+			IF CONTAINS(CurrentFieldName,'127_') AND NOT CONTAINS(CurrentFieldName, '127_25') THEN
+				SET ID = SUBSTRING(ID AFTER '_');
+				CREATE LASTCHILD OF field127Ref.Item[J] NAME 'ID' VALUE ID;
+				CREATE LASTCHILD OF field127Ref.Item[J] NAME 'VALUE' VALUE VALUE;
+				SET J = J + 1;
+			ELSEIF CONTAINS(CurrentFieldName, '127_25') AND LENGTH(SUBSTRING(CurrentFieldName AFTER '_')) < 7 THEN
+				SET ID = SUBSTRING(ID AFTER '_');
+				CREATE LASTCHILD OF field127Ref.Item[J] NAME 'ID' VALUE ID;
+				CREATE LASTCHILD OF field127Ref.Item[J] NAME 'VALUE' VALUE VALUE;
+				CREATE FIELD field127Ref.Item[J].FIELD IDENTITY (JSON.Array)FIELD;
+				MOVE field127_25Ref TO field127Ref.Item[J].FIELD;
+			ELSEIF CONTAINS(CurrentFieldName, '127_25_') THEN
+				SET ID = SUBSTRING(ID AFTER '_');
+				CREATE LASTCHILD OF field127_25Ref.Item[K] NAME 'ID' VALUE ID;
+				CREATE LASTCHILD OF field127_25Ref.Item[K] NAME 'VALUE' VALUE VALUE;
+				SET K = K + 1;
+			ELSE
+				
+				CREATE LASTCHILD OF outRef.Item[I] NAME 'ID' VALUE ID;
+				CREATE LASTCHILD OF outRef.Item[I] NAME 'VALUE' VALUE VALUE;
+				CREATE FIELD outRef.Item[I].FIELD IDENTITY (JSON.Array)FIELD;
+				MOVE field127Ref TO outRef.Item[I].FIELD;
+				SET I = I + 1;
+			END IF;
+		ELSE
+			IF CAST(SUBSTRING(CurrentFieldName AFTER '_') AS INT) < 65 AND SUBSTRING(CurrentFieldName AFTER '_') <> '' THEN
+				IF ID LIKE '00%'   THEN
+					SET ID = SUBSTRING(ID FROM 3 FOR 1);
+				ELSE
+					SET ID = SUBSTRING(ID FROM 2 FOR 2);
+				END IF;
+				CREATE LASTCHILD OF outRef.Item[I] NAME 'ID' VALUE ID;
+				CREATE LASTCHILD OF outRef.Item[I] NAME 'VALUE' VALUE VALUE;
+				SET I = I + 1;
+
+			ELSEIF CAST(SUBSTRING(CurrentFieldName AFTER '_') AS INT) > 64 AND SUBSTRING(CurrentFieldName AFTER '_') <> '' THEN
+				IF ID LIKE '0%'   THEN
+					SET ID = SUBSTRING(ID FROM 2 FOR 2);
+				END IF;
+				
+				CREATE LASTCHILD OF outRef.Item[I] NAME 'ID' VALUE ID;
+				CREATE LASTCHILD OF outRef.Item[I] NAME 'VALUE' VALUE VALUE;
+				SET I = I + 1;
+				
+			END IF;
+		END IF;
+		MOVE inRef NEXTSIBLING;
+	END WHILE;
+END;
+
+
+CREATE PROCEDURE JSONToISOMapping(IN inputRef REFERENCE,IN outRef REFERENCE)
+BEGIN
+	DECLARE fieldRef REFERENCE TO inputRef.field.Item[1];
+	DECLARE fieldId CHARACTER;
+	IF FIELDVALUE(fieldRef.id) IS NOT NULL AND FIELDVALUE(fieldRef.id) = 0 THEN
+		SET outRef.MTI_Version = SUBSTRING(fieldRef.value FROM 1 FOR 1);
+		SET outRef.MTI_MessageClass = SUBSTRING(fieldRef.value FROM 2 FOR 1);
+		SET outRef.MTI_MessageFunction = SUBSTRING(fieldRef.value FROM 3 FOR 1);
+		SET outRef.MTI_MessageOrigin = SUBSTRING(fieldRef.value FROM 4 FOR 1);
+	END IF;
+	MOVE fieldRef NEXTSIBLING;
+	WHILE LASTMOVE(fieldRef) DO
+		IF fieldRef.id < 128 THEN
+			IF fieldRef.id = 12 THEN
+				CREATE LASTCHILD OF outRef NAME (GetISOFieldNames(fieldRef.id)) VALUE CAST(fieldRef.value AS TIME FORMAT 'HHmmss');
+				-- ELSEIF fieldRef.id = 13 THEN
+				-- CREATE LASTCHILD OF outRef NAME (GetISOFieldNames(fieldRef.id)) VALUE CAST(fieldRef.value AS TIME FORMAT 'HHmmss');
+				-- ELSEIF fieldRef.id = 14 THEN
+				-- ELSEIF fieldRef.id = 15 THEN
+				-- ELSEIF fieldRef.id = 16 THEN
+				-- ELSEIF fieldRef.id = 17 THEN
+				-- ELSEIF fieldRef.id = 18 THEN
+			ELSE
+				CREATE LASTCHILD OF outRef NAME (GetISOFieldNames(fieldRef.id)) VALUE fieldRef.value;
+			END IF;
+			IF fieldRef.id = 127 AND EXISTS(fieldRef.field.Item[]) = TRUE THEN
+				DECLARE field127Ref REFERENCE TO fieldRef.field.Item[1];
+				WHILE LASTMOVE(field127Ref) DO
+					CREATE LASTCHILD OF outRef NAME (Get127FieldNames(field127Ref.id)) VALUE field127Ref.value;
+					IF field127Ref.id = 25 AND EXISTS(field127Ref.field.Item[]) = TRUE THEN
+						DECLARE field127_25Ref REFERENCE TO field127Ref.field.Item[1];
+						WHILE LASTMOVE(field127_25Ref) DO
+							CREATE LASTCHILD OF outRef NAME (Get127_25FieldNames(field127_25Ref.id)) VALUE field127_25Ref.value;
+							MOVE field127_25Ref NEXTSIBLING;
+						END WHILE;
+					END IF;
+					MOVE field127Ref NEXTSIBLING;
+				END WHILE;
+			END IF;
+		ELSE
+			CREATE LASTCHILD OF outRef NAME (GetISOFieldNames(fieldRef.id)) VALUE fieldRef.value;
+		END IF;
+		MOVE fieldRef NEXTSIBLING;
+	END WHILE;
+	CALL UpdateMsgWithAsciiBitMap(outRef);
+END;
+
+CREATE FUNCTION writeToLogFile( IN COMPONENT_NAME CHARACTER,
 	IN LOGGER_NAME CHARACTER,
 	IN LEVEL CHARACTER,
 	IN TEXT CHARACTER )
 	RETURNS BOOLEAN
 	LANGUAGE JAVA
-	EXTERNAL NAME "com.ibm.broker.IAM3.Log4jNode.log";
+EXTERNAL NAME "com.ibm.broker.IAM3.Log4jNode.log";
 
-	CREATE FUNCTION initLog4j( IN CONFIG_FILE_NAME CHARACTER )
+CREATE FUNCTION initLog4j( IN CONFIG_FILE_NAME CHARACTER )
 	RETURNS BOOLEAN
 	LANGUAGE JAVA
-	EXTERNAL NAME "com.ibm.broker.IAM3.Log4jNode.initLog4j";
+EXTERNAL NAME "com.ibm.broker.IAM3.Log4jNode.initLog4j";
