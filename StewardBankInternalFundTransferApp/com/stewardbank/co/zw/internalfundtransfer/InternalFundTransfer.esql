@@ -39,7 +39,9 @@ CREATE COMPUTE MODULE InternalFundTransferFlow_GenerateReqTo24
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;	
+		--set response queue and tcpip connection id in environment
 		SET Environment.Variables.ResponseQ = InputRoot.MQRFH2.usr.resQueueName;
+		SET Environment.Variables.TcpIp.ConnectionId = InputRoot.MQRFH2.usr.Id;
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Storing the value in Environment from MQRFH2 Header') INTO rc;		
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
@@ -139,8 +141,9 @@ CREATE COMPUTE MODULE InternalFundTransferFlowT24Req_GenerateReqToPostilion
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
+		
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Response To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc;
 	END;
 END MODULE;
 

@@ -1,0 +1,12 @@
+BROKER SCHEMA com.stewardbank.co.zw.common.t24call
+
+
+CREATE COMPUTE MODULE StewardBankT24SubFlow_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET OutputLocalEnvironment.Destination.TCPIP.Output.Id = InputRoot.MQRFH2.usr.Id;
+		RETURN TRUE;
+	END;
+
+	
+END MODULE;
