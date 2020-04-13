@@ -1,5 +1,5 @@
 BROKER SCHEMA airtimePurchases
-PATH StewardBankCommonEsql; 
+PATH com.stewardbank.co.zw.common.esql; 
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
 
 
@@ -36,7 +36,7 @@ CREATE COMPUTE MODULE airtimePurchases_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','..............Start Airtime Purchases logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','Request to Airtime Purchases::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
-		CALL FieldToFieldMapping(inRef,outRef);
+		CALL FieldToFieldMapping(inRef,outRef,'');
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','Request To T24::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 
@@ -77,7 +77,7 @@ CREATE COMPUTE MODULE airtimePurchases_GenerateResToPostilion
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','.........................') INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef);
+		CALL FieldToFieldMapping(inRef,outRef,'');
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','Request To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 	END;
