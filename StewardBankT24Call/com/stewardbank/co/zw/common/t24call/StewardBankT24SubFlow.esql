@@ -1,0 +1,34 @@
+BROKER SCHEMA com.stewardbank.co.zw.common.t24call
+PATH com.stewardbank.co.zw.common.esql;
+
+CREATE COMPUTE MODULE StewardBankT24SubFlow
+	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 DECLARE rc BOOLEAN FALSE;
+		 CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		 IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Initializing the log4j path error...........') INTO rc;		
+		 END IF;
+		 IF Environment.Variables.Counter IS NULL THEN 
+		 	CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Environment.Variables.Counter is null maybe didnt capture tcp exceptionMsg') INTO rc;
+			RETURN FALSE; 
+		 END IF;
+		 CALL CopyEntireMessage();
+		 IF Environment.Variables.Retry.Counter IS NULL THEN 
+				SET Environment.Variables.Retry.Counter = 0; 
+		 END IF;
+		 IF Environment.Variables.Retry.Counter <= 2 THEN
+			SET Environment.Variables.Retry.Counter = Environment.Variables.Retry.Counter + 1;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','retry count for connection:'||CAST(Environment.Variables.Retry.Counter AS CHARACTER)) INTO rc;
+			RETURN TRUE;
+		 ELSE
+		 	RETURN FALSE;
+		 END IF;
+		
+	END;
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
