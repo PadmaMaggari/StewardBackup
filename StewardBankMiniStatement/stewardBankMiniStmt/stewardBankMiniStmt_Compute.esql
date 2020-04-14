@@ -2,10 +2,14 @@
 
 
 
+
+
+
+
 BROKER SCHEMA stewardBankMiniStmt
 
-PATH com.stewardbank.co.zw.common.esql;  
-DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH,APPLICATION_NAME EXTERNAL CHARACTER;
 CREATE COMPUTE MODULE stewardBankMiniStmt_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -25,20 +29,46 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute
 	END;
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		-- SET DBLogging Properties ==============
+		DECLARE messageType CHARACTER FIELDNAME(InputBody);
+		DECLARE reqMsg CHARACTER'';
+		
+		SET Environment.msgID= InputRoot.MQMD.MsgId;
+		SET reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		SET OutputRoot.XMLNSC.DBLogging.MSGID = CAST(Environment.msgID AS CHARACTER);
+		SET OutputRoot.XMLNSC.DBLogging.PROCESSINGCODE= InputRoot.DFDL.ISO8583_1987.ProcessingCode_003;
+		SET OutputRoot.XMLNSC.DBLogging.MESSAGE= CAST(reqMsg AS CHARACTER);
+		SET OutputRoot.XMLNSC.DBLogging.MESSAGE_TYPE=messageType;
+		SET OutputRoot.XMLNSC.DBLogging.APPNAME=APPLICATION_NAME;
+		SET OutputRoot.XMLNSC.DBLogging.BROKERNAME=BrokerName;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT';
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+
+
 		DECLARE env REFERENCE TO Environment.Variables;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		DECLARE rc BOOLEAN FALSE;
+
+
+
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';   
-		END IF;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+		END IF;		
+		
+		
+
+
+
+
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','..............Start MiniStatement logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','Request to MiniStatement::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','Request To T24::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
@@ -68,23 +98,47 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute1
 
 	CREATE PROCEDURE MiniStmtGenerateResToPostilion() BEGIN
 
+
+SET Environment.Properties = InputRoot.Properties;
+		DECLARE messageType CHARACTER FIELDNAME(InputBody);
+		-- SET DBLogging Properties ==============
+		DECLARE reqMsg CHARACTER'';
+		
+		
+		SET reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		SET OutputRoot.XMLNSC.DBLogging.MSGID = CAST(Environment.msgID AS CHARACTER);
+		SET OutputRoot.XMLNSC.DBLogging.PROCESSINGCODE= InputRoot.DFDL.ISO8583_1987.ProcessingCode_003;
+		SET OutputRoot.XMLNSC.DBLogging.MESSAGE= CAST(reqMsg AS CHARACTER);
+		SET OutputRoot.XMLNSC.DBLogging.MESSAGE_TYPE=messageType;
+		SET OutputRoot.XMLNSC.DBLogging.APPNAME=APPLICATION_NAME;
+		SET OutputRoot.XMLNSC.DBLogging.BROKERNAME=BrokerName;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT';
+		PROPAGATE TO TERMINAL 'out1';
+		--SET OutputRoot.XMLNSC = null;
+		SET OutputRoot.Properties = Environment.Properties;
+
+
 		DECLARE env REFERENCE TO Environment.Variables;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
-		
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','.........................') INTO rc;
 		--field to field mapping
+
+
 		CALL FieldToFieldMapping(inRef,outRef,'');
+
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','Request To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+--		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'MINISTMT_SB_RESQ';
+--		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
 
@@ -96,14 +150,14 @@ CREATE COMPUTE MODULE StweardBankException
 		CALL CopyMessageHeaders();
 		CALL BuildErrorMsg();
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','..............star Exception logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
-		
+
 		RETURN TRUE;
 	END;
 

@@ -6,26 +6,29 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\LOG4J\samples\brokerlog.xml">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.APPLICATION_NAME" name="APPLICATION_NAME" defaultValueLiteral="StewardBankMiniStatement">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="stewardBankMiniStmt" bundleName="stewardBankMiniStmt/stewardBankMiniStmt" pluginId="StewardBankMiniStatement"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankMiniStatement/icons/full/obj16/stewardBankMiniStmt.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankMiniStatement/icons/full/obj30/stewardBankMiniStmt.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="738,68" queueName="MINISTMT_SB_RESQ" destinationQueueManagerName="QM">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="747,78" queueName="MINISTMT_SB_RESQ" destinationQueueManagerName="QM">
         <translation xmi:type="utility:ConstantString" string="MINI_STMT_RES"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="160,58" computeExpression="esql://routine/stewardBankMiniStmt#stewardBankMiniStmt_Compute.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="160,58" computeExpression="esql://routine/stewardBankMiniStmt#stewardBankMiniStmt_Compute.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateReqToT24"/>
       </nodes>
-      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="404,60" messageDomain="DFDL" messageType="{}:ISO8583_1987">
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="403,21" messageDomain="DFDL" messageType="{}:ISO8583_1987">
         <translation xmi:type="utility:ConstantString" string="ValidateISO"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="559,81" computeExpression="esql://routine/stewardBankMiniStmt#stewardBankMiniStmt_Compute1.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="508,4" computeExpression="esql://routine/stewardBankMiniStmt#stewardBankMiniStmt_Compute1.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerationResToPostilion"/>
       </nodes>
       <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="63,83" queueName="MINISTMT_SB_REQ" destinationQueueManagerName="QM" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="MQ Input"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="428,157" queueName="EXCEPTIONQ" destinationQueueManagerName="QM">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="428,184" queueName="EXCEPTIONQ" destinationQueueManagerName="QM">
         <translation xmi:type="utility:ConstantString" string="ExceptionQ"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_14" location="281,185" computeExpression="esql://routine/stewardBankMiniStmt#StweardBankException.Main">
@@ -37,8 +40,13 @@
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_4" location="114,154">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="679,146" queueName="RAW_AUDIT" destinationQueueManagerName="QM" destinationMode="list">
+        <translation xmi:type="utility:ConstantString" string="MQ Output"/>
+      </nodes>
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="632,13" messageDomain="DFDL" resetMessageDomain="true" messageSet="{ISO8583_Lib}" resetMessageSet="true" messageType="{}:ISO8583_1987" resetMessageType="true">
+        <translation xmi:type="utility:ConstantString" string="Reset Content Descriptor"/>
+      </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_10" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_14" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_14" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
@@ -46,10 +54,17 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_10" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_10" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_14" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_15" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_16" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_18" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_20" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
         <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="stewardBankMiniStmt/stewardBankMiniStmt" pluginId="StewardBankMiniStatement"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.APPLICATION_NAME">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.APPLICATION_NAME" bundleName="stewardBankMiniStmt/stewardBankMiniStmt" pluginId="StewardBankMiniStatement"/>
+        </propertyDescriptor>
       </propertyDescriptor>
     </propertyOrganizer>
     <stickyBoard/>
