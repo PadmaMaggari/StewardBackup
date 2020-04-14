@@ -2,8 +2,9 @@
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:30-03-2020
-Date of Modification:09-04-2020 
-Description: Generate a XML message which provide description for Exception which occured in flow.
+Date of Modification:14-04-2020 
+Description: Generate a XML message which provide description for Exception which occured in flow and 
+			generate error in iso format to respond back to front end and also handled retry mechanism.
  			
 */
 BROKER SCHEMA com.stewardbank.co.zw.common.exceptionhandler
@@ -15,7 +16,6 @@ CREATE COMPUTE MODULE ExceptionHandling
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyMessageHeaders();
-		
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
@@ -83,7 +83,6 @@ CREATE COMPUTE MODULE ExceptionHandling
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
-		DECLARE rc BOOLEAN FALSE;
 		DECLARE mtiRes CHARACTER '';
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
 		IF ( rc = FALSE ) THEN
