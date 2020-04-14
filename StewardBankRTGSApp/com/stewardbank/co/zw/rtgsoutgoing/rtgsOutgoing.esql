@@ -37,7 +37,7 @@ CREATE COMPUTE MODULE rtgsOutgoing_GenerateReqTo24
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Request to RTGS_OUT_SB_IN::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef);
+		CALL FieldToFieldMapping(inRef,outRef,'');
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Request To T24::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 	END;
@@ -126,7 +126,7 @@ CREATE COMPUTE MODULE rtgsOutgoingT24Req_GenerateReqToPostilion
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef);
+		CALL FieldToFieldMapping(inRef,outRef,'');
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Response To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 	END;
