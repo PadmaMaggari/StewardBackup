@@ -9,8 +9,8 @@ Modified Date : .
 Author : G Raghavender.
 =================================================================================================================== */
 BROKER SCHEMA com.stewardbank.co.zw.zipit
-PATH  com.stewardbank.co.zw.common.esql;     
-DECLARE Config_File EXTERNAL CHARACTER ''; 
+PATH  com.stewardbank.co.zw.common.esql;      
+DECLARE LOG_CONFIG_PATH,APPLICATION_NAME EXTERNAL CHARACTER ''; 
 
 CREATE COMPUTE MODULE Zipit_GenerateReqToT24    
 	DECLARE Config_File EXTERNAL CHARACTER;
@@ -32,13 +32,27 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 	END;
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		DECLARE messageType CHARACTER FIELDNAME(InputBody);
+		DECLARE reqMsg CHARACTER'';
+		
+		SET Environment.msgID= InputRoot.MQMD.MsgId;
+		SET reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		SET OutputRoot.XMLNSC.DBLogging.MSGID = CAST(Environment.msgID AS CHARACTER);
+		SET OutputRoot.XMLNSC.DBLogging.PROCESSINGCODE= InputRoot.DFDL.ISO8583_1987.ProcessingCode_003;
+		SET OutputRoot.XMLNSC.DBLogging.MESSAGE= CAST(reqMsg AS CHARACTER);
+		SET OutputRoot.XMLNSC.DBLogging.MESSAGE_TYPE=messageType;
+		SET OutputRoot.XMLNSC.DBLogging.APPNAME = APPLICATION_NAME;   
+		SET OutputRoot.XMLNSC.DBLogging.BROKERNAME=BrokerName;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT';
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+		
 		DECLARE env REFERENCE TO Environment.Variables;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
-		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL; 
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(Config_File) INTO rc; 			
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
@@ -142,12 +156,27 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 	END;
 
 	CREATE PROCEDURE Zipit_GenerateResToPostilion() BEGIN 
+		SET Environment.Properties = InputRoot.Properties;
+		DECLARE messageType CHARACTER FIELDNAME(InputBody);
+		-- SET DBLogging Properties ==============
+		DECLARE reqMsg CHARACTER'';
+		
+		
+		SET reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		SET OutputRoot.XMLNSC.DBLogging.MSGID = CAST(Environment.msgID AS CHARACTER);
+		SET OutputRoot.XMLNSC.DBLogging.PROCESSINGCODE= InputRoot.DFDL.ISO8583_1987.ProcessingCode_003;
+		SET OutputRoot.XMLNSC.DBLogging.MESSAGE= CAST(reqMsg AS CHARACTER);
+		SET OutputRoot.XMLNSC.DBLogging.MESSAGE_TYPE=messageType;
+		SET OutputRoot.XMLNSC.DBLogging.APPNAME=APPLICATION_NAME;  
+		SET OutputRoot.XMLNSC.DBLogging.BROKERNAME=BrokerName;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT';
+		PROPAGATE TO TERMINAL 'out1';
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(Config_File) INTO rc; 			
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
