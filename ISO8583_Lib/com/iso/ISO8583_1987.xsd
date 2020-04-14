@@ -54,7 +54,7 @@
     </xs:group>
     <xs:group name="ICCData_Bitmaps_Group_127_25_1">
         <xs:sequence>
-            <xs:element dfdl:lengthKind="implicit" dfdl:occursCount="{/ISO8583_1987/PostilionBitmap/Bit025}" minOccurs="0" name="ICCDataBitmap" type="ICCDataBitmapType"/>
+            <xs:element dfdl:lengthKind="implicit" dfdl:occursCount="{if (fn:exists(/ISO8583_1987/PostilionBitmap/Bit025))  then if (/ISO8583_1987/PostilionBitmap/Bit025 eq 0) then 0 else 1 else 0  }" minOccurs="0" name="ICCDataBitmap" type="ICCDataBitmapType"/>
         </xs:sequence>
     </xs:group>
     <xs:complexType name="PrimaryBitmapType">
