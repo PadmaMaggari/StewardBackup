@@ -28,8 +28,16 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow
 				SET Environment.Variables.Retry.Counter = 0; 
 		 END IF;
 		 IF Environment.Variables.Retry.Counter <= 2 THEN
-			SET Environment.Variables.Retry.Counter = Environment.Variables.Retry.Counter + 1;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','retry count for connection:'||CAST(Environment.Variables.Retry.Counter AS CHARACTER)) INTO rc;
+			DECLARE envRef REFERENCE TO Environment.Variables.Retry;
+			IF envRef.Counter = 0 THEN 
+				SET envRef.Counter = envRef.Counter + 1;
+				RETURN TRUE;
+			ELSE
+				SET envRef.Counter = envRef.Counter + 1;
+				CALL retryWithDelay(envRef.Counter);
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','delay 10 sec for request to tcp for count:'||CAST(envRef.Counter AS CHARACTER)||'is Complete') INTO rc;
+			END IF;
 			RETURN TRUE;
 		 ELSE
 		 	RETURN FALSE;
@@ -38,5 +46,10 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow
 	END;
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		SET OutputRoot = InputRoot;
+	END;
+	CREATE PROCEDURE retryWithDelay(IN count INTEGER) BEGIN
+		IF count = 1 OR count = 2 THEN
+			DECLARE var BOOLEAN SLEEP(10000);
+		END IF;
 	END;
 END MODULE;

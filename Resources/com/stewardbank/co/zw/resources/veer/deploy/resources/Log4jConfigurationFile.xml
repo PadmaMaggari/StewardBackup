@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "/var/Steward/Log/log4j.dtd">
+
+<log4j:configuration xmlns:log4j='http://jakarta.apache.org/log4j/'>
+
+   <appender name="IFTLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/var/Steward/Log/IFT.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+        </layout>
+    </appender>
+	 <appender name="RTGSOutGoingLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/var/Steward/Log/RTGSOutgoing.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+        </layout>
+    </appender>
+	 <appender name="ErrorLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/var/Steward/Log//ErrorLog.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+        </layout>
+    </appender>
+
+    <logger name="IFTLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="IFTLogger"/>
+    </logger>
+	<logger name="RTGSOutGoingLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="RTGSOutGoingLogger"/>
+    </logger>
+	<logger name="ErrorLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="ErrorLogger"/>
+    </logger>
+	
+	
+
+</log4j:configuration>
