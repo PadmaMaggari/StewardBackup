@@ -33,7 +33,7 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		-- TCPIP ID ==========================
-		SET Environment.usr.Id= InputRoot.MQRFH2.usr.tcpipDetails.Id;
+		SET Environment.usr.Id= InputRoot.MQRFH2.usr.tcpipDetails.Id; 
 		-- SET DBLogging Properties ==============
 		DECLARE reqMsg CHARACTER'';
 		SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
