@@ -58,7 +58,7 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
-		IF ( rc = FALSE ) THEN
+		IF ( rc = FALSE ) THEN  
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
@@ -174,7 +174,7 @@ CREATE COMPUTE MODULE StweardBankException
 		DECLARE Id CHARACTER '';
 		SET Id= CAST(Environment.usr.Id AS CHARACTER);
 		-- DB Logging===================
-		DECLARE exe_Desc CHARACTER'';
+		DECLARE exe_Desc CHARACTER'';  
 		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 		-- SET OutputRoot.XMLNSC.DBLogging.MSGID = CAST(Environment.usr.Id AS CHARACTER);
 		-- SET OutputRoot.XMLNSC.DBLogging.MESSAGE= CAST(Environment.reqMsg AS CHARACTER);
