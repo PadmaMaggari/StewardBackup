@@ -1,4 +1,13 @@
 
+
+/*
+Author : Bobby
+Version:0.0.1
+Date of Creation:30-03-2020
+Date of Modification:15-04-2020
+Description: Mini Statement
+*/
+
 BROKER SCHEMA stewardBankMiniStmt
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -27,19 +36,25 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute
 		-- SET DBLogging Properties ==============
 		DECLARE reqMsg CHARACTER'';
 		SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
---		SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
+		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer);
-		-- DBLogging (IN MSGID CHARACTER,IN MESSAGE CHARACTER,IN MESSAGE_TYPE CHARACTER,IN APPNAME CHARACTER,IN BROKERNAME CHARACTER,INOUT outRef REFERENCE)
+
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT';
+		SET Environment.dbLog = OutputRoot.XMLNSC;
+		PROPAGATE TO TERMINAL 'out1';
+		CALL DBLogging(Environment.dbLog.DBLogging.MSGID,Environment.dbLog.DBLogging.MESSAGE,'T24 Request',ApplicationLabel,BrokerName,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT';
 		PROPAGATE TO TERMINAL 'out1';
+		SET OutputRoot=NULL;
 		DECLARE env REFERENCE TO Environment.Variables;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
+
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -47,10 +62,14 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
+		-- CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'T24 Request',ApplicationLabel,BrokerName,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','..............Start MiniStatement logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','Request to MiniStatement::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		CALL FieldToFieldMapping(inRef,outRef,'');
+		-- CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'T24 Response',ApplicationLabel,BrokerName,outRefer);
+
+
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','Request To T24::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 
@@ -81,9 +100,16 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute1
 		DECLARE messageType CHARACTER FIELDNAME(InputBody);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer);
+		SET Environment.t24Res = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		CALL DBLogging(Environment.usr.Id,Environment.t24Res,'T24 Response',ApplicationLabel,BrokerName,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT';
+		SET Environment.t24Res = OutputRoot.XMLNSC;
+		PROPAGATE TO TERMINAL 'out1';
+
+		CALL DBLogging(Environment.t24Res.DBLogging.MSGID,Environment.t24Res.DBLogging.MESSAGE,'Application Response',ApplicationLabel,BrokerName,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT';
 		PROPAGATE TO TERMINAL 'out1';
+		SET OutputRoot=NULL;
 		--SET OutputRoot.XMLNSC = null;
 		SET OutputRoot.Properties = Environment.Properties;
 		SET OutputRoot.MQRFH2.Id = Environment.usr.Id;
@@ -143,20 +169,21 @@ CREATE COMPUTE MODULE StweardBankException
 	END;
 
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
-
-
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
-
-		DECLARE messageType CHARACTER FIELDNAME(InputBody);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE Id CHARACTER '';
+		SET Id= CAST(Environment.usr.Id AS CHARACTER);
 		-- DB Logging===================
 		DECLARE exe_Desc CHARACTER'';
 		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
-		SET OutputRoot.XMLNSC.DBLogging.MSGID = CAST(Environment.msgID AS CHARACTER);
-		SET OutputRoot.XMLNSC.DBLogging.MESSAGE= CAST(Environment.reqMsg AS CHARACTER);
-		SET OutputRoot.XMLNSC.DBLogging.MESSAGE_TYPE=messageType;
-		SET OutputRoot.XMLNSC.DBLogging.APPNAME=APPLICATION_NAME;
-		SET OutputRoot.XMLNSC.DBLogging.BROKERNAME=BrokerName;
-		SET OutputRoot.XMLNSC.DBLogging.ERRORDESCRIPTION=CAST(exe_Desc AS CHARACTER);
+		-- SET OutputRoot.XMLNSC.DBLogging.MSGID = CAST(Environment.usr.Id AS CHARACTER);
+		-- SET OutputRoot.XMLNSC.DBLogging.MESSAGE= CAST(Environment.reqMsg AS CHARACTER);
+		-- SET OutputRoot.XMLNSC.DBLogging.MESSAGE_TYPE='Application Error';
+		-- SET OutputRoot.XMLNSC.DBLogging.APPNAME=APPLICATION_NAME;
+		-- SET OutputRoot.XMLNSC.DBLogging.BROKERNAME=BrokerName;  
+		-- SET OutputRoot.XMLNSC.DBLogging.ERRORDESCRIPTION=CAST(exe_Desc AS CHARACTER);
+
+		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ERROR_AUDIT';
 		PROPAGATE TO TERMINAL 'out1';
 
