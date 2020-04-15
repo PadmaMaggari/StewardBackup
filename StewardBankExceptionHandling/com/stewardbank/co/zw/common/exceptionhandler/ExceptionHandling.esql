@@ -2,8 +2,9 @@
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:30-03-2020
-Date of Modification:09-04-2020 
-Description: Generate a XML message which provide description for Exception which occured in flow.
+Date of Modification:14-04-2020 
+Description: Generate a XML message which provide description for Exception which occured in flow and 
+			generate error in iso format to respond back to front end and also handled retry mechanism.
  			
 */
 BROKER SCHEMA com.stewardbank.co.zw.common.exceptionhandler
@@ -11,9 +12,16 @@ PATH com.stewardbank.co.zw.common.esql;
 
 CREATE COMPUTE MODULE ExceptionHandling
 	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
+	DECLARE rc BOOLEAN FALSE;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyMessageHeaders();
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Initializing the log4j path error...........') INTO rc;		
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............start logging Exception...........') INTO rc;
 		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';  
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.ExceptionDetails;
@@ -21,19 +29,43 @@ CREATE COMPUTE MODULE ExceptionHandling
 		DECLARE insertRef REFERENCE TO InputExceptionList.*[1];
 		CALL getExceptionDesc(excpRef,insertRef,outRef);
 		SET Environment.Variables.ExceptionData = OutputRoot.XMLNSC.ExceptionDetails;
-		DECLARE fnam CHARACTER excpRef.Name;
+		DECLARE exceptionTxt CHARACTER Environment.Variables.ExceptionData.excpText;
 		--start editing(If T24 is down or unavailable send error response to front end in ISO with ResponseCode(06))
-		IF EXISTS(InputExceptionList.*[]) AND CONTAINS(fnam,'StewardBankT24SubFlow') AND 
-			(CONTAINS(Environment.Variables.ExceptionData.excpText,'Connection refused') OR
-			CONTAINS(Environment.Variables.ExceptionData.excpText,'8808'))THEN
+		IF EXISTS(InputExceptionList.*[]) AND  
+			(CONTAINS(exceptionTxt,'Connection refused') OR
+			CONTAINS(exceptionTxt,'Connection Dead') OR 
+			CONTAINS(exceptionTxt,'your session has been killed') OR
+			CONTAINS(exceptionTxt,'Unexpected Network Error'))THEN
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Connection refused or Connection Dead or your session has been killed or Unexpected Network Error') INTO rc;
+			IF Environment.Variables.Counter IS NULL THEN 
+				SET Environment.Variables.Counter = 0; 
+			END IF;
+			IF Environment.Variables.Counter <= 2 THEN
 				SET OutputRoot = null;
+				CALL CopyMessageHeaders();
+				SET OutputRoot = InputRoot;
+				--SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = InputRoot.MQRFH2.usr.ReqQueueName;
+				SET Environment.Variables.Counter = Environment.Variables.Counter + 1;
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','tcp connection exception retry count:'||CAST(Environment.Variables.Counter AS CHARACTER)) INTO rc;
+				RETURN TRUE;
+			ELSE
+				SET OutputRoot = null;
+				CALL CopyMessageHeaders();
 				CALL revertBackToSystem();
+				CALL LogException();
+				RETURN FALSE;
+			END IF;
+		ELSE
+			RETURN TRUE;
 		END IF;
-		--end editing(If T24 is down or unavailable send error response to front end in ISO with ResponseCode(06))
-		-- start editing (log exception details in exception queue(EXC_Q))
+	END;
+	CREATE PROCEDURE LogException() BEGIN
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Capturing Connection refused or Connection Dead or your session has been killed or Unexpected Network Error in Exception Q') INTO rc;
+		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';  
 		SET OutputRoot.XMLNSC.ExceptionDetails = Environment.Variables.ExceptionData;
-		-- end editing (log exception details in exception queue(EXC_Q))
-		RETURN TRUE;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'EXCEPTIONQ';
+		PROPAGATE TO TERMINAL 'out1';
 	END;
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
 		DECLARE I INTEGER 1;
@@ -46,11 +78,11 @@ CREATE COMPUTE MODULE ExceptionHandling
 	END;
 	CREATE PROCEDURE revertBackToSystem()
 	BEGIN 
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end') INTO rc;
 		DECLARE inRef REFERENCE TO Environment.Variables.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
-		DECLARE rc BOOLEAN FALSE;
 		DECLARE mtiRes CHARACTER '';
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
 		IF ( rc = FALSE ) THEN
@@ -66,8 +98,9 @@ CREATE COMPUTE MODULE ExceptionHandling
 		SET outRef.MTI_MessageFunction=SUBSTRING(mtiRes FROM 3 FOR 1); 
 		SET outRef.MTI_MessageOrigin=SUBSTRING(mtiRes FROM 4 FOR 1);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorRes', 'DEBUG','Response To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorRes', 'DEBUG',CAST(ASBITSTREAM(OutputRoot CCSID Environment.Variables.Properties.CodedCharSetId) AS CHARACTER CCSID Environment.Variables.Properties.CodedCharSetId)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',CAST(ASBITSTREAM(OutputRoot CCSID Environment.Variables.Properties.CodedCharSetId) AS CHARACTER CCSID Environment.Variables.Properties.CodedCharSetId)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end done') INTO rc;
 		PROPAGATE TO TERMINAL 'out1';
 	END;
 	CREATE PROCEDURE getExceptionDesc(IN excpRef REFERENCE,IN insertRef REFERENCE,INOUT outRef REFERENCE)	
