@@ -32,7 +32,7 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		-- TCPIP ID ==========================
-		SET Environment.usr.Id= InputRoot.MQRFH2.usr.tcpipDetails.Id;
+		SET Environment.usr= InputRoot.MQRFH2.usr;
 		-- SET DBLogging Properties ==============
 		DECLARE reqMsg CHARACTER'';
 		SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
@@ -41,11 +41,11 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer);
 
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
 		CALL DBLogging(Environment.dbLog.DBLogging.MSGID,Environment.dbLog.DBLogging.MESSAGE,'T24 Request',ApplicationLabel,BrokerName,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
 		PROPAGATE TO TERMINAL 'out1';
 		SET OutputRoot=NULL;
 		DECLARE env REFERENCE TO Environment.Variables;
@@ -82,7 +82,7 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute1
 	BEGIN
 		CALL CopyMessageHeaders();
 		CALL MiniStmtGenerateResToPostilion();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
@@ -102,17 +102,17 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute1
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		SET Environment.t24Res = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 		CALL DBLogging(Environment.usr.Id,Environment.t24Res,'T24 Response',ApplicationLabel,BrokerName,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
 		SET Environment.t24Res = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
 
 		CALL DBLogging(Environment.t24Res.DBLogging.MSGID,Environment.t24Res.DBLogging.MESSAGE,'Application Response',ApplicationLabel,BrokerName,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
 		PROPAGATE TO TERMINAL 'out1';
 		SET OutputRoot=NULL;
 		--SET OutputRoot.XMLNSC = null;
 		SET OutputRoot.Properties = Environment.Properties;
-		SET OutputRoot.MQRFH2.Id = Environment.usr.Id;
+		SET OutputRoot.MQRFH2.usr = Environment.usr;
 		DECLARE env REFERENCE TO Environment.Variables;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
@@ -134,8 +134,8 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute1
 
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','Request To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
-		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'MINISTMT_SB_RESQ';
-		-- PROPAGATE TO TERMINAL 'out';
+		 SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
+		 PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
 
@@ -184,7 +184,7 @@ CREATE COMPUTE MODULE StweardBankException
 		-- SET OutputRoot.XMLNSC.DBLogging.ERRORDESCRIPTION=CAST(exe_Desc AS CHARACTER);
 
 		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ERROR_AUDIT';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ERROR_AUDIT_Q';
 		PROPAGATE TO TERMINAL 'out1';
 
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
