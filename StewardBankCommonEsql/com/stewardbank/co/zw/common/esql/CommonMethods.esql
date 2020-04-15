@@ -1,11 +1,12 @@
+
 /*
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:30-03-2020
-Date of Modification:10-04-2020 
+Date of Modification:10-04-2020
 Description: Common Procedure and function used by all flows i.e Incoming,outgoing router and
-			Business flow.
---do not delete this file at any cost,modification can be done--		
+Business flow.
+--do not delete this file at any cost,modification can be done--
 */
 BROKER SCHEMA com.stewardbank.co.zw.common.esql
 
@@ -14,7 +15,7 @@ BROKER SCHEMA com.stewardbank.co.zw.common.esql
 
 CREATE PROCEDURE copyBitMap(INOUT inOutRef REFERENCE,INOUT inputRef REFERENCE,INOUT outRef REFERENCE,IN type CHARACTER)
 BEGIN
-	DECLARE I INTEGER 1;  
+	DECLARE I INTEGER 1;
 	WHILE LASTMOVE(inOutRef) DO
 		IF type = 'PrimaryBitmap' THEN
 			SET outRef.PrimaryBitmap.[I]=inputRef.PrimaryBitmap.[I];
@@ -34,26 +35,29 @@ BEGIN
 	SET outRef.TCPHeaderBitmap[]=inputRef.TCPHeaderBitmap[];
 	SET outRef.MTI_Version=inputRef.MTI_Version;
 	SET outRef.MTI_MessageClass=inputRef.MTI_MessageClass;
-	SET outRef.MTI_MessageFunction=inputRef.MTI_MessageFunction; 
+	SET outRef.MTI_MessageFunction=inputRef.MTI_MessageFunction;
 	SET outRef.MTI_MessageOrigin=inputRef.MTI_MessageOrigin;
 	SET outRef.PrimaryBitmap.Bit001=inputRef.PrimaryBitmap.Bit001;
 	DECLARE inRef REFERENCE TO inputRef.PrimaryBitmap.[1];
 	DECLARE isSecondaryBitMapExists,is127FieldExists BOOLEAN FALSE;
-	IF FIELDVALUE(inRef)= '1' THEN SET isSecondaryBitMapExists = TRUE; END IF;
+	IF FIELDVALUE(inRef)= '1' THEN SET isSecondaryBitMapExists = TRUE;
+	END IF;
 	CALL copyBitMap(inRef,inputRef,outRef,'PrimaryBitmap');
 	--start of editing (Added for error response to postilion or zss)
-	IF err = 'Y' THEN SET outRef.PrimaryBitmap.Bit039=1; END IF;
+	IF err = 'Y' THEN SET outRef.PrimaryBitmap.Bit039=1;
+	END IF;
 	--end of editing
 	IF isSecondaryBitMapExists = TRUE THEN
 		DECLARE secondBitMapRef REFERENCE TO inputRef.SecondaryBitmap.[1];
 		CALL copyBitMap(secondBitMapRef,inputRef,outRef,'SecondaryBitmap');
 		DECLARE field127Ref REFERENCE TO inputRef.SecondaryBitmap.[<2];
-		IF FIELDVALUE(field127Ref)= '1' THEN SET is127FieldExists = TRUE; END IF;
+		IF FIELDVALUE(field127Ref)= '1' THEN SET is127FieldExists = TRUE;
+		END IF;
 	END IF;
-	IF FIELDNAME(inputRef.PrimaryAccountNumber_002) is NOT NULL  THEN
+	IF FIELDNAME(inputRef.PrimaryAccountNumber_002) is NOT NULL THEN
 		SET outRef.PrimaryAccountNumber_002= inputRef.PrimaryAccountNumber_002;
 	END IF;
-	IF FIELDNAME(inputRef.ProcessingCode_003) is NOT NULL  THEN
+	IF FIELDNAME(inputRef.ProcessingCode_003) is NOT NULL THEN
 		SET outRef.ProcessingCode_003= inputRef.ProcessingCode_003;
 	END IF;
 	IF FIELDNAME(inputRef.AmountTransaction_004) is NOT NULL THEN
@@ -164,8 +168,9 @@ BEGIN
 	IF FIELDNAME(inputRef.ResponseCode_039) is NOT NULL THEN
 		SET outRef.ResponseCode_039= inputRef.ResponseCode_039;
 	END IF;
-	--start of editing  (Added for error response to postilion or zss)
-	IF err = 'Y' THEN SET outRef.ResponseCode_039='06'; END IF;
+	--start of editing (Added for error response to postilion or zss)
+	IF err = 'Y' THEN SET outRef.ResponseCode_039='06';
+	END IF;
 	--end of editing
 	IF FIELDNAME(inputRef.ServiceRestrictionCode_040) is NOT NULL THEN
 		SET outRef.ServiceRestrictionCode_040= inputRef.ServiceRestrictionCode_040;
@@ -275,7 +280,7 @@ BEGIN
 	IF FIELDNAME(inputRef.CreditsReversalNumber_075) is NOT NULL THEN
 		SET outRef.CreditsReversalNumber_075= inputRef.CreditsReversalNumber_075;
 	END IF;
-	
+
 	IF FIELDNAME(inputRef.DebitsNumber_076) is NOT NULL THEN
 		SET outRef.DebitsNumber_076= inputRef.DebitsNumber_076;
 	END IF;
@@ -475,14 +480,14 @@ BEGIN
 	IF FIELDNAME(inputRef.SponsorBankPostilionPrivate_127_14) is NOT NULL THEN
 		SET outRef.SponsorBankPostilionPrivate_127_14= inputRef.SponsorBankPostilionPrivate_127_14;
 	END IF;
-	
+
 	IF FIELDNAME(inputRef.AddressVerificationDataPostilionPrivate_127_15) is NOT NULL THEN
 		SET outRef.AddressVerificationDataPostilionPrivate_127_15= inputRef.AddressVerificationDataPostilionPrivate_127_15;
 	END IF;
 	IF FIELDNAME(inputRef.AddressVerificationResultPostilionPrivate_127_16) is NOT NULL THEN
 		SET outRef.AddressVerificationResultPostilionPrivate_127_16= inputRef.AddressVerificationResultPostilionPrivate_127_16;
 	END IF;
-	
+
 	IF FIELDNAME(inputRef.CardHolderInformationPostilionPrivate_127_17) is NOT NULL THEN
 		SET outRef.CardHolderInformationPostilionPrivate_127_17= inputRef.CardHolderInformationPostilionPrivate_127_17;
 	END IF;
@@ -555,163 +560,176 @@ BEGIN
 	IF FIELDNAME(inputRef.MessageAuthenticationCode_128) is NOT NULL THEN
 		SET outRef.MessageAuthenticationCode_128= inputRef.MessageAuthenticationCode_128;
 	END IF;
-	
+
 END;
-CREATE FUNCTION getPayLoad(IN inputRef REFERENCE, IN encodeRef REFERENCE,IN propertiesRef REFERENCE) RETURNS CHARACTER 
-	BEGIN
-		DECLARE payload CHARACTER '';
-		SET payload = CAST(ASBITSTREAM(inputRef ENCODING encodeRef CCSID propertiesRef)AS CHARACTER); 
-		RETURN payload;
-	END;
+CREATE FUNCTION getPayLoad(IN inputRef REFERENCE, IN encodeRef REFERENCE,IN propertiesRef REFERENCE) RETURNS CHARACTER
+BEGIN
+	DECLARE payload CHARACTER '';
+	SET payload = CAST(ASBITSTREAM(inputRef ENCODING encodeRef CCSID propertiesRef)AS CHARACTER);
+	RETURN payload;
+END;
 
-CREATE FUNCTION MTIResponse(IN mtiVersion CHARACTER,IN mtiClass CHARACTER,IN mtiFunction CHARACTER,IN mtiOrigin CHARACTER) RETURNS CHARACTER 
-	BEGIN
-		DECLARE mtiRes CHARACTER '';
-		CASE
-			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0100' THEN
-				SET mtiRes = '0110';
-			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0200' THEN
-				SET mtiRes = '0210';
-			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0220' OR mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0221'THEN
-				SET mtiRes = '0230';
-			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0202' THEN
-				SET mtiRes = '0212';
-			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0400' THEN
-				SET mtiRes = '0410';
-			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0420' OR mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0421'THEN
-				SET mtiRes = '0430';
-			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0500' THEN
-				SET mtiRes = '0510';
-			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0520' OR mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0521' THEN
-				SET mtiRes = '0530';
-			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0300' THEN
-				SET mtiRes = '0310';
-			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0600' THEN
-				SET mtiRes = '0610';
-			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0800' THEN
-				SET mtiRes = '0810';
-			WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0700' THEN
-				SET mtiRes = '0710';
-		ELSE
-			SET mtiRes = '0000';
-		END CASE;
-		RETURN mtiRes;
-	END;
-	CREATE PROCEDURE BuildExceptionDetails(IN excpRef REFERENCE,INOUT outRef REFERENCE,IN serviceName CHARACTER) BEGIN
-		SET outRef.Title = FIELDNAME(excpRef);
-		CASE
-		WHEN excpRef.excpType = 'FatalException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_001';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
-			
-		WHEN excpRef.excpType = 'RecoverableException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_002';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
-		WHEN excpRef.excpType = 'ConfigurationException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_003';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
-		WHEN excpRef.excpType = 'SecurityException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_004';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
-		WHEN excpRef.excpType = 'ParserException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_005';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+CREATE FUNCTION MTIResponse(IN mtiVersion CHARACTER,IN mtiClass CHARACTER,IN mtiFunction CHARACTER,IN mtiOrigin CHARACTER) RETURNS CHARACTER
+BEGIN
+	DECLARE mtiRes CHARACTER '';
+	CASE
+	WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0100' THEN
+		SET mtiRes = '0110';
+	WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0200' THEN
+		SET mtiRes = '0210';
+	WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0220' OR mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0221'THEN
+		SET mtiRes = '0230';
+	WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0202' THEN
+		SET mtiRes = '0212';
+	WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0400' THEN
+		SET mtiRes = '0410';
+	WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0420' OR mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0421'THEN
+		SET mtiRes = '0430';
+	WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0500' THEN
+		SET mtiRes = '0510';
+	WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0520' OR mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0521' THEN
+		SET mtiRes = '0530';
+	WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0300' THEN
+		SET mtiRes = '0310';
+	WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0600' THEN
+		SET mtiRes = '0610';
+	WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0800' THEN
+		SET mtiRes = '0810';
+	WHEN mtiVersion||mtiClass||mtiFunction||mtiOrigin = '0700' THEN
+		SET mtiRes = '0710';
+	ELSE
+		SET mtiRes = '0000';
+	END CASE;
+	RETURN mtiRes;
+END;
+CREATE PROCEDURE BuildExceptionDetails(IN excpRef REFERENCE,INOUT outRef REFERENCE,IN serviceName CHARACTER) BEGIN
+	SET outRef.Title = FIELDNAME(excpRef);
+	CASE
+	WHEN excpRef.excpType = 'FatalException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_001';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
 
-		WHEN excpRef.excpType = 'ConversionException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_006';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+	WHEN excpRef.excpType = 'RecoverableException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_002';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+	WHEN excpRef.excpType = 'ConfigurationException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_003';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+	WHEN excpRef.excpType = 'SecurityException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_004';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+	WHEN excpRef.excpType = 'ParserException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_005';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
 
-		WHEN excpRef.excpType = 'DatabaseException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_007';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+	WHEN excpRef.excpType = 'ConversionException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_006';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
 
-		WHEN excpRef.excpType = 'UserException'	 THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_008';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+	WHEN excpRef.excpType = 'DatabaseException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_007';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
 
-		WHEN excpRef.excpType = 'CastException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_009';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+	WHEN excpRef.excpType = 'UserException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_008';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
 
-		WHEN excpRef.excpType = 'MessageException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_010';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+	WHEN excpRef.excpType = 'CastException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_009';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
 
-		WHEN excpRef.excpType = 'SqlException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_011';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+	WHEN excpRef.excpType = 'MessageException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_010';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
 
-		WHEN excpRef.excpType = 'SocketException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_012';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+	WHEN excpRef.excpType = 'SqlException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_011';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
 
-		WHEN excpRef.excpType = 'SocketTimeoutException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_013';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+	WHEN excpRef.excpType = 'SocketException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_012';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
 
-		WHEN excpRef.excpType = 'UnknownException' THEN
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_014';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
-	
-		ELSE
-			SET outRef.Status = 'FAILURE';
-			SET outRef.ErrorCode = serviceName||'_015';
-			SET outRef.ErrorType = excpRef.excpType;
-			SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
-		END CASE;
-	END;
-	
-	CREATE FUNCTION writeToLogFile( IN COMPONENT_NAME CHARACTER,
-	IN LOGGER_NAME CHARACTER,
-	IN LEVEL CHARACTER,
-	IN TEXT CHARACTER )
-	RETURNS BOOLEAN
-	LANGUAGE JAVA
-	EXTERNAL NAME "com.ibm.broker.IAM3.Log4jNode.log";
+	WHEN excpRef.excpType = 'SocketTimeoutException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_013';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
 
-	CREATE FUNCTION initLog4j( IN CONFIG_FILE_NAME CHARACTER )
-	RETURNS BOOLEAN
-	LANGUAGE JAVA
-	EXTERNAL NAME "com.ibm.broker.IAM3.Log4jNode.initLog4j";
-	
-	
-	CREATE PROCEDURE DBLogging (IN MSGID CHARACTER,IN MESSAGE CHARACTER,IN MESSAGE_TYPE CHARACTER,IN APPNAME CHARACTER,IN BROKERNAME CHARACTER,INOUT outRef REFERENCE)
+	WHEN excpRef.excpType = 'UnknownException' THEN
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_014';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+
+	ELSE
+		SET outRef.Status = 'FAILURE';
+		SET outRef.ErrorCode = serviceName||'_015';
+		SET outRef.ErrorType = excpRef.excpType;
+		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+	END CASE;
+END;
+
+CREATE FUNCTION writeToLogFile( IN COMPONENT_NAME CHARACTER,
+IN LOGGER_NAME CHARACTER,
+IN LEVEL CHARACTER,
+IN TEXT CHARACTER )
+RETURNS BOOLEAN
+LANGUAGE JAVA
+EXTERNAL NAME "com.ibm.broker.IAM3.Log4jNode.log";
+
+CREATE FUNCTION initLog4j( IN CONFIG_FILE_NAME CHARACTER )
+RETURNS BOOLEAN
+LANGUAGE JAVA
+EXTERNAL NAME "com.ibm.broker.IAM3.Log4jNode.initLog4j";
+
+
+CREATE PROCEDURE DBLogging (IN MSGID CHARACTER,IN MESSAGE CHARACTER,IN MESSAGE_TYPE CHARACTER,IN APPNAME CHARACTER,IN BROKERNAME CHARACTER,INOUT outRef REFERENCE)
 BEGIN
 	create LASTCHILD of outRef AS outRef DOMAIN 'XMLNSC' NAME 'XMLNSC';
-	SET outRef.DBLogging.MSGID = MSGID; 
-		 
-		SET outRef.DBLogging.MESSAGE= MESSAGE;
-		SET outRef.DBLogging.MESSAGE_TYPE=MESSAGE_TYPE; 
-		SET outRef.DBLogging.APPNAME=APPNAME;
-		SET outRef.DBLogging.BROKERNAME=BROKERNAME;
-		
+	SET outRef.DBLogging.MSGID = MSGID;
+
+	SET outRef.DBLogging.MESSAGE= MESSAGE;
+	SET outRef.DBLogging.MESSAGE_TYPE=MESSAGE_TYPE;
+	SET outRef.DBLogging.APPNAME=APPNAME;
+	SET outRef.DBLogging.BROKERNAME=BROKERNAME;
+
 END;
-	
+
+
+CREATE PROCEDURE Error_DBLogging (IN MSGID CHARACTER,IN MESSAGE CHARACTER,IN MESSAGE_TYPE CHARACTER,IN APPNAME CHARACTER,IN BROKERNAME CHARACTER,IN ERRORDESCRIPTION CHARACTER,INOUT outRef REFERENCE)
+BEGIN
+	create LASTCHILD of outRef AS outRef DOMAIN 'XMLNSC' NAME 'XMLNSC';
+
+	SET outRef.DBLogging.MSGID = MSGID;
+	SET outRef.DBLogging.MESSAGE= MESSAGE;
+	SET outRef.DBLogging.MESSAGE_TYPE=MESSAGE_TYPE;
+	SET outRef.DBLogging.APPNAME=APPNAME;
+	SET outRef.DBLogging.BROKERNAME=BROKERNAME;
+	SET outRef.DBLogging.ERRORDESCRIPTION=ERRORDESCRIPTION;
+
+END;
