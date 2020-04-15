@@ -37,6 +37,7 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute
 		DECLARE reqMsg CHARACTER'';
 		SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
+		
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer);
@@ -97,7 +98,7 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute1
 
 	CREATE PROCEDURE MiniStmtGenerateResToPostilion() BEGIN
 		SET Environment.Properties = InputRoot.Properties;
-		DECLARE messageType CHARACTER FIELDNAME(InputBody);
+--		DECLARE messageType CHARACTER FIELDNAME(InputBody);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		SET Environment.t24Res = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
@@ -155,7 +156,7 @@ CREATE COMPUTE MODULE StweardBankException
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','..............star Exception logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
@@ -191,8 +192,8 @@ CREATE COMPUTE MODULE StweardBankException
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'Ministatement';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 
-
-
 		CALL BuildExceptionDetails(excpRef,outRef,'Ministatement');
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'EXCEPTIONQ';
+		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
