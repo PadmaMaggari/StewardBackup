@@ -1,7 +1,7 @@
 BROKER SCHEMA stewardBankBillPayments
 
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER'';
 CREATE COMPUTE MODULE stewardBankBillPayments_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -54,12 +54,12 @@ DECLARE env REFERENCE TO Environment.Variables;
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','..............Start Bill Payments logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','Request to Bill Payments::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG','..............Start Bill Payments logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG','Request to Bill Payments::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		CALL FieldToFieldMapping(inRef,outRef,'');
-		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG','Request To T24::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 
 
 	END;
@@ -115,11 +115,11 @@ SET Environment.Properties = InputRoot.Properties;
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','.........................') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG','.........................') INTO rc;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
-		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','Request To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG','Request To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 		 SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
 		 PROPAGATE TO TERMINAL 'out';
 	END;
@@ -136,8 +136,8 @@ CALL BuildErrorMsg();
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG','..............star Exception logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log1', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG','..............star Exception logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		RETURN FALSE;
 	END;
 
