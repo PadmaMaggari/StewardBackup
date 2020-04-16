@@ -1,13 +1,28 @@
+/*
+Author: Mir Mohsin Ali
+Version:1.0
+Date of Creation:08-04-2020
+Date of Modification:06-04-2020 (We will get the queue details from DB based on Processing code and those details will be stored in Cache).
+Description: This is the HTTP router flow.It will route the message to actual transaction flow based on Processing Code.
+ 			This HTTP Router would be triggered whenever Frontend initiates the request to ESB.
+*/
 BROKER SCHEMA com.stewardbank.co.zw.httprouters
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE getDBDetailsCache SHARED ROW;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE TABLENAME EXTERNAL CHARACTER '';
-
-CREATE COMPUTE MODULE HttpRequestRouterFlow_GenerateReqToBusinessFlow
+DECLARE DSNNAME EXTERNAL CHARACTER '';
+DECLARE SCHEMANAME EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
+DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER;
+	
+CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCode
+DECLARE rc BOOLEAN;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL CopyMessageHeaders();
-		 CALL GenerateReqToBusinessFlow();
+		--CALL CopyMessageHeaders();
+		CALL RouteToInterfaceBasedOnProcessingCode();
 		RETURN TRUE;
 	END;
 
@@ -21,23 +36,84 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_GenerateReqToBusinessFlow
 		END WHILE;
 	END;
 
-	CREATE PROCEDURE GenerateReqToBusinessFlow() BEGIN
-		--DECLARE inRef REFERENCE TO InputRoot.JSON.Data.receive.isomsg;
-		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC.log.receive.isomsg;
-		DECLARE procCode CHARACTER COALESCE(SUBSTRING(InputRoot.JSON.Data.receive.isomsg.field.Item[2].value FROM 1 FOR 2),SUBSTRING(FIELDVALUE(inRef.field[2]) FROM 1 FOR 2),'');
-		DECLARE query CHARACTER;
-		IF domainName = 'JSON' OR domainName = 'XMLNSC' THEN
-		SET query = 'select REQ_QUEUE_NAME,RESQ_QUEUE_NAME from '||TABLENAME||' where proc_code = '''||procCode||''' and domain = '''||domainName||'''';
-		SET Environment.Data[] = PASSTHRU(query);	
+	CREATE PROCEDURE RouteToInterfaceBasedOnProcessingCode() BEGIN
+		--DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE inRef REFERENCE TO InputRoot;		
+		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
+		DECLARE DBDetails ROW;
+		SET reqMsg = CAST(ASBITSTREAM(InputRoot.JSON CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			
+		-- HTTP ID ==========================
+		SET Environment.usr.Id= InputLocalEnvironment.Destination.HTTP.RequestIddentifier;   
+		-- SET DBLogging Properties ==============
+		SET Environment.reqMsg = reqMsg;
+		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		-- =================== CALLING DB RAW AUDIT LOGGING ==============
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		SET Environment.dbLog = OutputRoot.XMLNSC;
+		PROPAGATE TO TERMINAL 'out1';
+		
+		IF EXISTS(InputRoot.JSON[]) THEN
+			MOVE inRef  TO InputRoot.JSON.Data.receive.isomsg;
+		ELSE
+			MOVE inRef  TO InputRoot.XMLNSC.log.receive.isomsg;
 		END IF;
-		SET OutputRoot = InputRoot;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData.queueName = Environment.Data.REQ_QUEUE_NAME;
+		DECLARE httpDetails REFERENCE TO InputRoot.HTTPInputHeader;
+		DECLARE procCode CHARACTER COALESCE(SUBSTRING(inRef.field.Item[3].value FROM 1 FOR 2),SUBSTRING(FIELDVALUE(inRef.field[3]) FROM 1 FOR 2),'');
+		
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Request: '||reqMsg) INTO rc ;
+		END IF;
+		SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
+		-- ==================== HTTP DETAILS =========================
+		Set OutputRoot.MQRFH2.usr."Content-Type" = httpDetails."Content-Type";
+		Set OutputRoot.MQRFH2.usr."Cache-Control" = httpDetails."Cache-Control";
+		Set OutputRoot.MQRFH2.usr."Postman-Token" = httpDetails."Postman-Token";
+		Set OutputRoot.MQRFH2.usr."User-Agent" = httpDetails."User-Agent";
+		Set OutputRoot.MQRFH2.usr.Accept = httpDetails.Accept;
+		Set OutputRoot.MQRFH2.usr.Host = httpDetails.Host;
+		Set OutputRoot.MQRFH2.usr."Accept-Encoding" = httpDetails."Accept-Encoding";
+		Set OutputRoot.MQRFH2.usr."Content-Length" = httpDetails."Content-Length";
+		Set OutputRoot.MQRFH2.usr.Connection = httpDetails.Connection;
+		Set OutputRoot.MQRFH2.usr."X-Original-HTTP-Command" = httpDetails."X-Original-HTTP-Command";
+		Set OutputRoot.MQRFH2.usr."X-Server-Name" = httpDetails."X-Server-Name";
+		Set OutputRoot.MQRFH2.usr."X-Server-Port" = httpDetails."X-Server-Port";
+		Set OutputRoot.MQRFH2.usr."X-Remote-Addr" = httpDetails."X-Remote-Addr";
+		Set OutputRoot.MQRFH2.usr."X-Remote-Host" = httpDetails."X-Remote-Host";
+		Set OutputRoot.MQRFH2.usr."X-Scheme" = httpDetails."X-Scheme";
+		IF EXISTS(getDBDetailsCache.Values[]) THEN
+			CALL writeToLogFile(MessageFlowLabel,'DebugLogger','DEBUG','Values available in shared cache: '||getDBDetailsCache.Values.*[])INTO rc;
+			--SET DBDetails.values[] = select A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData and A.DOMAIN = domainName;
+			SET QueueName = getDBDetailsCache.Values.HTTP_REQ;
+		ELSE
+			CALL writeToLogFile(MessageFlowLabel,'DebugLogger','DEBUG','Calling the Cache')INTO rc;
+			CALL STORE_CACHE(procCodeData);
+			SET QueueName = getDBDetailsCache.Values.HTTP_REQ;
+		END IF;
+		SET OutputRoot.MQRFH2.usr.resQueueName = getDBDetailsCache.Values.HTTP_RES;
+		SET OutputRoot.MQRFH2.usr.RequestIdentifier = InputLocalEnvironment.Destination.HTTP.RequestIdentifier;
+		SET OutputRoot.JSON = InputRoot.JSON;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;
+	END;
+	
+	CREATE PROCEDURE STORE_CACHE (IN procCodeData CHARACTER)
+	BEGIN
+		-- A.PROC_CODE,A.REQ_QUEUE,A.RES_QUEUE
+		SET getDBDetailsCache.Values[] = SELECT A.PROC_CODE,A.HTTP_REQ,A.HTTP_RES FROM Database.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData;
+        CALL writeToLogFile(MessageFlowLabel,'DebugLogger','DEBUG','Retrieved values from Database')INTO rc;
 	END;
 END MODULE;
 
 
 CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
+DECLARE rc BOOLEAN;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyMessageHeaders();
@@ -56,56 +132,67 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 	END;
 
 	CREATE PROCEDURE GenerateResToFrontEnd() BEGIN
+		
 		SET OutputRoot = InputRoot;
+		PROPAGATE TO TERMINAL 'out1';
+		
+		DECLARE inRef REFERENCE TO InputRoot;		
+		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
+		DECLARE DBDetails ROW;
+		SET reqMsg = CAST(ASBITSTREAM(InputRoot.JSON CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			
+		-- HTTP ID ==========================
+		SET Environment.usr.Id= InputLocalEnvironment.Destination.HTTP.RequestIddentifier;   
+		-- SET DBLogging Properties ==============
+		SET Environment.reqMsg = reqMsg;
+		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		-- =================== CALLING DB RAW AUDIT LOGGING ==============
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		SET Environment.dbLog = OutputRoot.XMLNSC;
+		
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Response: '||reqMsg) INTO rc ;
+		END IF;
+		
 	END;
 END MODULE;
 
 
-CREATE COMPUTE MODULE HttpRequestRouterFlow_BuildExceptionRequest
+CREATE COMPUTE MODULE HttpRouterFlow_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL CopyMessageHeaders();
-		 CALL BuildExceptionRequest();
+		CALL BuildErrorMsg();
 		RETURN TRUE;
 	END;
 
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
-	END;
-
-	CREATE PROCEDURE BuildExceptionRequest() BEGIN
-		SET OutputRoot = InputRoot;
-	END;
-END MODULE;
-
-
-
-
-CREATE COMPUTE MODULE HttpResponseRouterFlow_BuildExceptionResponse
-	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
-		 CALL CopyMessageHeaders();
-		 CALL BuildExceptionResponse();
-		RETURN TRUE;
-	END;
-
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
-	END;
-
-	CREATE PROCEDURE BuildExceptionResponse() BEGIN
-		SET OutputRoot = InputRoot;
+	CREATE PROCEDURE BuildErrorMsg() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE Id CHARACTER CAST(Environment.usr.Id AS CHARACTER);
+		-- ============Error  Logging in DB===================
+		DECLARE exe_Desc CHARACTER CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);  
+		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		-- ============END Error  Logging in DB===================
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'HTTPROUTER';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'HTTPROUTER');
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
 	END;
 END MODULE;
+
