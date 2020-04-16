@@ -2,17 +2,16 @@
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:30-03-2020
-Date of Modification:14-04-2020 
+Date of Modification:14-04-2020,15-04-2020,16-04-2020
 Description: Generate a XML message which provide description for Exception which occured in flow and 
 			generate error in iso format to respond back to front end and also handled retry mechanism.
  			
 */
 BROKER SCHEMA com.stewardbank.co.zw.common.exceptionhandler
 PATH com.stewardbank.co.zw.common.esql;
-
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
+DECLARE rc BOOLEAN FALSE;
 CREATE COMPUTE MODULE ExceptionHandling
-	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
-	DECLARE rc BOOLEAN FALSE;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyMessageHeaders();
@@ -84,9 +83,11 @@ CREATE COMPUTE MODULE ExceptionHandling
 				CALL CopyMessageHeaders();
 				CALL revertBackToSystem();
 				CALL LogException();
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
 				RETURN FALSE;
 			END IF;
 		ELSE
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
 			RETURN TRUE;
 		END IF;
 	END;
