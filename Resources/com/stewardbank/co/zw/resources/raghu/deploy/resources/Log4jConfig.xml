@@ -12,10 +12,20 @@
         </layout>
     </appender>
 	
-
+<appender name="ErrorLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Users/91944/Documents/Steward/Log/ZIPIT_ERROR.log"/>          
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
     <logger name="ZIPITLogger">
 		<level value="DEBUG"/>
 		<appender-ref ref="ZIPITLogger"/>
     </logger>
-
+<logger name="ErrorLogger">
+		<level value="ERROR"/> 
+		<appender-ref ref="ErrorLogger"/>
+    </logger>
 </log4j:configuration>
