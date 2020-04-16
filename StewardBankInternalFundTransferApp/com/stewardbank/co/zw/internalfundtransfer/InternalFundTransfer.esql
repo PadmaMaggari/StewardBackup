@@ -2,18 +2,18 @@
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:30-03-2020
-Date of Modification:10-04-2020
+Date of Modification:10-04-2020,15-04-2020,16-04-2020
 Description:Business flow pick Request from IFT_SB_IN queue and Generate request in esb and send to t24 
 			and validate the response 
-			and send it to outgoing router queue(IFT_SB_OUT).
+			and send it to outgoing router queue(RESPONSEQ).
  			
 */
 BROKER SCHEMA com.stewardbank.co.zw.internalfundtransfer
 path com.stewardbank.co.zw.common.esql;
-
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER;
+DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER;
 CREATE COMPUTE MODULE InternalFundTransferFlow_GenerateReqTo24
-	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
-	DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GenerateReqToT24();
@@ -62,7 +62,6 @@ CREATE COMPUTE MODULE InternalFundTransferFlow_GenerateReqTo24
 END MODULE;
 
 CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
-	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyEntireMessage();
@@ -81,8 +80,6 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 END MODULE;
 
 CREATE COMPUTE MODULE InternalFundTransferFlowCaptureException
-	DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER;
-	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL BuildErrorMsg();
@@ -113,8 +110,6 @@ CREATE COMPUTE MODULE InternalFundTransferFlowCaptureException
 END MODULE;
 
 CREATE COMPUTE MODULE InternalFundTransferFlowT24Req_GenerateReqToPostilion
-	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
-	DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GenerateResToPostilion();
