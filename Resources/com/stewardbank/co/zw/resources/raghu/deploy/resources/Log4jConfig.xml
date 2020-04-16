@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "C:/vee/Log4j_Config/log4j.dtd">
+
+<log4j:configuration xmlns:log4j='http://jakarta.apache.org/log4j/'>
+
+   <appender name="ZIPITLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Users/91944/Documents/Steward/Log/ZIPIT.log"/>         
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+	
+
+    <logger name="ZIPITLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="ZIPITLogger"/>
+    </logger>
+
+</log4j:configuration>
