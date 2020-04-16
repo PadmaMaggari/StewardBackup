@@ -936,7 +936,7 @@ BEGIN
 	IF NOT LASTMOVE(mtiOrigin) THEN
 		THROW USER EXCEPTION SEVERITY 3 MESSAGE 0000 VALUES ('MTI Message Origin is not created. Should be before calling updateMsgWithHexBitMap method');
 	END IF;
-	--CREATE FIRSTCHILD OF outPayLoadRef AS tcpBitmapRef NAME 'TCPHeaderBitmap';
+	CREATE FIRSTCHILD OF outPayLoadRef AS tcpBitmapRef NAME 'TCPHeaderBitmap';
 	CALL PopulatePackedBitmap(tcpBitmapRef,17);
 	CREATE NEXTSIBLING OF mtiOrigin AS primaryBitRef NAME 'PrimaryBitmap';
 	CALL PopulatePackedBitmap(primaryBitRef,65);
