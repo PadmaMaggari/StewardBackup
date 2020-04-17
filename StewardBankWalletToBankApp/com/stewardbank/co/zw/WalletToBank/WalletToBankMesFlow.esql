@@ -1,0 +1,214 @@
+/*
+Author:Swathi
+Version:0.0.1
+Date of Creation:30-03-2020
+Date of Modification:14-04-2020
+Description:Business flow pick Request from WTB_SB_REQ queue and Generate request in ACE and send to t24 
+			and validate the response 
+			and send it to outgoing router queue(RESPONSEQ).
+ 			
+*/
+
+
+BROKER SCHEMA com.stewardbank.co.zw.WalletToBank
+path com.stewardbank.co.zw.common.esql;
+
+-- ................Generating Request To T24 Esql Module...........
+
+ 	
+	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+	DECLARE IsWToBLoggerRequired EXTERNAL CHARACTER '';
+CREATE COMPUTE MODULE WalletToBankFlow_ReqGenerationToT24
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL CopyMessageHeaders();
+		CALL FrameReqToT24();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE FrameReqToT24() BEGIN
+		
+		-- **********TCPIP Connection Details **************
+		SET Environment.usr= InputRoot.MQRFH2.usr;
+--		SET Environment.usr.Id= InputRoot.MQRFH2.usr.tcpipDetails.Id;
+		
+		--******* Framing DB Request For Logging ******
+		
+			DECLARE reqMsg CHARACTER'';
+		SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		
+		-- =================== CALLING DB RAW AUDIT LOGGING ==============
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer);
+
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
+		SET Environment.dbLog = OutputRoot.XMLNSC;
+		PROPAGATE TO TERMINAL 'out1';
+		CALL DBLogging(Environment.dbLog.DBLogging.MSGID,Environment.dbLog.DBLogging.MESSAGE,'T24 Request',ApplicationLabel,BrokerName,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
+		PROPAGATE TO TERMINAL 'out1';
+		-- +++++++++++++++++++++++++++End Of DB  Logging++++++++++++++++++++++++++++++
+		
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+		DECLARE env REFERENCE TO Environment.Variables;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
+		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;	
+				--set response queue and tcpip connection id in environment
+		DECLARE resQ CHARACTER Environment.usr.resQueueName;
+		DECLARE connId CHARACTER Environment.usr.Id;
+		SET Environment.Variables.ResponseQ = resQ;
+		SET Environment.Variables.TcpIp.ConnectionId = connId;
+		-- ********************Log4j ********************************
+		IF ( rc = FALSE ) THEN  
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+		END IF;
+		
+		CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== Request Received ================') INTO rc;
+--			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== Request End ================') INTO rc;
+		--===================Mapping field to field=============================
+		CALL FieldToFieldMapping(inRef,outRef,'');
+		
+		-- CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'T24 Response',ApplicationLabel,BrokerName,outRefer);
+
+
+		CALL writeToLogFile(MessageFlowLabel, 'WToBLogger', 'DEBUG','******Request To T24****') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'WToBLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+
+	END;
+END MODULE;
+		
+			
+		
+
+-- ..............Response Esql Module For Postilion..........
+
+CREATE COMPUTE MODULE WalletToBankFlow_ResGenerationToPostilion
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL CopyMessageHeaders();
+		CALL ResFramingToPostilion(); 
+		RETURN TRUE;
+	END;
+		CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+		CREATE PROCEDURE ResFramingToPostilion() BEGIN
+			
+					
+			SET Environment.Properties = InputRoot.Properties;
+		SET Environment.MQMD = InputRoot.MQMD;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		-- =================== CALLING DB RAW AUDIT LOGGING ==============
+		SET Environment.t24Res = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		CALL DBLogging(Environment.usr.Id,Environment.t24Res,'T24 Response',ApplicationLabel,BrokerName,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
+		SET Environment.t24Res = OutputRoot.XMLNSC;
+		PROPAGATE TO TERMINAL 'out1';
+		CALL DBLogging(Environment.t24Res.DBLogging.MSGID,Environment.t24Res.DBLogging.MESSAGE,'Application Response',ApplicationLabel,BrokerName,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
+		PROPAGATE TO TERMINAL 'out1';
+		-- =================== END DB RAW AUDIT LOGGING ==============
+		SET OutputRoot.Properties = Environment.Properties;
+		SET OutputRoot.MQRFH2.usr = Environment.usr;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
+		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+		
+		CALL writeToLogFile(MessageFlowLabel,'WToBLogger','DEBUG','=================== Response Received from T24  ================') INTO rc;
+--			DECLARE req CHARACTER;
+--			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== Request End ================') INTO rc;
+		--Mapping field to field...
+		--field to field mapping
+		CALL FieldToFieldMapping(inRef,outRef,'');
+			
+		CALL writeToLogFile(MessageFlowLabel, 'WToBLogger', 'DEBUG','****Response To TCPIP Router****') INTO rc;
+		 SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
+	END;
+END MODULE;
+
+
+--..............Framing  Exception Details .............
+
+
+CREATE COMPUTE MODULE WalletToBankFlow_FramimgExceptionDetails
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL CopyMessageHeaders(); 
+		CALL FrameException();
+		DECLARE req CHARACTER '';
+		DECLARE rc BOOLEAN FALSE;	
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;	 	
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.WToBLogger4j.ErrorMsg = 'Initializing the WToBLogger4j path error';		
+		END IF;
+
+			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== Framimg Ecxeption Details  ================') INTO rc;
+			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG',req) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== End WToBLoggerging ================') INTO rc;
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+	CREATE PROCEDURE FrameException() BEGIN
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE Id CHARACTER '';
+		SET Id= CAST(Environment.usr.Id AS CHARACTER);
+		-- DB Logging===================
+		DECLARE exe_Desc CHARACTER'';  
+		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+		
+		-- ***********Calling DB logging procedure for logging Exception Details*********** 
+			CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ERROR_AUDIT_Q';
+		PROPAGATE TO TERMINAL 'out1';
+
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'WalletToBank';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'WalletToBank');
+	END;
+END MODULE;
+		
