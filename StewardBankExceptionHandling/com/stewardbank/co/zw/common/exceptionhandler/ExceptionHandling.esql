@@ -19,7 +19,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 		/* ============================= THIS IS FOR DBLOGGING ***** I'M CASTING  INPUT.DFDL DATA INTO CHARACTER ========================= */
 		SET Environment.reqMsg= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 		SET Environment.Id=InputRoot.MQRFH2.usr.Id;
-		
+		      
 		/*  ==================================== DB LOGGING PROPERTIES END ===================================== */
 		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';  
