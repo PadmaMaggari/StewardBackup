@@ -9,16 +9,27 @@ Description: Generate a XML message which provide description for Exception whic
 */
 BROKER SCHEMA com.stewardbank.co.zw.common.exceptionhandler
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE IS_ERROR_RESPONSE_REQUIRED EXTERNAL CHARACTER '';
+DECLARE INIT_LOG4J_ERROR EXTERNAL CHARACTER '';
+DECLARE EXCEPTIONQ EXTERNAL CHARACTER '';
+DECLARE MAX_RETRY_COUNT EXTERNAL INTEGER 0;
 DECLARE rc BOOLEAN FALSE;
 CREATE COMPUTE MODULE ExceptionHandling
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyMessageHeaders();
+		SET Environment.Variables.Properties = InputRoot.Properties;
+		/* ============================= THIS IS FOR DBLOGGING ***** I'M CASTING  INPUT.DFDL DATA INTO CHARACTER ========================= */
+		SET Environment.reqMsg= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		SET Environment.Id=InputRoot.MQRFH2.usr.Id;
+		
+		/*  ==================================== DB LOGGING PROPERTIES END ===================================== */
+		
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Initializing the log4j path error...........') INTO rc;		
+			SET Environment.Variables.Log4j.ErrorMsg = INIT_LOG4J_ERROR;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',INIT_LOG4J_ERROR) INTO rc;		
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............start logging Exception...........') INTO rc;
 		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
@@ -56,7 +67,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 		ELSE
 			SET inputChar=COALESCE(inputChar,'emptydata or unable to parse the data');
 		END IF;	
-		DECLARE CR CHARACTER CAST(CAST('X''0A''' AS BLOB) AS CHARACTER CCSID 1208);
+		DECLARE CR CHARACTER CAST(CAST('X''0A''' AS BLOB) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
 		SET logdata = exceptionTxt||CR||'INPUT_ORIGINAL_MESSAGE:START'||CR||inputChar||CR||'INPUT_ORIGINAL_MESSAGE:STOP' ;
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR',exceptionTxt) into rc;
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR',logdata) into rc;
@@ -68,9 +79,9 @@ CREATE COMPUTE MODULE ExceptionHandling
 			CONTAINS(exceptionTxt,'Unexpected Network Error'))THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Connection refused or Connection Dead or your session has been killed or Unexpected Network Error') INTO rc;
 			IF Environment.Variables.Counter IS NULL THEN 
-				SET Environment.Variables.Counter = 0; 
+				SET Environment.Variables.Counter = 1; 
 			END IF;
-			IF Environment.Variables.Counter <= 2 THEN
+			IF Environment.Variables.Counter <= MAX_RETRY_COUNT THEN
 				SET OutputRoot = null;
 				CALL CopyMessageHeaders();
 				SET OutputRoot = InputRoot;
@@ -96,7 +107,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';  
 		SET OutputRoot.XMLNSC.ExceptionDetails = Environment.Variables.ExceptionData;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'EXCEPTIONQ';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTIONQ;
 		PROPAGATE TO TERMINAL 'out1';
 	END;
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
@@ -119,10 +130,11 @@ CREATE COMPUTE MODULE ExceptionHandling
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			SET Environment.Variables.Log4j.ErrorMsg = INIT_LOG4J_ERROR;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',INIT_LOG4J_ERROR) INTO rc;		
 		END IF;
 		--generate a error response in iso8583 to front end system in case of failure of t24
-		CALL FieldToFieldMapping(inRef,outRef,'Y');
+		CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED);
 		
 		CALL MTIResponse(CAST(inRef.MTI_Version AS CHARACTER),CAST(inRef.MTI_MessageClass AS CHARACTER),CAST(inRef.MTI_MessageFunction AS CHARACTER),CAST(inRef.MTI_MessageOrigin AS CHARACTER)) into mtiRes;
 		SET outRef.MTI_Version=SUBSTRING(mtiRes FROM 1 FOR 1);

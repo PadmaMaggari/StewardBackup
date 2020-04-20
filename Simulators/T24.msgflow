@@ -12,13 +12,13 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/Simulators/icons/full/obj16/T24.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/Simulators/icons/full/obj30/T24.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmTCPIPServerInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="141,53" connectionDetails="{ESBPolicies}:T24Server" closeInputStream="true" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987" validateTiming="immediate" validateMaster="contentAndValue">
+      <nodes xmi:type="ComIbmTCPIPServerInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="82,38" connectionDetails="{ESBPolicies}:T24Server" closeInputStream="true" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
         <translation xmi:type="utility:ConstantString" string="TCPIP Server Input"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPServerOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="401,52" connectionDetails="{ESBPolicies}:T24Server" timeoutSendingData="30" closeOutputStream="true">
+      <nodes xmi:type="ComIbmTCPIPServerOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="401,52" connectionDetails="{ESBPolicies}:T24Server" timeoutSendingData="30" closeConnection="afterData">
         <translation xmi:type="utility:ConstantString" string="TCPIP Server Output"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="282,78" dataSource="ORADSN" computeExpression="esql://routine/#T24_Compute.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="286,101" dataSource="ORADSN" computeExpression="esql://routine/#T24_Compute.Main">
         <translation xmi:type="utility:ConstantString" string="Compute"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>

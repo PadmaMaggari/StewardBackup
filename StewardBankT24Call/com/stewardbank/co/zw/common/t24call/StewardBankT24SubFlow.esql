@@ -2,22 +2,27 @@
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:14-04-2020
-Date of Modification: 
-Description: retry for 3 times when tcp connection is down or unavaiable or any other exception occurs.
+Date of Modification: 20-04-2020
+Description: retry for 3 times when tcp connection is down or unavaiable.
  			
 */
 BROKER SCHEMA com.stewardbank.co.zw.common.t24call
 PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE MAX_RETRY_COUNT EXTERNAL INTEGER 0;
+DECLARE INIT_LOG4J_ERROR EXTERNAL CHARACTER '';
+DECLARE RETRY_INTERVAL EXTERNAL INTEGER 0;
 
+	
 CREATE COMPUTE MODULE StewardBankT24SubFlow
-	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
+	
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 DECLARE rc BOOLEAN FALSE;
 		 CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		 IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Initializing the log4j path error...........') INTO rc;		
+			SET Environment.Variables.Log4j.ErrorMsg = INIT_LOG4J_ERROR;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',INIT_LOG4J_ERROR) INTO rc;		
 		 END IF;
 		 IF Environment.Variables.Counter IS NULL THEN 
 		 	CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Environment.Variables.Counter is null maybe didnt capture tcp exceptionMsg') INTO rc;
@@ -25,18 +30,17 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow
 		 END IF;
 		 CALL CopyEntireMessage();
 		 IF Environment.Variables.Retry.Counter IS NULL THEN 
-				SET Environment.Variables.Retry.Counter = 0; 
+				SET Environment.Variables.Retry.Counter = 1; 
 		 END IF;
-		 IF Environment.Variables.Retry.Counter <= 2 THEN
+		 IF Environment.Variables.Retry.Counter <= MAX_RETRY_COUNT THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','retry count for connection:'||CAST(Environment.Variables.Retry.Counter AS CHARACTER)) INTO rc;
 			DECLARE envRef REFERENCE TO Environment.Variables.Retry;
-			IF envRef.Counter = 0 THEN 
+			IF envRef.Counter = 1 THEN 
 				SET envRef.Counter = envRef.Counter + 1;
-				RETURN TRUE;
 			ELSE
 				SET envRef.Counter = envRef.Counter + 1;
 				CALL retryWithDelay(envRef.Counter);
-				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','delay 10 sec for request to tcp for count:'||CAST(envRef.Counter AS CHARACTER)||'is Complete') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','retry the request after 10 sec delay for current count:'||CAST(envRef.Counter AS CHARACTER)||'is Complete') INTO rc;
 			END IF;
 			RETURN TRUE;
 		 ELSE
@@ -48,8 +52,8 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow
 		SET OutputRoot = InputRoot;
 	END;
 	CREATE PROCEDURE retryWithDelay(IN count INTEGER) BEGIN
-		IF count = 1 OR count = 2 THEN
-			DECLARE var BOOLEAN SLEEP(10000);
+		IF count <= MAX_RETRY_COUNT AND count > 1 THEN
+			DECLARE varDelay BOOLEAN SLEEP(RETRY_INTERVAL);
 		END IF;
 	END;
 END MODULE;
