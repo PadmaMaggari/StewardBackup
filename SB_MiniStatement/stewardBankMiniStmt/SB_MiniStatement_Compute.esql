@@ -108,7 +108,7 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute1
 		CALL writeToLogFile(MessageFlowLabel, 'minidebug', 'DEBUG','Request To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'minidebug', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
-		PROPAGATE TO TERMINAL 'out';
+		PROPAGATE TO TERMINAL 'out';            
 	END;
 END MODULE;
 
