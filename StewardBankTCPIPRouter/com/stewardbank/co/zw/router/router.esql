@@ -68,7 +68,7 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 		
 		
 		IF IsLogRequired LIKE 'Y' THEN
-			SET req = CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			SET req = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ISO Request: '||req) INTO rc ;
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','TCPIP ID: '||tcpipDetails.Id)INTO rc;
 		END IF;
@@ -219,7 +219,7 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 		DECLARE reqMsg CHARACTER'';
 		
 		
-		SET reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		SET reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		SET Environment.reqMsg=reqMsg;
 		
