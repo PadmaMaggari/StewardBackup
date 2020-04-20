@@ -14,7 +14,7 @@ PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH,APPLICATION_NAME,RAW_AUDIT_LOGGING,ERROR_AUDIT_LOGGING EXTERNAL CHARACTER;
 CREATE COMPUTE MODULE stewardBankMiniStmt_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
+	BEGIN     
 		CALL GenerateReqToT24();
 		RETURN FALSE;
 	END;
@@ -27,6 +27,8 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute
 		SET Environment.usr= InputRoot.MQRFH2.usr;
 		/* ==================== DATA BASE LOGGING START ==================== */
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		
+		
 		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Request',ApplicationLabel,BrokerName,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
