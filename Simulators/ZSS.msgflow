@@ -6,13 +6,13 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/Simulators/icons/full/obj16/ZSS.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/Simulators/icons/full/obj30/ZSS.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="52,39" queueName="ZSS_NOTIFICATION">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="52,39" queueName="ZSS_NOTIFICATION" destinationQueueManagerName="QM">
         <translation xmi:type="utility:ConstantString" string="MQ Input"/>
       </nodes>
       <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="144,41" connectionDetails="{ESBPolicies}:EsbZssClient" closeOutputStream="true" modifyInputStream="reserveThenRelease">
         <translation xmi:type="utility:ConstantString" string="TCPIP Client Output"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="477,40" queueName="ZSS_RES">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="477,40" queueName="ZSS_RES" destinationQueueManagerName="QM">
         <translation xmi:type="utility:ConstantString" string="MQ Output"/>
       </nodes>
       <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="313,55" connectionDetails="{ESBPolicies}:EsbZssClient" closeConnection="afterData" idLocation="LocalEnvironment/WrittenDestination/TCPIP/Output/ConnectionDetails[1]/Id" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
