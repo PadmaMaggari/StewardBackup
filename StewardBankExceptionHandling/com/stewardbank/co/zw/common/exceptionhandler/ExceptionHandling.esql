@@ -122,6 +122,9 @@ CREATE COMPUTE MODULE ExceptionHandling
 			SET I = I + 1;
 		END WHILE;
 	END;
+	/*
+	revertBackToSystem procedure requires property,domain,responseQueue in environment
+	*/
 	CREATE PROCEDURE revertBackToSystem()
 	BEGIN 
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end') INTO rc;
