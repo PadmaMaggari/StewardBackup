@@ -10,7 +10,7 @@ Author : G Raghavender.
 =================================================================================================================== */
 BROKER SCHEMA com.stewardbank.co.zw.zipit
 PATH com.stewardbank.co.zw.common.esql;      
-DECLARE LOG_CONFIG_PATH,APPLICATION_NAME EXTERNAL CHARACTER '';    
+DECLARE LOG_CONFIG_PATH,APPLICATION_NAME EXTERNAL CHARACTER '';     
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER;
 
 CREATE COMPUTE MODULE Zipit_GenerateReqToT24  
@@ -22,43 +22,49 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
-			SET Environment.usr= InputRoot.MQRFH2.usr;
-		SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		/* ==================== SETTING MQRFH2 DETAILS IN ENVIRONMENT ==================== */
+		SET Environment.usr= InputRoot.MQRFH2.usr;
+		/* ==================== DATABASE LOGGING START ==================== */
+		DECLARE reqMsg CHARACTER'';
+		SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		SET Environment.dbLog = OutputRoot.XMLNSC;
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId),'Application Request',ApplicationLabel,BrokerName,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
 		PROPAGATE TO TERMINAL 'out1';
-		CALL DBLogging(Environment.dbLog.DBLogging.MSGID,Environment.dbLog.DBLogging.MESSAGE,'T24 Request',ApplicationLabel,BrokerName,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
-		-- =================== END DB RAW AUDIT LOGGING ==============
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQMD = InputRoot.MQMD;
+		SET OutputRoot=NULL;
+		/* ==================== DATABASE LOGGING ENDING ==================== */
+		/* ==================== FRAMING REQUEST TO T24 ==================== */
 		DECLARE env REFERENCE TO Environment.Variables;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;	
-		--set response queue and tcpip connection id in environment
-		DECLARE resQ CHARACTER Environment.usr.resQueueName;
-		DECLARE connId CHARACTER Environment.usr.Id;
-		SET Environment.Variables.ResponseQ = resQ;
-		SET Environment.Variables.TcpIp.ConnectionId = connId;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','..............start ZIPIT logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','Request to ZIPIT_INQ::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc;
-		--field to field mapping
+		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','..............Start ZIPIT logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','Request to ZIPIT::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc; 
+		
 		CALL FieldToFieldMapping(inRef,outRef,'');
-		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc;
+		 
+		SET Environment.dfdlData=OutputRoot.DFDL;
+		SET OutputRoot=NULL;
+		/* ==================== DATA BASE LOGGING ==================== */
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId),'T24 Request',ApplicationLabel,BrokerName,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
+		PROPAGATE TO TERMINAL 'out1';
+		/* ==================== DATA BASE LOGGING ENDING ==================== */
+		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.DFDL= Environment.dfdlData;
+		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','Request To T24::') INTO rc;  
+		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc; 
+		PROPAGATE TO TERMINAL 'out';
 	END;
 
 END MODULE;
@@ -95,42 +101,56 @@ Author : G Raghavender.
 =================================================================================================================== */
 
 CREATE COMPUTE MODULE ZipitFlowCaptureException
-	DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER; 
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		
 		CALL BuildErrorMsg();
-		RETURN TRUE;
-	END;
-
-
-	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','..............Start Exception logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc; 
+
+		RETURN FALSE;
+	END;
+
+	
+		CREATE PROCEDURE BuildErrorMsg() BEGIN 
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		DECLARE Id CHARACTER CAST(Environment.usr.Id AS CHARACTER);
-		-- ============Error  Logging in DB===================
-		DECLARE exe_Desc CHARACTER CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);  
+		DECLARE Id CHARACTER '';
+		SET Id= CAST(Environment.usr.Id AS CHARACTER);
+		/* ==================== DATABASE LOGGING ==================== */
+		DECLARE exe_Desc CHARACTER'';
+		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+
 		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ERROR_AUDIT_Q';
 		PROPAGATE TO TERMINAL 'out1';
-		-- ============END Error  Logging in DB===================
+
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'ZIPIT';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'ZIPIT');  
+
+		CALL BuildExceptionDetails(excpRef,outRef,'Ministatement');
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SB_EXCQ';  
+		PROPAGATE TO TERMINAL 'out';
 	END;
-END MODULE;
+END MODULE; 
 /*==================================================================================================================
 Application Name : ZIPIT.
 Description :
-1)From T24 Simulator we get the response, here we are generating Response to Positlion.
+1)From T24 Simulator we get the response, here we are generating Response to TCPIP Router. 
 2) Audit Logging and DB Logging has been done here.
 Date :27-3-2020 .
 Modified Date : .
@@ -145,38 +165,41 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE Zipit_GenerateResToPostilion() BEGIN
-		
-		SET Environment.Properties = InputRoot.Properties;
-		SET Environment.MQMD = InputRoot.MQMD;
+				/* ==================== DATABASE LOGGING ==================== */
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		SET Environment.t24Res = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
-		CALL DBLogging(Environment.usr.Id,Environment.t24Res,'T24 Response',ApplicationLabel,BrokerName,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		SET Environment.t24Res = OutputRoot.XMLNSC;
-		PROPAGATE TO TERMINAL 'out1';
-		CALL DBLogging(Environment.t24Res.DBLogging.MSGID,Environment.t24Res.DBLogging.MESSAGE,'Application Response',ApplicationLabel,BrokerName,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1'; 
-		-- =================== END DB RAW AUDIT LOGGING ==============
-		SET OutputRoot.Properties = Environment.Properties;
-		SET OutputRoot.MQRFH2.usr = Environment.usr;
-		SET OutputRoot.MQMD = InputRoot.MQMD;
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId),'T24 Response',ApplicationLabel,BrokerName,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot=NULL;
+		/* ==================== DATABASE LOGGING END ==================== */
+		/* ==================== FRAMING RESPONSE TO TCPIP ROUTER ==================== */
+		DECLARE env REFERENCE TO Environment.Variables;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','.........................') INTO rc; 
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ; 
-		
-		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','Response To Postilion::') INTO rc; 
-		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc;
+		SET Environment.dfdlData=InputRoot.DFDL;
+		SET OutputRoot=NULL;
+		/* ==================== DATABASE LOGGING ==================== */
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId),'Application Response',ApplicationLabel,BrokerName,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q'; 
+		PROPAGATE TO TERMINAL 'out';
+		/* ==================== DATABASE LOGGING END ==================== */ 
+		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.MQRFH2.usr=Environment.usr; 
+		SET OutputRoot.DFDL=Environment.dfdlData;
+		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','Request To Postilion::') INTO rc; 
+		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc; 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
+		PROPAGATE TO TERMINAL 'out'; 
 	END;
 END MODULE;
