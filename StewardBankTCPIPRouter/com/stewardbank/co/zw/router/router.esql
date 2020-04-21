@@ -100,7 +100,7 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 		DECLARE outRefer REFERENCE TO OutputRoot;		 
 		
 		CALL DBLogging(Environment.msgID,Environment.reqMsg,'Router Request',ApplicationLabel,BrokerName,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_LOG_SB_REQ';
 		PROPAGATE TO TERMINAL 'out1' ;
 		
 		SET OutputRoot.Properties= InputRoot.Properties;
@@ -182,7 +182,7 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_BuildExceptionDetails
 		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 		
 			CALL Error_DBLogging(CAST(Id AS CHARACTER),CAST(InputRoot.MQRFH2.usr.reqMsg AS CHARACTER),'Router Response Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ERROR_AUDIT_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ERR_LOG_SB_REQ';
 		PROPAGATE TO TERMINAL 'out1';
 		
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
@@ -228,7 +228,7 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		CALL DBLogging(InputRoot.MQRFH2.usr.Id,reqMsg,'Router Response',ApplicationLabel,BrokerName,outRefer);
 
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_LOG_SB_REQ';
 		
 		PROPAGATE TO TERMINAL 'out1';
 		
@@ -267,7 +267,7 @@ CREATE COMPUTE MODULE IncomingRouterFlow_BuildExceptionDetails
 		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 		
 			CALL Error_DBLogging(CAST(Environment.Id AS CHARACTER),CAST(Environment.reqMsessage AS CHARACTER),'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ERROR_AUDIT_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ERR_LOG_SB_REQ';
 		PROPAGATE TO TERMINAL 'out1';
 		
 		
