@@ -6,6 +6,12 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log\Log4jConfig.xml">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_LOGGING" name="RAW_AUDIT_LOGGING" defaultValueLiteral="RAW_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERROR_AUDIT_LOGGING" name="ERROR_AUDIT_LOGGING" defaultValueLiteral="ERR_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="stewardBankBillPayments" bundleName="stewardBankBillPayments/stewardBankBillPayments" pluginId="StewardBankBillPayments"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankBillPayments/icons/full/obj16/stewardBankBillPayments.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankBillPayments/icons/full/obj30/stewardBankBillPayments.gif"/>
@@ -22,10 +28,10 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="302,168" computeExpression="esql://routine/stewardBankBillPayments#stewardBankBillPayments_ExceptionPropagation.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="ExceptionPropagation"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="718,114" queueName="BILL_PAYMENTS_RESQ" destinationQueueManagerName="QM" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="718,114" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="Bill_Payments_Res"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="58,81" queueName="BP_SB_REQ" destinationQueueManagerName="QM" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987" transactionMode="no">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="58,81" queueName="BP_SB_REQ" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="MQ Input"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_1" location="276,25">
@@ -43,13 +49,17 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
         <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="stewardBankBillPayments/stewardBankBillPayments" pluginId="StewardBankBillPayments"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RAW_AUDIT_LOGGING">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_LOGGING" bundleName="stewardBankBillPayments/stewardBankBillPayments" pluginId="StewardBankBillPayments"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERROR_AUDIT_LOGGING">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_LOGGING" bundleName="stewardBankBillPayments/stewardBankBillPayments" pluginId="StewardBankBillPayments"/>
+          </propertyDescriptor>
+        </propertyDescriptor>
       </propertyDescriptor>
     </propertyOrganizer>
     <stickyBoard/>
