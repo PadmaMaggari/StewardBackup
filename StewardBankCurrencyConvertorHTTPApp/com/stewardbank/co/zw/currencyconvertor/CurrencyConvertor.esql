@@ -3,7 +3,9 @@ PATH  com.stewardbank.co.zw.common.esql;
 
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
 DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';	
-DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';	
+DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
+
+	
 CREATE COMPUTE MODULE CurrencyConvertor_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -23,10 +25,11 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateReqToT24
 	END;
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		SET Environment.Variables.usr = InputRoot.MQRFH2.usr;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
 		DECLARE DBDetails ROW;
 		SET reqMsg = CAST(ASBITSTREAM(InputRoot.JSON CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
-			
+		
 		-- HTTP ID ==========================
 		SET Environment.usr.Id= InputLocalEnvironment.Destination.HTTP.RequestIddentifier;   
 		-- SET DBLogging Properties ==============
@@ -38,7 +41,9 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateReqToT24
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
-		
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
+		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
 		DECLARE env REFERENCE TO Environment.Variables; 
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data.receive.isomsg;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
@@ -52,10 +57,9 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateReqToT24
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','..............Start CurrencyConvertor logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','Request to Currency Convertor::') INTO rc; 
-		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		---JSON TO ISO
-		CALL JSONToISOMapping(inRef,outRef);
-			  	
+		CALL JSONToISOMapping(inRef,outRef);    	
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','Request To T24::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 	END;
@@ -83,6 +87,7 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateResToPortalBackend
 	END;
 
 	CREATE PROCEDURE GenerateResToPortalBackend() BEGIN 
+		SET OutputRoot.MQRFH2.usr = Environment.Variables.usr;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
@@ -98,7 +103,7 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateResToPortalBackend
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 		--ISO to JSON mapping
 		CALL ISOToJSONMapping(inRef,outRef); 
-		
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.usr.resQueueName;
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','Response To FrontEnd::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.JSON.Data ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER )) INTO rc;
 	END;

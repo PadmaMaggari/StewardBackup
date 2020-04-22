@@ -16,7 +16,7 @@ DECLARE DSNNAME EXTERNAL CHARACTER '';
 DECLARE SCHEMANAME EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER;
-	
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';	
 CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCode
 DECLARE rc BOOLEAN;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -41,7 +41,7 @@ DECLARE rc BOOLEAN;
 		DECLARE inRef REFERENCE TO InputRoot;		
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
 		DECLARE DBDetails ROW;
-		SET reqMsg = CAST(ASBITSTREAM(InputRoot.JSON CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+		SET reqMsg = CAST(ASBITSTREAM(InputRoot.JSON.Data CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
 			
 		-- HTTP ID ==========================
 		SET Environment.usr.Id= InputLocalEnvironment.Destination.HTTP.RequestIddentifier;   
@@ -73,6 +73,7 @@ DECLARE rc BOOLEAN;
 		END IF;
 		SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
 		-- ==================== HTTP DETAILS =========================
+		Set OutputRoot.MQRFH2.usr.HTTP.Properties = InputRoot.Properties;
 		Set OutputRoot.MQRFH2.usr."Content-Type" = httpDetails."Content-Type";
 		Set OutputRoot.MQRFH2.usr."Cache-Control" = httpDetails."Cache-Control";
 		Set OutputRoot.MQRFH2.usr."Postman-Token" = httpDetails."Postman-Token";
@@ -116,7 +117,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 DECLARE rc BOOLEAN;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL CopyMessageHeaders();
+		--CALL CopyMessageHeaders();
 		CALL GenerateResToFrontEnd();
 		RETURN TRUE;
 	END;
@@ -133,25 +134,19 @@ DECLARE rc BOOLEAN;
 
 	CREATE PROCEDURE GenerateResToFrontEnd() BEGIN
 		
-		SET OutputRoot = InputRoot;
-		PROPAGATE TO TERMINAL 'out1';
-		
 		DECLARE inRef REFERENCE TO InputRoot;		
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
 		DECLARE DBDetails ROW;
-		SET reqMsg = CAST(ASBITSTREAM(InputRoot.JSON CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
-			
-		-- HTTP ID ==========================
-		SET Environment.usr.Id= InputLocalEnvironment.Destination.HTTP.RequestIddentifier;   
+		SET reqMsg = CAST(ASBITSTREAM(InputRoot.JSON.Data CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer); 
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
-		
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
@@ -160,6 +155,8 @@ DECLARE rc BOOLEAN;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Response: '||reqMsg) INTO rc ;
 		END IF;
+		Set OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(InputRoot.MQRFH2.usr.RequestIdentifier AS BLOB);
+		SET OutputRoot.JSON.Data[] = InputRoot.JSON.Data[];
 		
 	END;
 END MODULE;
