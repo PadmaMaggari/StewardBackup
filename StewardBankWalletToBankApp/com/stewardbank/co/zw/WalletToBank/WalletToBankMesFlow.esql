@@ -2,10 +2,10 @@
 Author:Swathi
 Version:0.0.1
 Date of Creation:30-03-2020
-Date of Modification:14-04-2020
-Description:Business flow pick Request from WTB_SB_REQ queue and Generate request in ACE and send to t24 
+Date of Modification:20-04-2020
+Description:Business flow pick Request from WTB_SB_TCP_REQ queue and Generate request in ACE and send to t24 
 			and validate the response 
-			and send it to outgoing router queue(RESPONSEQ).
+			and send it to outgoing router queue(ALL_SB_TCP_RES).
  			
 */
 
@@ -15,9 +15,11 @@ path com.stewardbank.co.zw.common.esql;
 
 -- ................Generating Request To T24 Esql Module...........
 
- 	
+ 	DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+	DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
 	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 	DECLARE IsWToBLoggerRequired EXTERNAL CHARACTER '';
+	DECLARE ExceptionQ EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE WalletToBankFlow_ReqGenerationToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -44,17 +46,17 @@ CREATE COMPUTE MODULE WalletToBankFlow_ReqGenerationToT24
 		--******* Framing DB Request For Logging ******
 		
 			DECLARE reqMsg CHARACTER'';
-		SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer);
 
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
 		CALL DBLogging(Environment.dbLog.DBLogging.MSGID,Environment.dbLog.DBLogging.MESSAGE,'T24 Request',ApplicationLabel,BrokerName,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		-- +++++++++++++++++++++++++++End Of DB  Logging++++++++++++++++++++++++++++++
 		
@@ -80,7 +82,7 @@ CREATE COMPUTE MODULE WalletToBankFlow_ReqGenerationToT24
 		
 		CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== Request Received ================') INTO rc;
 --			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
-			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG',CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc;
 			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== Request End ================') INTO rc;
 		--===================Mapping field to field=============================
 		CALL FieldToFieldMapping(inRef,outRef,'');
@@ -124,12 +126,12 @@ CREATE COMPUTE MODULE WalletToBankFlow_ResGenerationToPostilion
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		SET Environment.t24Res = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 		CALL DBLogging(Environment.usr.Id,Environment.t24Res,'T24 Response',ApplicationLabel,BrokerName,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.t24Res = OutputRoot.XMLNSC;
-		PROPAGATE TO TERMINAL 'out1';
+		PROPAGATE TO TERMINAL 'out';
 		CALL DBLogging(Environment.t24Res.DBLogging.MSGID,Environment.t24Res.DBLogging.MESSAGE,'Application Response',ApplicationLabel,BrokerName,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_AUDIT_Q';
-		PROPAGATE TO TERMINAL 'out1';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
 		-- =================== END DB RAW AUDIT LOGGING ==============
 		SET OutputRoot.Properties = Environment.Properties;
 		SET OutputRoot.MQRFH2.usr = Environment.usr;
@@ -179,7 +181,7 @@ CREATE COMPUTE MODULE WalletToBankFlow_FramimgExceptionDetails
 			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== Framimg Ecxeption Details  ================') INTO rc;
 			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
 			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG',req) INTO rc;
-			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== End WToBLoggerging ================') INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== End WToBLogging ================') INTO rc;
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
@@ -202,13 +204,14 @@ CREATE COMPUTE MODULE WalletToBankFlow_FramimgExceptionDetails
 		
 		-- ***********Calling DB logging procedure for logging Exception Details*********** 
 			CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ERROR_AUDIT_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'WalletToBank';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'WalletToBank');
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ;
 	END;
 END MODULE;
 		
