@@ -11,13 +11,16 @@ This TCPIP Router would be triggered whenever Postilion initiate the request to 
 BROKER SCHEMA com.stewardbank.co.zw.router
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE getDBDetailsCache SHARED ROW;
-CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
-	DECLARE DSN EXTERNAL CHARACTER '';
+DECLARE DSN EXTERNAL CHARACTER '';
 	DECLARE SCH EXTERNAL CHARACTER '';
 	DECLARE IsLogRequired EXTERNAL CHARACTER '';
 	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 	DECLARE rc BOOLEAN;
-
+	DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+	DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
+	DECLARE ExceptionQ EXTERNAL CHARACTER '';
+CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
+	
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyMessageHeaders();
@@ -100,7 +103,11 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 		DECLARE outRefer REFERENCE TO OutputRoot;		 
 		
 		CALL DBLogging(Environment.msgID,Environment.reqMsg,'Router Request',ApplicationLabel,BrokerName,outRefer);
+<<<<<<< Upstream, based on origin/master
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_LOG_SB_REQ';
+=======
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+>>>>>>> c358f58 changed the queue names with udp values
 		PROPAGATE TO TERMINAL 'out1' ;
 		
 		SET OutputRoot.Properties= InputRoot.Properties;
@@ -182,7 +189,11 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_BuildExceptionDetails
 		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 		
 			CALL Error_DBLogging(CAST(Id AS CHARACTER),CAST(InputRoot.MQRFH2.usr.reqMsg AS CHARACTER),'Router Response Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
+<<<<<<< Upstream, based on origin/master
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ERR_LOG_SB_REQ';
+=======
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q ;
+>>>>>>> c358f58 changed the queue names with udp values
 		PROPAGATE TO TERMINAL 'out1';
 		
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
@@ -190,7 +201,7 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_BuildExceptionDetails
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'OutGoingRouter');
 		
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'EXC_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ ;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -228,7 +239,11 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		CALL DBLogging(InputRoot.MQRFH2.usr.Id,reqMsg,'Router Response',ApplicationLabel,BrokerName,outRefer);
 
+<<<<<<< Upstream, based on origin/master
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RAW_LOG_SB_REQ';
+=======
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+>>>>>>> c358f58 changed the queue names with udp values
 		
 		PROPAGATE TO TERMINAL 'out1';
 		
@@ -267,7 +282,11 @@ CREATE COMPUTE MODULE IncomingRouterFlow_BuildExceptionDetails
 		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 		
 			CALL Error_DBLogging(CAST(Environment.Id AS CHARACTER),CAST(Environment.reqMsessage AS CHARACTER),'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
+<<<<<<< Upstream, based on origin/master
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ERR_LOG_SB_REQ';
+=======
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
+>>>>>>> c358f58 changed the queue names with udp values
 		PROPAGATE TO TERMINAL 'out1';
 		
 		
@@ -276,7 +295,7 @@ CREATE COMPUTE MODULE IncomingRouterFlow_BuildExceptionDetails
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'InComingRouter');
 		
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'EXC_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ ;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;

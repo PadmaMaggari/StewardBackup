@@ -3,6 +3,15 @@
     xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/router/OutgoingRouterFlow.msgflow" nsPrefix="com_stewardbank_co_zw_router_OutgoingRouterFlow.msgflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_Q" name="RAW_AUDIT_Q" defaultValueLiteral="RAW_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERROR_AUDIT_Q" name="ERROR_AUDIT_Q" defaultValueLiteral="ERR_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ExceptionQ" name="ExceptionQ" defaultValueLiteral="SB_EXCQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="OutgoingRouterFlow" bundleName="com/stewardbank/co/zw/router/OutgoingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankTCPIPRouter/icons/full/obj16/OutgoingRouterFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankTCPIPRouter/icons/full/obj30/OutgoingRouterFlow.gif"/>
@@ -13,10 +22,10 @@
       <nodes xmi:type="ComIbmTCPIPServerOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="491,8" connectionDetails="{ESBPolicies}:EsbZssServer" closeConnection="afterData" closeOutputStream="true" modifyInputStream="release">
         <translation xmi:type="utility:ConstantString" string="ZssReq"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="97,94" queueName="RESPONSEQ" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987" validateTiming="immediate">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="97,94" queueName="ALL_SB_TCP_RES" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987" validateTiming="immediate">
         <translation xmi:type="utility:ConstantString" string="Common_Queue"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="280,85" computeExpression="esql://routine/com.stewardbank.co.zw.router#InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="280,85" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.router#InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="RouteBasedOnProtocol"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="192,145">
@@ -38,7 +47,17 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_9" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_9" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
     </composition>
-    <propertyOrganizer/>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RAW_AUDIT_Q">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_Q" bundleName="com/stewardbank/co/zw/router/OutgoingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERROR_AUDIT_Q">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_Q" bundleName="com/stewardbank/co/zw/router/OutgoingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ExceptionQ">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.ExceptionQ" bundleName="com/stewardbank/co/zw/router/OutgoingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
+          </propertyDescriptor>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
     <stickyBoard/>
   </eClassifiers>
 </ecore:EPackage>

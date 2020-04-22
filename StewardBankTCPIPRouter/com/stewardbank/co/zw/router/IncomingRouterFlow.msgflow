@@ -15,6 +15,15 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.SCH" name="SCH" defaultValueLiteral="system">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_Q" name="RAW_AUDIT_Q" defaultValueLiteral="RAW_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERROR_AUDIT_Q" name="ERROR_AUDIT_Q" defaultValueLiteral="ERR_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ExceptionQ" name="ExceptionQ" defaultValueLiteral="SB_EXCQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="IncomingRouterFlow" bundleName="com/stewardbank/co/zw/router/IncomingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankTCPIPRouter/icons/full/obj16/IncomingRouterFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankTCPIPRouter/icons/full/obj30/IncomingRouterFlow.gif"/>
@@ -28,27 +37,27 @@
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="548,97" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="Interface_Queue"/>
       </nodes>
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="184,95" messageDomain="DFDL" resetMessageDomain="true" messageSet="{ISO8583_Lib}" resetMessageSet="true" messageType="{}:ISO8583_1987" resetMessageType="true" resetMessageFormat="true" validateMaster="contentAndValue">
+        <translation xmi:type="utility:ConstantString" string="validateISO"/>
+      </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="175,13">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="350,15" computeExpression="esql://routine/com.stewardbank.co.zw.router#IncomingRouterFlow_BuildExceptionDetails.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="350,15" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.router#IncomingRouterFlow_BuildExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionDetails"/>
       </nodes>
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="513,12" queueName="EXCEPTIONQ" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="EXC_Q"/>
       </nodes>
-      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="153,116" messageDomain="DFDL" messageSet="{ISO8583_Lib}" messageType="{}:ISO8583_1987">
-        <translation xmi:type="utility:ConstantString" string="Reset Content Descriptor"/>
-      </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.DSN">
@@ -59,6 +68,15 @@
             <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/router/IncomingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
             <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.SCH">
               <propertyName xmi:type="utility:TranslatableString" key="Property.SCH" bundleName="com/stewardbank/co/zw/router/IncomingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
+              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RAW_AUDIT_Q">
+                <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_Q" bundleName="com/stewardbank/co/zw/router/IncomingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
+                <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERROR_AUDIT_Q">
+                  <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_Q" bundleName="com/stewardbank/co/zw/router/IncomingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
+                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ExceptionQ">
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.ExceptionQ" bundleName="com/stewardbank/co/zw/router/IncomingRouterFlow" pluginId="StewardBankTCPIPRouter"/>
+                  </propertyDescriptor>
+                </propertyDescriptor>
+              </propertyDescriptor>
             </propertyDescriptor>
           </propertyDescriptor>
         </propertyDescriptor>
