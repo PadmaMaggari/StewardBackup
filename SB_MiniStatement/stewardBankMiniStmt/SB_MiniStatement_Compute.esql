@@ -23,11 +23,14 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		
 		
+		
 		/* ==================== SETTING MQRFH2 DETAILS IN ENVIRANMENT ==================== */
 		SET Environment.usr= InputRoot.MQRFH2.usr;
 		/* ==================== DATA BASE LOGGING START ==================== */
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Request',ApplicationLabel,BrokerName,outRefer);
+		
+		
+		 CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		SET OutputRoot=NULL;
@@ -53,7 +56,9 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute
 		SET Environment.dfdlData=OutputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== DATA BASE LOGGING ==================== */
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Request',ApplicationLabel,BrokerName,outRefer);
+		 CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		
+		
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		/* ==================== DATA BASE LOGGING ENDING ==================== */
@@ -74,8 +79,15 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute1
 	END;
 	CREATE PROCEDURE MiniStmtGenerateResToPostilion() BEGIN
 		/* ==================== DATA BASE LOGGING ==================== */
+		
+		DECLARE resData CHARACTER;
+		SET Environment.resData= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER); 
+		
+		
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Response',ApplicationLabel,BrokerName,outRefer);
+		 CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+
+
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot=NULL;
@@ -98,12 +110,15 @@ CREATE COMPUTE MODULE stewardBankMiniStmt_Compute1
 		SET Environment.dfdlData=InputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== DATA BASE LOGGING ==================== */
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Response',ApplicationLabel,BrokerName,outRefer);
+		 CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+
+
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		/* ==================== DATA BASE LOGGING ENDING ==================== */
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
+		SET OutputRoot.MQRFH2.resData=Environment.resData;
 		SET OutputRoot.DFDL=Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'minidebug', 'DEBUG','Request To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'minidebug', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
@@ -146,12 +161,12 @@ CREATE COMPUTE MODULE StweardBankException
 		DECLARE exe_Desc CHARACTER'';
 		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 
-		CALL Error_DBLogging(Environment.Id,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
+		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC'; 
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'Ministatement';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 
