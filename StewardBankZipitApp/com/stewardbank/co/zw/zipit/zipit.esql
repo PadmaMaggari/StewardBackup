@@ -18,7 +18,7 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 	BEGIN
 		
 		CALL GenerateReqToT24(); 
-		RETURN TRUE;
+		RETURN FALSE; 
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		/* ==================== SETTING MQRFH2 DETAILS IN ENVIRANMENT ==================== */
@@ -80,7 +80,7 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL Zipit_GenerateResToPostilion();
-		RETURN TRUE;
+		RETURN FALSE; 
 	END;
 	CREATE PROCEDURE Zipit_GenerateResToPostilion() BEGIN
 		/* ==================== DATABASE LOGGING ==================== */
@@ -103,7 +103,7 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','.........................') INTO rc;
-		--field to field mapping
+		--Field to Field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.dfdlData=InputRoot.DFDL;
 		SET OutputRoot=NULL;
@@ -115,10 +115,10 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
 		SET OutputRoot.DFDL=Environment.dfdlData;
-		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','Request To Postilion::') INTO rc; 
+		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG','Request To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ZIPITLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
-		PROPAGATE TO TERMINAL 'out';            
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName; 
+		PROPAGATE TO TERMINAL 'out';           
 	END;
 END MODULE;
 
