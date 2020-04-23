@@ -23,9 +23,17 @@ CREATE COMPUTE MODULE ExceptionHandling
 		SET Environment.Variables.Properties = InputRoot.Properties;
 		
 		/* ============================= THIS IS FOR DBLOGGING ***** I'M CASTING  INPUT.DFDL DATA INTO CHARACTER ========================= */
+		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
+		DECLARE timeLocalTransaction CHARACTER InputRoot.DFDL.ISO8583_1987.TimeLocalTransaction_012;
+		DECLARE dateLocalTransaction CHARACTER InputRoot.DFDL.ISO8583_1987.DateLocalTransaction_013;
+		DECLARE retrievalReferenceNumber CHARACTER InputRoot.DFDL.ISO8583_1987.RetrievalReferenceNumber_037;
 		SET Environment.reqMsg= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
-		SET Environment.Id=InputRoot.MQRFH2.usr.Id;
-		
+		SET OutputRoot.MQRFH2.tcpId.Id=CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id AS CHARACTER);
+--SET Environment.tcpip.Id=CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id AS CHARACTER);
+		SET Environment.timeLocalTransaction=timeLocalTransaction;
+		SET Environment.dateLocalTransaction=dateLocalTransaction;
+		SET Environment.retrievalReferenceNumber=retrievalReferenceNumber;
+--		
 		/*  ==================================== DB LOGGING PROPERTIES END ===================================== */
 		
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -159,7 +167,6 @@ CREATE COMPUTE MODULE ExceptionHandling
 	BEGIN
 		DECLARE messageText CHARACTER '';
 		DECLARE exceptionName CHARACTER '';
-		DECLARE timoutField REFERENCE TO InputLocalEnvironment;
 		WHILE LASTMOVE(excpRef) DO
 			IF excpRef.Number is not null THEN
 				SET outRef.excpType = FIELDNAME(excpRef);
@@ -191,11 +198,6 @@ CREATE COMPUTE MODULE ExceptionHandling
 			move excpRef lastchild;
 		END WHILE;
 		SET outRef.excpText = exceptionName||''||OVERLAY(messageText PLACING ':' FROM 1 FOR 1);
-		IF FIELDNAME(timoutField.HTTP.Input.Timeout) IS NOT NULL THEN
-			SET outRef.excpText = 'Timeout. The Broker BR did not provide a response within the specified time interval ('||CAST(timoutField.HTTP.Input.Timeout.OriginalClientWaitTime AS CHARACTER)||' seconds).
-			 						The message reached the main flow, but timed out during processing. 
-			 							It was then given to the timeout flow for processing.';
-		END IF;
 	END;
 	CREATE PROCEDURE stringValidation (IN text CHARACTER)
 	RETURNS BOOLEAN
