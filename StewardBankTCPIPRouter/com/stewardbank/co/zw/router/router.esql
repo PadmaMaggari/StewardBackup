@@ -190,12 +190,11 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_BuildExceptionDetails
 	END;
 END MODULE;
 
-
 CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyEntireMessage();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 
@@ -203,9 +202,14 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 		
 		DECLARE reqMsg CHARACTER'';
 		
-			
-		
-		
+		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
+		SET Environment.Id=tcpipDetails.Id;
+			DECLARE req CHARACTER;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path';
+		END IF;
 		
 		SET reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
@@ -218,6 +222,15 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 		PROPAGATE TO TERMINAL 'out1';
 		
 		SET OutputRoot = InputRoot  ;
+		PROPAGATE TO TERMINAL 'out' DELETE NONE;
+		SET OutputRoot = InputRoot  ;
+		
+		SET req = CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response: '||req) INTO rc ;
+			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response TCPIP ID: '||tcpipDetails.Id)INTO rc;
+		
+		
+		PROPAGATE TO TERMINAL 'out2';
 		 -- SET OutputLocalEnvironment.Destination.TCPIP.Output.Id = InputRoot.MQRFH2.usr.Id;
 	END;
 END MODULE;
