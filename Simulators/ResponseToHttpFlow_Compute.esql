@@ -1,0 +1,13 @@
+
+
+CREATE COMPUTE MODULE ResponseToHttpFlow_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2.usr = InputRoot.MQRFH2.usr;
+		SET OutputRoot.DFDL = InputRoot.DFDL;
+		RETURN TRUE;
+	END;
+
+	
+END MODULE;

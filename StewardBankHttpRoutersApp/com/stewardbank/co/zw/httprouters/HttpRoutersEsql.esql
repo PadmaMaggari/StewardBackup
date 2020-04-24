@@ -16,7 +16,8 @@ DECLARE DSNNAME EXTERNAL CHARACTER '';
 DECLARE SCHEMANAME EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER;
-DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';	
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE httpRequestIdentifier SHARED BLOB;	
 CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCode
 DECLARE rc BOOLEAN;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -50,7 +51,7 @@ DECLARE rc BOOLEAN;
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer); 
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
@@ -100,6 +101,7 @@ DECLARE rc BOOLEAN;
 		END IF;
 		SET OutputRoot.MQRFH2.usr.resQueueName = getDBDetailsCache.Values.HTTP_RES;
 		SET OutputRoot.MQRFH2.usr.RequestIdentifier = InputLocalEnvironment.Destination.HTTP.RequestIdentifier;
+		SET httpRequestIdentifier = CAST(InputLocalEnvironment.Destination.HTTP.RequestIdentifier AS BLOB);
 		SET OutputRoot.JSON = InputRoot.JSON;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;
 	END;
@@ -143,7 +145,7 @@ DECLARE rc BOOLEAN;
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer); 
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer); 
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
@@ -155,7 +157,8 @@ DECLARE rc BOOLEAN;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Response: '||reqMsg) INTO rc ;
 		END IF;
-		Set OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(InputRoot.MQRFH2.usr.RequestIdentifier AS BLOB);
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','INFO','httpRequestIdentifier:'||httpRequestIdentifier) INTO rc ;
+		Set OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = httpRequestIdentifier;--CAST(InputRoot.MQRFH2.usr.RequestIdentifier AS BLOB);
 		SET OutputRoot.JSON.Data[] = InputRoot.JSON.Data[];
 		
 	END;
@@ -180,7 +183,7 @@ CREATE COMPUTE MODULE HttpRouterFlow_BuildExceptionDetails
 		DECLARE Id CHARACTER CAST(Environment.usr.Id AS CHARACTER);
 		-- ============Error  Logging in DB===================
 		DECLARE exe_Desc CHARACTER CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);  
-		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
+		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,'','','',outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';

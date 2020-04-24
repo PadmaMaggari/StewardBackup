@@ -30,118 +30,97 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 	
 
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
-		DECLARE refProcessingCode CHARACTER InputRoot.DFDL.ISO8583_1987.ProcessingCode_003;
-	
-	
-			/*
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
-		DECLARE OutISO REFERENCE TO OutputRoot.DFDL;
-		CREATE LASTCHILD OF OutputRoot.DFDL AS OutISO NAME 'ISO8583_1987';
-		CASE
-		WHEN RefData LIKE '01%' THEN
-		call BuildISO(OutISO);
-		END CASE;
-		*/
-		/*
-		if processing code is 40 then it is IFT for (Mobile,236,210,internet,atm,social)
-		else if processing code is 54 then it is
-		IFT for (agent pos(our card our pos their card our pos),branch pos(our card our pos their card our pos)
-		*/
-		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
-		DECLARE reqMsessage CHARACTER'';
-		SET  Environment.reqMsessage = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
-		SET Environment.Id=tcpipDetails.Id;
-		
-		
-		DECLARE req CHARACTER;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
-		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+		 DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		 DECLARE version CHARACTER inRef.MTI_Version;
+		 DECLARE class CHARACTER inRef.MTI_MessageClass;
+		 DECLARE funct CHARACTER inRef.MTI_MessageFunction;
+		 DECLARE origin CHARACTER inRef.MTI_MessageOrigin;
+		 DECLARE procCodeData CHARACTER;
+		 DECLARE DBDetails ROW;
+		 DECLARE QueueName CHARACTER;
+		 DECLARE refProcessingCode CHARACTER inRef.ProcessingCode_003;
+		 DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
+		 DECLARE procCode,reqMsg CHARACTER InputRoot.DFDL.ISO8583_1987.ProcessingCode_003;
+			SET reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+			SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
+			-- ==================== TCPIP DETAILS AND ISO8583 DETAILS =========================
+			Set OutputRoot.MQRFH2.usr.Type = tcpipDetails.Type;
+			Set OutputRoot.MQRFH2.usr.Hostname = tcpipDetails.Hostname;
+			Set OutputRoot.MQRFH2.usr.Port = tcpipDetails.Port;
+			Set OutputRoot.MQRFH2.usr.Id = tcpipDetails.Id;
+			Set OutputRoot.MQRFH2.usr.ReplyId = tcpipDetails.ReplyId;
+			Set OutputRoot.MQRFH2.usr.OpenTimestamp = tcpipDetails.OpenTimestamp;
+			Set OutputRoot.MQRFH2.usr.reqMsg = reqMsg;
+			Set OutputRoot.MQRFH2.usr.timeLocalTransaction = inRef.TimeLocalTransaction_012;
+		    Set OutputRoot.MQRFH2.usr.dateLocalTransaction =inRef.DateLocalTransaction_013;
+		    Set OutputRoot.MQRFH2.usr.retrievalReferenceNumber = inRef.RetrievalReferenceNumber_037;
+			SET Environment.MQRFH2= OutputRoot.MQRFH2;
+			DECLARE reqMsessage CHARACTER'';
+			SET  Environment.reqMsessage = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+			SET Environment.Id=tcpipDetails.Id;
+			DECLARE req CHARACTER;
+			CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+			IF ( rc = FALSE ) THEN
+				DECLARE msg CHARACTER ;
+				SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+			END IF;
+			
+			IF IsLogRequired LIKE 'Y' THEN
+				SET req = CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ISO Request: '||req) INTO rc ;
+				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','TCPIP ID: '||tcpipDetails.Id)INTO rc;
+			END IF;
+			
+			--==========================START OF RAW AUDIT DB LOGGING ======================
+			SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+			SET Environment.msgID= CAST(Environment.MQRFH2.usr.Id AS CHARACTER );  
+			DECLARE outRefer REFERENCE TO OutputRoot;		 
+			CALL DBLogging(Environment.msgID,Environment.reqMsg,'Router Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out' ;
+			--========================== END OF RAW AUDIT DB LOGGING ======================
+			SET OutputRoot.Properties= InputRoot.Properties;
+			SET OutputRoot.MQRFH2= Environment.MQRFH2;
+		 IF FIELDNAME(inRef.ResponseCode_039) IS NOT NULL AND (version||class||funct||origin = '0210' OR version||class||funct||origin = '0410') THEN
+		 	IF EXISTS(getDBDetailsCache.Values[]) THEN
+				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Values available in shared cache: '||getDBDetailsCache.Values.*[])INTO rc;
+				--SET DBDetails.values[] = select A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData and A.DOMAIN = domainName;
+				DECLARE qDetails ROW;
+				SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES ,P.HTTP_BUSINESS_TEMP  FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData;
+				SET QueueName = qDetails.values.HTTP_BUSINESS_TEMP;
+	            SET OutputRoot.MQRFH2.usr.resQueueName = qDetails.values.HTTP_RES;
+			ELSE
+				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Calling the Cache')INTO rc;
+				CALL STORE_CACHE(procCodeData);
+				DECLARE DBValues ROW;
+				SET DBValues.values[] = SELECT T.HTTP_REQ, T.HTTP_RES ,T.HTTP_BUSINESS_TEMP FROM getDBDetailsCache.Values[] AS T WHERE T.PROC_CODE = procCodeData;
+				SET QueueName = DBValues.values.HTTP_BUSINESS_TEMP;
+				SET OutputRoot.MQRFH2.usr.resQueueName = DBValues.values.HTTP_RES;
+			END IF;
+			SET OutputRoot.DFDL = InputRoot.DFDL;    
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;	
+		 	PROPAGATE TO TERMINAL 'out';
+		 ELSE
+				--IF domainName LIKE 'DFDL' THEN
+			IF EXISTS(getDBDetailsCache.Values[]) THEN
+				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Values available in shared cache: '||getDBDetailsCache.Values.*[])INTO rc;
+				--SET DBDetails.values[] = select A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData and A.DOMAIN = domainName;
+				DECLARE qDetails ROW;
+				SET qDetails.values[] = SELECT P.REQ_QUEUE, P.RES_QUEUE  FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData;
+				SET QueueName = qDetails.values.REQ_QUEUE;
+	            SET OutputRoot.MQRFH2.usr.resQueueName = qDetails.values.RES_QUEUE;
+			ELSE
+				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Calling the Cache')INTO rc;
+				CALL STORE_CACHE(procCodeData);
+				DECLARE DBValues ROW;
+				SET DBValues.values[] = SELECT T.REQ_QUEUE, T.RES_QUEUE  FROM getDBDetailsCache.Values[] AS T WHERE T.PROC_CODE = procCodeData;
+				SET QueueName = DBValues.values.REQ_QUEUE;
+				SET OutputRoot.MQRFH2.usr.resQueueName = DBValues.values.RES_QUEUE;
+			END IF;
+			SET OutputRoot.DFDL = InputRoot.DFDL;    
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;	
+			PROPAGATE TO TERMINAL 'out' ;
 		END IF;
-		
-		
-		IF IsLogRequired LIKE 'Y' THEN
-			SET req = CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
-			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ISO Request: '||req) INTO rc ;
-			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','TCPIP ID: '||tcpipDetails.Id)INTO rc;
-		END IF;
- 
-
-		--DECLARE domainName CHARACTER FIELDNAME(InputBody);
-
-		DECLARE procCodeData CHARACTER;
-		DECLARE DBDetails ROW;
-		DECLARE QueueName CHARACTER;
-		DECLARE procCode,reqMsg CHARACTER InputRoot.DFDL.ISO8583_1987.ProcessingCode_003;
-		DECLARE timeLocalTransaction CHARACTER InputRoot.DFDL.ISO8583_1987.TimeLocalTransaction_012;
-		DECLARE dateLocalTransaction CHARACTER InputRoot.DFDL.ISO8583_1987.DateLocalTransaction_013;
-		DECLARE retrievalReferenceNumber CHARACTER InputRoot.DFDL.ISO8583_1987.RetrievalReferenceNumber_037;
-		
-		SET reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
-		SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
-		-- ==================== TCPIP DETAILS AND ISO858 FIELDS DETAILS FOR DB LOGGING SETTING IN MQRFH2  =========================
-		Set OutputRoot.MQRFH2.usr.Type = tcpipDetails.Type;
-		Set OutputRoot.MQRFH2.usr.Hostname = tcpipDetails.Hostname;
-		Set OutputRoot.MQRFH2.usr.Port = tcpipDetails.Port;
-		Set OutputRoot.MQRFH2.usr.Id = tcpipDetails.Id;
-		Set OutputRoot.MQRFH2.usr.timeLocalTransaction = timeLocalTransaction;
-		Set OutputRoot.MQRFH2.usr.dateLocalTransaction = dateLocalTransaction;
-		Set OutputRoot.MQRFH2.usr.retrievalReferenceNumber = retrievalReferenceNumber;
-		Set OutputRoot.MQRFH2.usr.ReplyId = tcpipDetails.ReplyId;
-		Set OutputRoot.MQRFH2.usr.OpenTimestamp = tcpipDetails.OpenTimestamp;
-		Set OutputRoot.MQRFH2.usr.reqMsg = reqMsg;
-		
-		SET Environment.MQRFH2= OutputRoot.MQRFH2;
-		--========================== RAW AUDIT DB LOGGING ======================
-		 SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
---		SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL  CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId );
-		SET Environment.msgID= CAST(Environment.MQRFH2.usr.Id AS CHARACTER );  
-		
-		DECLARE outRefer REFERENCE TO OutputRoot;		 
-		
-		CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.MQRFH2.usr.reqMsg,'Router Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out' ;
-		
-		SET OutputRoot.Properties= InputRoot.Properties;
-		SET OutputRoot.MQRFH2= Environment.MQRFH2;
-			--IF domainName LIKE 'DFDL' THEN
-		IF EXISTS(getDBDetailsCache.Values[]) THEN
-			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Values available in shared cache: '||getDBDetailsCache.Values.*[])INTO rc;
-			--SET DBDetails.values[] = select A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData and A.DOMAIN = domainName;
-			DECLARE qDetails ROW;
-			SET qDetails.values[] = SELECT P.REQ_QUEUE, P.RES_QUEUE  FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData;
-			SET QueueName = qDetails.values.REQ_QUEUE;
-            SET OutputRoot.MQRFH2.usr.resQueueName = qDetails.values.RES_QUEUE;
-		ELSE
-			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Calling the Cache')INTO rc;
-			CALL STORE_CACHE(procCodeData);
-			DECLARE DBValues ROW;
-			SET DBValues.values[] = SELECT T.REQ_QUEUE, T.RES_QUEUE  FROM getDBDetailsCache.Values[] AS T WHERE T.PROC_CODE = procCodeData;
-			SET QueueName = DBValues.values.REQ_QUEUE;
-			SET OutputRoot.MQRFH2.usr.resQueueName = DBValues.values.RES_QUEUE;
-		END IF;
-
-		
---		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
---		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
-
-		SET OutputRoot.DFDL = InputRoot.DFDL;    
-
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;
-		PROPAGATE TO TERMINAL 'out' ;
-		--END IF;
-		--------********************This is commented block*************----------
-		--DECLARE refProc CHARACTER;
-		--SET refProc = SUBSTRING(refProcessingCode FROM 1 FOR 2);
-		--DECLARE qry CHARACTER 'SELECT QNAME FROM QDETAILS WHERE PROCCODE=?';
-		--SET Environment.QDET.Response[]=PASSTHRU(qry TO Database.{DSN} VALUES (CAST(refProc AS INTEGER)));
-		--SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.QDET.Response.QNAME;
-		--SET OutputRoot = InputRoot;
-		--------********************This is commented block*************----------		
-
-
 	END;
 
 	CREATE PROCEDURE STORE_CACHE (IN procCodeData CHARACTER)
