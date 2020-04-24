@@ -1,12 +1,14 @@
 BROKER SCHEMA com.stewardbank.co.zw.balanceenquiry
-path StewardBankCommonEsql;
+PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
+DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
 
 CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateReqToT24
 	
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL CopyMessageHeaders();
+		--CALL CopyMessageHeaders();
 		CALL GenerateReqToT24();
 		RETURN TRUE;
 	END;
@@ -22,8 +24,19 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateReqToT24
 	END;
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		SET Environment.usr= InputRoot.MQRFH2.usr;
+		--------------DBLogging-------------------
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		-----------------------------
 		DECLARE env REFERENCE TO Environment.Variables;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
+		SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
+		SET OutputRoot.MQMD = InputRoot.MQMD;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
@@ -33,14 +46,14 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateReqToT24
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG','..............Initializing Balance Enquiry logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryWarnLogger', 'WARN','..............ISO Message parsed successfully...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG','Request from Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','..............Initializing Balance Enquiry logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'WarnLogger', 'WARN','..............ISO Message parsed successfully...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','Request from Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef);
-		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','Request To T24::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 	END;
 	
 END MODULE;
@@ -65,8 +78,20 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateResToPostilion
 	END;
 
 	CREATE PROCEDURE GenerateResToPostilion() BEGIN
+		-----------DBLogging------------
+		DECLARE resData CHARACTER;
+		SET Environment.resData= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER); 
+	
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		-------------------- 
 		DECLARE env REFERENCE TO Environment.Variables;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
+		SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
@@ -76,11 +101,11 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateResToPostilion
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef);
-		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG','Balance Enquiry Response To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','Balance Enquiry Response To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 
 	END;
 END MODULE;
@@ -98,8 +123,8 @@ CREATE COMPUTE MODULE BalanceEnquiryFlowCaptureException
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		
 		RETURN TRUE;
 	END;
