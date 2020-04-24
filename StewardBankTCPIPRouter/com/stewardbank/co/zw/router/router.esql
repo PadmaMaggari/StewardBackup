@@ -51,7 +51,7 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 			Set OutputRoot.MQRFH2.usr.ReplyId = tcpipDetails.ReplyId;
 			Set OutputRoot.MQRFH2.usr.OpenTimestamp = tcpipDetails.OpenTimestamp;
 			Set OutputRoot.MQRFH2.usr.reqMsg = reqMsg;
-			Set OutputRoot.MQRFH2.usr.timeLocalTransaction = inRef.TimeLocalTransaction_012;
+			Set OutputRoot.MQRFH2.usr.timeLocalTransaction = CAST(inRef.TimeLocalTransaction_012 AS CHARACTER);
 		    Set OutputRoot.MQRFH2.usr.dateLocalTransaction =inRef.DateLocalTransaction_013;
 		    Set OutputRoot.MQRFH2.usr.retrievalReferenceNumber = inRef.RetrievalReferenceNumber_037;
 			SET Environment.MQRFH2= OutputRoot.MQRFH2;
