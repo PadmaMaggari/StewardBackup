@@ -2,7 +2,7 @@
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:02-04-2020
-Date of Modification:15-04-2020,16-04-2020
+Date of Modification:15-04-2020,16-04-2020,24-04-2020
 Description:Business flow pick Request from RTGS_OUT_SB_IN queue and Generate request in esb and send to t24 
 			and validate the response 
 			and send it to outgoing router queue(RESPONSEQ).
@@ -21,21 +21,21 @@ CREATE COMPUTE MODULE rtgsOutgoing_GenerateReqTo24
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		SET Environment.usr= InputRoot.MQRFH2.usr;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,inRef.TimeLocalTransaction_012,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
-		CALL DBLogging(Environment.dbLog.DBLogging.MSGID,Environment.dbLog.DBLogging.MESSAGE,'T24 Request',ApplicationLabel,BrokerName,outRefer);
+		CALL DBLogging(Environment.dbLog.DBLogging.MSGID,Environment.dbLog.DBLogging.MESSAGE,'T24 Request',ApplicationLabel,BrokerName,inRef.TimeLocalTransaction_012,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		-- =================== END DB RAW AUDIT LOGGING ==============
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		DECLARE env REFERENCE TO Environment.Variables;
-		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
@@ -101,7 +101,7 @@ CREATE COMPUTE MODULE rtgsOutgoingCaptureException
 		DECLARE Id CHARACTER CAST(Environment.usr.Id AS CHARACTER);
 		-- ============Error  Logging in DB===================
 		DECLARE exe_Desc CHARACTER CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);  
-		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
+		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,'','','',outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
@@ -124,21 +124,21 @@ CREATE COMPUTE MODULE rtgsOutgoingT24Req_GenerateReqToPostilion
 	CREATE PROCEDURE GenerateResToPostilion() BEGIN
 		SET Environment.Properties = InputRoot.Properties;
 		SET Environment.MQMD = InputRoot.MQMD;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		SET Environment.t24Res = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
-		CALL DBLogging(Environment.usr.Id,Environment.t24Res,'T24 Response',ApplicationLabel,BrokerName,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.t24Res,'T24 Response',ApplicationLabel,BrokerName,inRef.TimeLocalTransaction_012,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.t24Res = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
-		CALL DBLogging(Environment.t24Res.DBLogging.MSGID,Environment.t24Res.DBLogging.MESSAGE,'Application Response',ApplicationLabel,BrokerName,outRefer);
+		CALL DBLogging(Environment.t24Res.DBLogging.MSGID,Environment.t24Res.DBLogging.MESSAGE,'Application Response',ApplicationLabel,BrokerName,inRef.TimeLocalTransaction_012,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		-- =================== END DB RAW AUDIT LOGGING ==============
 		SET OutputRoot.Properties = Environment.Properties;
 		SET OutputRoot.MQRFH2.usr = Environment.usr;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
-		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
