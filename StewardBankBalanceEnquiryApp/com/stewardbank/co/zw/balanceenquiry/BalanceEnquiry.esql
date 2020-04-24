@@ -157,9 +157,9 @@ CREATE COMPUTE MODULE BalanceEnquiryFlowCaptureException
 		PROPAGATE TO TERMINAL 'out1';
 		-- ============END Error  Logging in DB===================
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'Deposit';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'BalanceEnquiry';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'Deposit');
+		CALL BuildExceptionDetails(excpRef,outRef,'BalanceEnquiry');
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
 END;
 END MODULE;
