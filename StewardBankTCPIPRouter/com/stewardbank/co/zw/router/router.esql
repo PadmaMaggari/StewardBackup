@@ -14,7 +14,7 @@ DECLARE getDBDetailsCache SHARED ROW;
 DECLARE DSN EXTERNAL CHARACTER '';
 	DECLARE SCH EXTERNAL CHARACTER '';
 	DECLARE IsLogRequired EXTERNAL CHARACTER '';
-	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+	DECLARE LOG_CONFIG_PATH,MTI EXTERNAL CHARACTER '';
 	DECLARE rc BOOLEAN;
 	DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 	DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
@@ -200,6 +200,8 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		
+		
+		
 		DECLARE reqMsg CHARACTER'';
 		
 		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
@@ -214,6 +216,33 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 		SET reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		
+		/*  =================================== ZSS NOTIFICATION  =================================*/
+		
+		DECLARE mtiDetails CHARACTER'';
+		DECLARE MTI_Version CHARACTER InputRoot.DFDL.ISO8583_1987.MTI_Version;
+		DECLARE MTI_MessageClass CHARACTER InputRoot.DFDL.ISO8583_1987.MTI_MessageClass;
+		DECLARE MTI_MessageFunction CHARACTER InputRoot.DFDL.ISO8583_1987.MTI_MessageFunction;
+		DECLARE MTI_MessageOrigin CHARACTER InputRoot.DFDL.ISO8583_1987.MTI_MessageOrigin;
+		
+	-- SET mtiDetails = MTI_Version||MTI_MessageClass||MTI_MessageFunction||MTI_MessageOrigin;
+		IF  MTI LIKE MTI_Version||MTI_MessageClass||MTI_MessageFunction||MTI_MessageOrigin  THEN 
+			
+			DECLARE outRefer REFERENCE TO OutputRoot;
+		CALL DBLogging(InputRoot.MQRFH2.usr.Id,reqMsg,'Router Response Zss',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+			
+			SET OutputRoot = InputRoot  ;
+		
+		SET req = CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response: '||req) INTO rc ;
+			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response TCPIP ID: '||tcpipDetails.Id)INTO rc;
+		
+		
+		PROPAGATE TO TERMINAL 'out2';
+			ELSE
+	
+		
 		
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -223,15 +252,12 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 		
 		SET OutputRoot = InputRoot  ;
 		PROPAGATE TO TERMINAL 'out' DELETE NONE;
-		SET OutputRoot = InputRoot  ;
 		
-		SET req = CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
-			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response: '||req) INTO rc ;
-			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response TCPIP ID: '||tcpipDetails.Id)INTO rc;
+			END IF;
 		
 		
-		PROPAGATE TO TERMINAL 'out2';
-		 -- SET OutputLocalEnvironment.Destination.TCPIP.Output.Id = InputRoot.MQRFH2.usr.Id;
+		
+		
 	END;
 END MODULE;
 
