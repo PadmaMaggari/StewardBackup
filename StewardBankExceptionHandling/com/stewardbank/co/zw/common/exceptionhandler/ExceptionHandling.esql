@@ -167,6 +167,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 	BEGIN
 		DECLARE messageText CHARACTER '';
 		DECLARE exceptionName CHARACTER '';
+		DECLARE timoutField REFERENCE TO InputLocalEnvironment;
 		WHILE LASTMOVE(excpRef) DO
 			IF excpRef.Number is not null THEN
 				SET outRef.excpType = FIELDNAME(excpRef);
@@ -198,6 +199,11 @@ CREATE COMPUTE MODULE ExceptionHandling
 			move excpRef lastchild;
 		END WHILE;
 		SET outRef.excpText = exceptionName||''||OVERLAY(messageText PLACING ':' FROM 1 FOR 1);
+		IF FIELDNAME(timoutField.HTTP.Input.Timeout) IS NOT NULL THEN
+			SET outRef.excpText = 'Timeout. The Broker BR did not provide a response within the specified time interval ('||CAST(timoutField.HTTP.Input.Timeout.OriginalClientWaitTime AS CHARACTER)||' seconds).
+			 						The message reached the main flow, but timed out during processing. 
+			 							It was then given to the timeout flow for processing.';
+		END IF;
 	END;
 	CREATE PROCEDURE stringValidation (IN text CHARACTER)
 	RETURNS BOOLEAN
