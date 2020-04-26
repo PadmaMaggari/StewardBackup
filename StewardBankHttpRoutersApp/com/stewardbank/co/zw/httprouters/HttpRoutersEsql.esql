@@ -16,8 +16,10 @@ DECLARE DSNNAME EXTERNAL CHARACTER '';
 DECLARE SCHEMANAME EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER;
-DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
-DECLARE httpRequestIdentifier SHARED BLOB;	
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';	
+DECLARE DSN EXTERNAL CHARACTER '';
+DECLARE HTTP_FLOW_TABLE EXTERNAL CHARACTER '';
+DECLARE ROWNUM EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCode
 DECLARE rc BOOLEAN;
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -38,8 +40,8 @@ DECLARE rc BOOLEAN;
 	END;
 
 	CREATE PROCEDURE RouteToInterfaceBasedOnProcessingCode() BEGIN
-		--DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE inRef REFERENCE TO InputRoot;		
+		DECLARE inRef REFERENCE TO InputRoot;	
+		DECLARE httpRequestIdentifier BLOB;	
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
 		DECLARE DBDetails ROW;
 		SET reqMsg = CAST(ASBITSTREAM(InputRoot.JSON.Data CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
@@ -104,6 +106,8 @@ DECLARE rc BOOLEAN;
 		SET httpRequestIdentifier = CAST(InputLocalEnvironment.Destination.HTTP.RequestIdentifier AS BLOB);
 		SET OutputRoot.JSON = InputRoot.JSON;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;
+		DECLARE sqlQuery ROW ;
+		SET sqlQuery.val[] = PASSTHRU('INSERT INTO HTTP_FLOW_DETAILS VALUES(?,?,?,?,ID_SEQ.NEXTVAL)' TO Database.{DSN} VALUES(httpRequestIdentifier,CURRENT_TIMESTAMP,'Success','Successfully inserted'));
 	END;
 	
 	CREATE PROCEDURE STORE_CACHE (IN procCodeData CHARACTER)
@@ -157,8 +161,11 @@ DECLARE rc BOOLEAN;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Response: '||reqMsg) INTO rc ;
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','INFO','httpRequestIdentifier:'||httpRequestIdentifier) INTO rc ;
-		Set OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = httpRequestIdentifier;--CAST(InputRoot.MQRFH2.usr.RequestIdentifier AS BLOB);
+		DECLARE httpReqIdentifier ROW;
+		SET httpReqIdentifier.val[] = PASSTHRU('SELECT * FROM HTTP_FLOW_DETAILS  WHERE TRANSACTION_STATUS = ? AND ID = (SELECT MAX(ID) FROM HTTP_FLOW_DETAILS)' TO Database.{DSN} VALUES('Success'));
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','INFO','httpRequestIdentifier:') INTO rc ;
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','INFO',CAST(httpReqIdentifier.val.HTTP_REQUEST_IDENTIFIER AS CHARACTER)) INTO rc ;
+		Set OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = httpReqIdentifier.val.HTTP_REQUEST_IDENTIFIER;--httpRequestIdentifier;
 		SET OutputRoot.JSON.Data[] = InputRoot.JSON.Data[];
 		
 	END;

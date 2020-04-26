@@ -18,6 +18,15 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_Q" name="RAW_AUDIT_Q" defaultValueLiteral="RAW_AUDIT_Q">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ROWNUM" name="ROWNUM" defaultValueLiteral="ROWNUM">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.DSN" name="DSN" defaultValueLiteral="ORADSN">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.HTTP_FLOW_TABLE" name="HTTP_FLOW_TABLE" defaultValueLiteral="HTTP_FLOW_DETAILS">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="HttpResponseRouterFlow" bundleName="com/stewardbank/co/zw/httprouters/HttpResponseRouterFlow" pluginId="StewardBankHttpRoutersApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankHttpRoutersApp/icons/full/obj16/HttpResponseRouterFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankHttpRoutersApp/icons/full/obj30/HttpResponseRouterFlow.gif"/>
@@ -28,7 +37,7 @@
       <nodes xmi:type="ComIbmWSReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="704,30">
         <translation xmi:type="utility:ConstantString" string="HTTP Reply"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="354,25" computeExpression="esql://routine/com.stewardbank.co.zw.httprouters#HttpResponseRouterFlow_GenerateResToFrontEnd.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="354,25" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.httprouters#HttpResponseRouterFlow_GenerateResToFrontEnd.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateResToFrontEnd"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="437,171" computeExpression="esql://routine/com.stewardbank.co.zw.httprouters#HttpRouterFlow_BuildExceptionDetails.Main">
@@ -68,6 +77,15 @@
               <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_QNAME" bundleName="com/stewardbank/co/zw/httprouters/HttpResponseRouterFlow" pluginId="StewardBankHttpRoutersApp"/>
               <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RAW_AUDIT_Q">
                 <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_Q" bundleName="com/stewardbank/co/zw/httprouters/HttpResponseRouterFlow" pluginId="StewardBankHttpRoutersApp"/>
+                <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ROWNUM">
+                  <propertyName xmi:type="utility:TranslatableString" key="Property.ROWNUM" bundleName="com/stewardbank/co/zw/httprouters/HttpResponseRouterFlow" pluginId="StewardBankHttpRoutersApp"/>
+                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.DSN">
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.DSN" bundleName="com/stewardbank/co/zw/httprouters/HttpResponseRouterFlow" pluginId="StewardBankHttpRoutersApp"/>
+                    <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.HTTP_FLOW_TABLE">
+                      <propertyName xmi:type="utility:TranslatableString" key="Property.HTTP_FLOW_TABLE" bundleName="com/stewardbank/co/zw/httprouters/HttpResponseRouterFlow" pluginId="StewardBankHttpRoutersApp"/>
+                    </propertyDescriptor>
+                  </propertyDescriptor>
+                </propertyDescriptor>
               </propertyDescriptor>
             </propertyDescriptor>
           </propertyDescriptor>
