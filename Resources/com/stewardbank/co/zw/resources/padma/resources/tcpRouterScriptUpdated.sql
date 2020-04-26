@@ -1,0 +1,18 @@
+--------------------------------------------------------
+--  File created - Sunday-April-26-2020   
+--------------------------------------------------------
+--------------------------------------------------------
+--  DDL for Table INTEGRATION_SOL_DETAILS
+--------------------------------------------------------
+
+  CREATE TABLE "SYSTEM"."INTEGRATION_SOL_DETAILS" 
+   (	"PROC_CODE" VARCHAR2(20 BYTE), 
+	"REQ_QUEUE" VARCHAR2(20 BYTE), 
+	"RES_QUEUE" VARCHAR2(20 BYTE), 
+	"HTTP_REQ" VARCHAR2(20 BYTE), 
+	"HTTP_RES" VARCHAR2(20 BYTE), 
+	"HTTP_BUSINESS_TEMP" VARCHAR2(20 BYTE)
+   ) PCTFREE 10 PCTUSED 40 INITRANS 1 MAXTRANS 255 NOCOMPRESS LOGGING
+  STORAGE(INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+  PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1 BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+  TABLESPACE "SYSTEM" ;
