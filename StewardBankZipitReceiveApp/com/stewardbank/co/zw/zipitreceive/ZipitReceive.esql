@@ -1,4 +1,4 @@
-BROKER SCHEMA com.stewardbank.co.zw.zipitsend
+BROKER SCHEMA com.stewardbank.co.zw.zipitreceive
 
 
 
@@ -12,11 +12,11 @@ Modified Date : 24-04-2020.
 Author : G Raghavender.
 =================================================================================================================== */
 
-PATH com.stewardbank.co.zw.common.esql;       
+PATH com.stewardbank.co.zw.common.esql;      
 DECLARE LOG_CONFIG_PATH,APPLICATION_NAME,RAW_AUDIT_LOGGING,ERROR_AUDIT_LOGGING,EXCEPTION_QUEUE EXTERNAL CHARACTER; 
 
 CREATE COMPUTE MODULE Zipit_GenerateReqToT24   
-	CREATE FUNCTION Main() RETURNS BOOLEAN   
+	CREATE FUNCTION Main() RETURNS BOOLEAN  
 	BEGIN          
 		CALL GenerateReqToT24();
 		RETURN FALSE;
@@ -49,9 +49,9 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path';
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','..............Start ZIPIT SEND logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','Request to ZIPIT::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','..............Start ZIPIT RECEIVE logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Request to ZIPIT::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.dfdlData=OutputRoot.DFDL;
 		SET OutputRoot=NULL;
@@ -64,8 +64,8 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 		/* ==================== DATABASE LOGING END ==================== */
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.DFDL= Environment.dfdlData; 
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Request To T24::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -115,7 +115,7 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','.........................') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','.........................') INTO rc;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.dfdlData=InputRoot.DFDL;
@@ -131,8 +131,8 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
 		SET OutputRoot.MQRFH2.resData=Environment.resData; 
 		SET OutputRoot.DFDL=Environment.dfdlData; 
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','Request To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Request To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
 		PROPAGATE TO TERMINAL 'out';            
 	END;
@@ -157,8 +157,8 @@ CREATE COMPUTE MODULE ZipitFlowCaptureException
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','..............Start Exception loging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','..............Start Exception loging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 
 		RETURN FALSE; 
 	END;
@@ -185,12 +185,12 @@ CREATE COMPUTE MODULE ZipitFlowCaptureException
 		PROPAGATE TO TERMINAL 'out';
 
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC'; 
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'ZIPIT SEND'; 
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'ZIPIT RECEIVE';  
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 
 		CALL BuildExceptionDetails(excpRef,outRef,'Ministatement');
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE; 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE; 

@@ -3,6 +3,21 @@
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/zipitsend/ZipitSend.msgflow" nsPrefix="com_stewardbank_co_zw_zipitsend_ZipitSend.msgflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Users\91944\Documents\Steward\Log\Log4jConfig.xml">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.APPLICATION_NAME" name="APPLICATION_NAME" defaultValueLiteral="StewardBankZipitSend">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_LOGGING" name="RAW_AUDIT_LOGGING" defaultValueLiteral="RAW_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERROR_AUDIT_LOGGING" name="ERROR_AUDIT_LOGGING" defaultValueLiteral="ERR_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.EXCEPTION_QUEUE" name="EXCEPTION_QUEUE" defaultValueLiteral="SB_EXCQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="ZipitSend" bundleName="com/stewardbank/co/zw/zipitsend/ZipitSend" pluginId="StewardBankZipitSendApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankZipitSendApp/icons/full/obj16/ZipitSend.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankZipitSendApp/icons/full/obj30/ZipitSend.gif"/>
@@ -25,11 +40,11 @@
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="298,277">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="165,185" queueName="ZIPIT_SB_TCP_REQ" messageDomainProperty="DFDL" messageTypeProperty="{}:ISO8583_1987" transactionMode="no">
-        <translation xmi:type="utility:ConstantString" string="ZIPIT_SB_REQ"/>
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="142,189" queueName="ZIPIT_SB_TCP_REQ" messageDomainProperty="DFDL" messageTypeProperty="{}:ISO8583_1987" transactionMode="no">
+        <translation xmi:type="utility:ConstantString" string="ZIPIT SEND_SB_REQ"/>
       </nodes>
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="835,218" destinationMode="list">
-        <translation xmi:type="utility:ConstantString" string="ZIPIT_SB_RES"/>
+        <translation xmi:type="utility:ConstantString" string="ZIPIT SEND_SB_RES"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
@@ -42,7 +57,23 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
     </composition>
-    <propertyOrganizer/>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/zipitsend/ZipitSend" pluginId="StewardBankZipitSendApp"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.APPLICATION_NAME">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.APPLICATION_NAME" bundleName="com/stewardbank/co/zw/zipitsend/ZipitSend" pluginId="StewardBankZipitSendApp"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RAW_AUDIT_LOGGING">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_LOGGING" bundleName="com/stewardbank/co/zw/zipitsend/ZipitSend" pluginId="StewardBankZipitSendApp"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERROR_AUDIT_LOGGING">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_LOGGING" bundleName="com/stewardbank/co/zw/zipitsend/ZipitSend" pluginId="StewardBankZipitSendApp"/>
+              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.EXCEPTION_QUEUE">
+                <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_QUEUE" bundleName="com/stewardbank/co/zw/zipitsend/ZipitSend" pluginId="StewardBankZipitSendApp"/>
+              </propertyDescriptor>
+            </propertyDescriptor>
+          </propertyDescriptor>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
     <stickyBoard/>
   </eClassifiers>
 </ecore:EPackage>
