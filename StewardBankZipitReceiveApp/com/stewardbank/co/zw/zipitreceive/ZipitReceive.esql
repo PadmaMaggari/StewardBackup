@@ -3,7 +3,7 @@ BROKER SCHEMA com.stewardbank.co.zw.zipitreceive
 
 
 /*
-Application Name : ZIPIT.
+Application Name : ZIPIT RECEIVE.
 Description :
 1) From TCP router we get the ISO data, here we are generating request to T24.
 2) Audit Logging and DB Logging has been done here.
@@ -72,7 +72,7 @@ END MODULE;
 
 
 /*==================================================================================================================
-Application Name : ZIPIT.
+Application Name : ZIPIT RECEIVE.
 Description :
 1)From T24 Simulator we get the response, here we are generating Response to TCPIP Router. 
 2) Audit Logging and DB Logging has been done here.
@@ -139,7 +139,7 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 END MODULE;
 
 /*==================================================================================================================
-Application Name : ZIPIT.
+Application Name : ZIPIT RECEIVE.
 Description :
 1)Here we're handling the exceptions that occur and storing in ERROR DB Logging. 
 Date :27-3-2020 .
@@ -185,7 +185,7 @@ CREATE COMPUTE MODULE ZipitFlowCaptureException
 		PROPAGATE TO TERMINAL 'out';
 
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC'; 
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'ZIPIT RECEIVE';  
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'ZIPIT RECEIVE';   
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 
 		CALL BuildExceptionDetails(excpRef,outRef,'Ministatement');
