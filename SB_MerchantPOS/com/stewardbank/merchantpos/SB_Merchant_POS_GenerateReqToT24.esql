@@ -37,9 +37,9 @@ CREATE COMPUTE MODULE SB_Merchant_POS_GenerateReqToT24
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path';
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchases', 'DEBUG','..............Start Merchant_POS logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchases', 'DEBUG','Request to Merchant_POS::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchases', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchaseWithCashBack', 'DEBUG','..............Start Merchant_POS logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchaseWithCashBack', 'DEBUG','Request to Merchant_POS::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchaseWithCashBack', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.dfdlData=OutputRoot.DFDL;
 		SET OutputRoot=NULL;
@@ -52,8 +52,8 @@ CREATE COMPUTE MODULE SB_Merchant_POS_GenerateReqToT24
 		/* ==================== DATA BASE LOGGING ENDING ==================== */
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.DFDL= Environment.dfdlData;
-		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchases', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchases', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchaseWithCashBack', 'DEBUG','Request To T24::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchaseWithCashBack', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -95,7 +95,7 @@ CREATE COMPUTE MODULE SB_Merchant_POS_Compute1
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path ';
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchases', 'DEBUG','.........................') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchaseWithCashBack', 'DEBUG','.........................') INTO rc;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.dfdlData=InputRoot.DFDL;
@@ -111,8 +111,8 @@ CREATE COMPUTE MODULE SB_Merchant_POS_Compute1
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
 		SET OutputRoot.MQRFH2.resData=Environment.resData;
 		SET OutputRoot.DFDL=Environment.dfdlData;
-		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchases', 'DEBUG','Request To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchases', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchaseWithCashBack', 'DEBUG','Request To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchaseWithCashBack', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
 		PROPAGATE TO TERMINAL 'out';            
 	END;
@@ -129,8 +129,8 @@ CREATE COMPUTE MODULE SB_Merchant_POS_Exception_Propagation
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchases', 'DEBUG','..............star Exception logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchases', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchaseWithCashBack', 'DEBUG','..............star Exception logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchaseWithCashBack', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId )) INTO rc;
 		 
 		RETURN FALSE;
 	END;
