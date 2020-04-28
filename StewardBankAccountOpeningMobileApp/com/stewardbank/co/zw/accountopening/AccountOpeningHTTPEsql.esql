@@ -33,7 +33,7 @@ CREATE COMPUTE MODULE AccountOpeningHTTPFlow_GenerateReqToDWH
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer); 
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
@@ -91,7 +91,7 @@ CREATE COMPUTE MODULE AccountOpeningHTTPFlow_GenerateReqToT24
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer); 
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
@@ -146,7 +146,7 @@ CREATE COMPUTE MODULE AccountOpeningHTTPFlow_GenerateReqToFCB
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer); 
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
@@ -200,7 +200,7 @@ CREATE COMPUTE MODULE AccountOpeningHTTPFlow_GenerateResToApplicationBackend
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,outRefer); 
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
@@ -255,7 +255,7 @@ CREATE COMPUTE MODULE AccountOpeningHTTPFlow_BuildExceptionDetails
 		DECLARE Id CHARACTER CAST(Environment.usr.Id AS CHARACTER);
 		-- ============Error  Logging in DB===================
 		DECLARE exe_Desc CHARACTER CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);  
-		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,outRefer);
+		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
