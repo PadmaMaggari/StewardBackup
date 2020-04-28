@@ -83,32 +83,55 @@ CREATE COMPUTE MODULE ExceptionHandling
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR',exceptionTxt) into rc;
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR',logdata) into rc;
 		--start editing(If T24 is down or unavailable send error response to front end in ISO with ResponseCode(06))
-		IF EXISTS(InputExceptionList.*[]) AND  
-			(CONTAINS(exceptionTxt,'Connection refused') OR
+		IF EXISTS(InputExceptionList.*[]) THEN
+			IF CONTAINS(exceptionTxt,'Connection refused') OR
 			CONTAINS(exceptionTxt,'Connection Dead') OR 
 			CONTAINS(exceptionTxt,'your session has been killed') OR
-			CONTAINS(exceptionTxt,'Unexpected Network Error'))THEN
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Connection refused or Connection Dead or your session has been killed or Unexpected Network Error') INTO rc;
-			IF Environment.Variables.Counter IS NULL THEN 
-				SET Environment.Variables.Counter = 1; 
-			END IF;
-			IF Environment.Variables.Counter <= MAX_RETRY_COUNT THEN
-				SET OutputRoot = null;
-				CALL CopyMessageHeaders();
-				SET OutputRoot = InputRoot;
-				SET Environment.Variables.Counter = Environment.Variables.Counter + 1;
-				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','tcp connection exception retry count:'||CAST(Environment.Variables.Counter AS CHARACTER)) INTO rc;
-				RETURN TRUE;
+			CONTAINS(exceptionTxt,'Unexpected Network Error')THEN 
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Connection refused or Connection Dead or your session has been killed or Unexpected Network Error') INTO rc;
+				IF Environment.Variables.Counter IS NULL THEN 
+					SET Environment.Variables.Counter = 1; 
+				END IF;
+				IF Environment.Variables.Counter <= MAX_RETRY_COUNT THEN
+					SET OutputRoot = null;
+					CALL CopyMessageHeaders();
+					SET OutputRoot = InputRoot;
+					SET Environment.Variables.Counter = Environment.Variables.Counter + 1;
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','tcp connection exception retry count:'||CAST(Environment.Variables.Counter AS CHARACTER)) INTO rc;
+					RETURN TRUE;
+				ELSE
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','tcp connection exception retry count reached send response') INTO rc;
+					SET OutputRoot = null;
+					CALL CopyMessageHeaders();
+					CALL revertBackToSystem();
+					CALL LogException();
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
+					RETURN FALSE;
+				END IF;
+			ELSEIF (CONTAINS(exceptionTxt,'ParserException') OR 
+				CONTAINS(exceptionTxt,'Connection refused') OR
+				CONTAINS(exceptionTxt,'Connection Dead') OR 
+				CONTAINS(exceptionTxt,'your session has been killed') OR
+				CONTAINS(exceptionTxt,'Unexpected Network Error')) = FALSE THEN
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Occured') INTO rc;
+					SET OutputRoot = null;
+					CALL CopyMessageHeaders();
+					CALL revertBackToSystem();
+					SET OutputRoot.XMLNSC.ExceptionDetails = Environment.Variables.ExceptionData;
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
+					RETURN TRUE;
 			ELSE
-				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','tcp connection exception retry count reached send response') INTO rc;
-				SET OutputRoot = null;
-				CALL CopyMessageHeaders();
-				CALL revertBackToSystem();
-				CALL LogException();
+				/*
+				if parser exception occurs then log it.
+				*/
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Parser Exception') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
-				RETURN FALSE;
+				RETURN TRUE;
 			END IF;
+			
 		ELSE
+			--if InputExceptionList is not populated and terminal connected to exception handler library then return true.
+			--it can occur if http node terminal timeout is connected to exception handler library.
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
 			RETURN TRUE;
 		END IF;
