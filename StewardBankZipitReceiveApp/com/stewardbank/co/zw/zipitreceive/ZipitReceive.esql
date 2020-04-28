@@ -145,7 +145,7 @@ CREATE COMPUTE MODULE ZipitFlowCaptureException
 	BEGIN
 		CALL BuildErrorMsg();
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;  
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
