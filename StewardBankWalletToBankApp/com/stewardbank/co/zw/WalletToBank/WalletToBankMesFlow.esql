@@ -55,7 +55,7 @@ CREATE COMPUTE MODULE WalletToBankFlow_ReqGenerationToT24
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
-		CALL DBLogging(Environment.dbLog.DBLogging.MSGID,Environment.dbLog.DBLogging.MESSAGE,'T24 Request',ApplicationLabel,BrokerName,Environment.t24Res.DBLogging.TIME_LOCAL_TRANSACTION,Environment.t24Res.DBLogging.DATE_LOCAL_TRANSACTION,Environment.t24Res.DBLogging.RETRIEVAL_REFERENCE_NUMBER,outRefer);
+		CALL DBLogging(Environment.dbLog.DBLogging.MSGID,Environment.dbLog.DBLogging.MESSAGE,'T24 Request',ApplicationLabel,BrokerName,Environment.dbLog.DBLogging.TIME_LOCAL_TRANSACTION,Environment.dbLog.DBLogging.DATE_LOCAL_TRANSACTION,Environment.dbLog.DBLogging.RETRIEVAL_REFERENCE_NUMBER,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		-- +++++++++++++++++++++++++++End Of DB  Logging++++++++++++++++++++++++++++++
@@ -154,7 +154,8 @@ CREATE COMPUTE MODULE WalletToBankFlow_ResGenerationToPostilion
 			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== Request End ================') INTO rc;
 		--Mapping field to field...
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'');
+--		CALL FieldToFieldMapping(inRef,outRef,'');
+		SET  OutputRoot.DFDL = InputRoot.DFDL;
 			
 		CALL writeToLogFile(MessageFlowLabel, 'WToBLogger', 'DEBUG','****Response To TCPIP Router****') INTO rc;
 		 SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
