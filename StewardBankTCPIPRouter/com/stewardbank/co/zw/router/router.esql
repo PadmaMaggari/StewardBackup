@@ -30,6 +30,9 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 	
 
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		
+		
+	      
 		 DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		 DECLARE version CHARACTER inRef.MTI_Version;
 		 DECLARE class CHARACTER inRef.MTI_MessageClass;
@@ -148,24 +151,27 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_BuildExceptionDetails
 		DECLARE Id CHARACTER '';
 		SET Id= InputRoot. MQRFH2.usr.Id ;  
 		
-		-- DB Logging===================
-		DECLARE exe_Desc CHARACTER'';  
 		
-		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
-		
-			 CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.resData,'Router Response Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
-			
-			
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q ;
-		PROPAGATE TO TERMINAL 'out1';
 		
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'OutGoingRouter';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'OutGoingRouter');
 		
+		SET Environment.userDefineErrorCode=OutputRoot.XMLNSC;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ ;
 		PROPAGATE TO TERMINAL 'out';
+		
+		-- DB Logging===================
+		DECLARE exe_Desc CHARACTER'';  
+		
+		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+		
+			  CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.resData,'Router Response Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.userDefineErrorCode.OutGoingRouter.ErrorCode,outRefer);
+			
+			
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q ;
+		PROPAGATE TO TERMINAL 'out1';
 	END;
 END MODULE;
 
@@ -264,24 +270,31 @@ CREATE COMPUTE MODULE IncomingRouterFlow_BuildExceptionDetails
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		
 		
-		-- DB Logging===================
+	
+		
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'InComingRouter';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;    
+		CALL BuildExceptionDetails(excpRef,outRef,'InComingRouter');
+		
+		SET Environment.userDefineError = OutputRoot.XMLNSC;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ ;
+		PROPAGATE TO TERMINAL 'out';
+		
+		
+	
+			-- DB Logging===================
 		DECLARE exe_Desc CHARACTER'';  
 		
 		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 		
-			CALL Error_DBLogging(InputRoot.MQRFH2.tcpId.Id ,Environment.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.timeLocalTransaction,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,outRefer);
+		 CALL Error_DBLogging(Environment.tcpip.Id ,Environment.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.timeLocalTransaction,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.userDefineError.InComingRouter.ErrorCode,outRefer);
 
 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		
 		
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'InComingRouter';
-		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'InComingRouter');
 		
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ ;
-		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
