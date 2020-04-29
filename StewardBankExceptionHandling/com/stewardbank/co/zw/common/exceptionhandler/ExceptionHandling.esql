@@ -69,7 +69,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 					SET inputChar=CAST(ASBITSTREAM(InputRoot.BLOB) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 				WHEN domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) THEN
 					SET Environment.Variables.DFDL = InputRoot.DFDL;
-					SET inputChar=CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId );
+					SET inputChar=CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);	
 				WHEN (domainFldName='JSON' AND EXISTS(InputRoot.JSON.*[])) THEN
 					SET inputChar=CAST(ASBITSTREAM(InputRoot.JSON) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 			END CASE;
