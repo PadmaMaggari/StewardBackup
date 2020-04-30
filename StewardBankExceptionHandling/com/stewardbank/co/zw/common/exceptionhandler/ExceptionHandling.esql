@@ -46,6 +46,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';  
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.ExceptionDetails;
 		DECLARE excpRef REFERENCE TO InputExceptionList.*[1];
+		DECLARE flowName CHARACTER excpRef.Name;
 		DECLARE insertRef REFERENCE TO InputExceptionList.*[1];
 		--get exception in xml format
 		CALL getExceptionDesc(excpRef,insertRef,outRef);
@@ -84,10 +85,10 @@ CREATE COMPUTE MODULE ExceptionHandling
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR',logdata) into rc;
 		--start editing(If T24 is down or unavailable send error response to front end in ISO with ResponseCode(06))
 		IF EXISTS(InputExceptionList.*[]) THEN
-			IF CONTAINS(exceptionTxt,'Connection refused') OR
+			IF (CONTAINS(exceptionTxt,'Connection refused') OR
 			CONTAINS(exceptionTxt,'Connection Dead') OR 
 			CONTAINS(exceptionTxt,'your session has been killed') OR
-			CONTAINS(exceptionTxt,'Unexpected Network Error')THEN 
+			CONTAINS(exceptionTxt,'Unexpected Network Error')) AND CONTAINS(flowName,'OutgoingRouterFlow')= FALSE THEN 
 				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Connection refused or Connection Dead or your session has been killed or Unexpected Network Error') INTO rc;
 				IF Environment.Variables.Counter IS NULL THEN 
 					SET Environment.Variables.Counter = 1; 
