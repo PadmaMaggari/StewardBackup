@@ -10,8 +10,7 @@ Author : G Raghavender.
 =================================================================================================================== */
 BROKER SCHEMA com.stewardbank.co.zw.zipitreceive
 PATH com.stewardbank.co.zw.common.esql;      
-DECLARE LOG_CONFIG_PATH,APPLICATION_NAME,RAW_AUDIT_LOGGING,ERROR_AUDIT_LOGGING,EXCEPTION_QUEUE EXTERNAL CHARACTER; 
-
+DECLARE LOG_CONFIG_PATH,APPLICATION_NAME,RAW_AUDIT_LOGGING,ERROR_AUDIT_LOGGING,EXCEPTION_QUEUE EXTERNAL CHARACTER;  
 CREATE COMPUTE MODULE Zipit_GenerateReqToT24   
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN          
@@ -22,10 +21,8 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 		/* ==================== Setting MQRFH2 Details in Environment ==================== */
 		SET Environment.usr= InputRoot.MQRFH2.usr;
 		/* ==================== Database Logging ==================== */
-		DECLARE outRefer REFERENCE TO OutputRoot;
-		
-		
-		 CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		DECLARE outRefer REFERENCE TO OutputRoot;		
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		SET OutputRoot=NULL;
@@ -51,9 +48,7 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 		SET Environment.dfdlData=OutputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== Database Logging ==================== */
-		 CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
-		
-		
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);		
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		/* ==================== Database Logging End ==================== */
@@ -64,7 +59,6 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
-
 /*==================================================================================================================
 Application Name : ZIPIT RECEIVE.
 Description :
@@ -74,7 +68,6 @@ Date :24-04-2020 .
 Modified Date : 28-04-2020.
 Author : G Raghavender.
 =================================================================================================================== */
-
 CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -82,16 +75,11 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 		RETURN FALSE;
 	END;
 	CREATE PROCEDURE GenerateResToPostilion() BEGIN
-		/* ==================== Database Logging ==================== */
-		
+		/* ==================== Database Logging ==================== */		
 		DECLARE resData CHARACTER;
-		SET Environment.resData= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER); 
-		
-		
+		SET Environment.resData= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER); 		
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		 CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
-
-
+		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot=NULL;
@@ -115,8 +103,6 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 		SET OutputRoot=NULL;
 		/* ==================== Database Logging ==================== */
 		 CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
-
-
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		/* ==================== Database Logging End ==================== */
@@ -130,7 +116,6 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 		PROPAGATE TO TERMINAL 'out';            
 	END;
 END MODULE;
-
 /*==================================================================================================================
 Application Name : ZIPIT RECEIVE.
 Description :
@@ -139,7 +124,6 @@ Date :24-04-2020 .
 Modified Date : .
 Author : G Raghavender.
 =================================================================================================================== */
-
 CREATE COMPUTE MODULE ZipitFlowCaptureException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -152,11 +136,8 @@ CREATE COMPUTE MODULE ZipitFlowCaptureException
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','..............Start Exception logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
-
 		RETURN FALSE;
-	END;
-
-	
+	END;	
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -168,25 +149,20 @@ CREATE COMPUTE MODULE ZipitFlowCaptureException
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE Id CHARACTER '';
 		SET Id= CAST(Environment.usr.Id AS CHARACTER);
-		
-
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC'; 
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'Zipit Receive';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-
 		CALL BuildExceptionDetails(excpRef,outRef,'Zipit Receive');  
 		SET Environment.miniStatementErrorCode=OutputRoot.XMLNSC;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
-		PROPAGATE TO TERMINAL 'out';
-		
+		PROPAGATE TO TERMINAL 'out';	
 		/* ==================== Database Logging ==================== */
 		DECLARE exe_Desc CHARACTER'';
 		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
-
-		 CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.miniStatementErrorCode.Ministatement.ErrorCode,outRefer);
+		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.miniStatementErrorCode.Ministatement.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 	END;
-END MODULE; 
+END MODULE;  
