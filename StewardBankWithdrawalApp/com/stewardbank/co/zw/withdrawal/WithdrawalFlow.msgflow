@@ -9,7 +9,10 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_QNAME" name="RAW_AUDIT_QNAME" defaultValueLiteral="RAW_LOG_SB_REQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERROR_AUDIT_QNAME" name="ERROR_AUDIT_QNAME" defaultValueLiteral="ERROR_LOG_SB_REQ">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERR_AUDIT_QNAME" name="ERR_AUDIT_QNAME" defaultValueLiteral="ERR_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.EXCEPTION_QNAME" name="EXCEPTION_QNAME" defaultValueLiteral="SB_EXCQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="WithdrawalFlow" bundleName="com/stewardbank/co/zw/withdrawal/WithdrawalFlow" pluginId="StewardBankWithdrawalApp"/>
@@ -19,7 +22,7 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="545,73" computeExpression="esql://routine/com.stewardbank.co.zw.withdrawal#WithdrawalFlow_GenerateResToPostilion.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateResToPostilion"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="577,190" queueName="EXCEPTIONQ">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="577,190" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="ExceptionQ"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="198,72" computeExpression="esql://routine/com.stewardbank.co.zw.withdrawal#WithdrawalFlow_GenerateReqToT24.Main" computeMode="destinationAndMessage">
@@ -61,8 +64,11 @@
         <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_PATH_FILE" bundleName="com/stewardbank/co/zw/withdrawal/WithdrawalFlow" pluginId="StewardBankWithdrawalApp"/>
         <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RAW_AUDIT_QNAME">
           <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_QNAME" bundleName="com/stewardbank/co/zw/withdrawal/WithdrawalFlow" pluginId="StewardBankWithdrawalApp"/>
-          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERROR_AUDIT_QNAME">
-            <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_QNAME" bundleName="com/stewardbank/co/zw/withdrawal/WithdrawalFlow" pluginId="StewardBankWithdrawalApp"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERR_AUDIT_QNAME">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.ERR_AUDIT_QNAME" bundleName="com/stewardbank/co/zw/withdrawal/WithdrawalFlow" pluginId="StewardBankWithdrawalApp"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.EXCEPTION_QNAME">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_QNAME" bundleName="com/stewardbank/co/zw/withdrawal/WithdrawalFlow" pluginId="StewardBankWithdrawalApp"/>
+            </propertyDescriptor>
           </propertyDescriptor>
         </propertyDescriptor>
       </propertyDescriptor>
