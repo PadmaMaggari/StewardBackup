@@ -12,6 +12,9 @@ CREATE COMPUTE MODULE airtimePurchases_GenerateReqToT24
 
 	
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
+	  
+		
+		
 		
 		/* ==================== SETTING MQRFH2 DETAILS IN ENVIRANMENT ==================== */
 		SET Environment.usr= InputRoot.MQRFH2.usr;
@@ -115,7 +118,7 @@ CALL BuildErrorMsg();
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','..............star Exception logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER)) INTO rc;
 		RETURN FALSE;
 	END;
 
@@ -133,20 +136,25 @@ CALL BuildErrorMsg();
 			DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE Id CHARACTER '';
 		SET Id= CAST(Environment.usr.Id AS CHARACTER);
-		-- DB Logging===================
-		DECLARE exe_Desc CHARACTER'';  
-		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
-		
-		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
-		PROPAGATE TO TERMINAL 'out1';
+	
 			CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'AirtimePurchases';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'AirtimePurchases');
+		
+		
+		SET Environment.airtimePurchasesErrorCode=OutputRoot.XMLNSC;
+		
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
+		PROPAGATE TO TERMINAL 'out';
+			-- DB Logging===================
+		DECLARE exe_Desc CHARACTER'';  
+		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+		
+		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.airtimePurchasesErrorCode.AirtimePurchases.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
