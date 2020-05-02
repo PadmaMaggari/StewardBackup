@@ -1024,12 +1024,18 @@ BEGIN
 	WHEN '7' THEN '0111'
 	WHEN '8' THEN '1000'
 	WHEN '9' THEN '1001'
-	WHEN 'a' THEN '1010'
+	WHEN 'a'  THEN '1010'
 	WHEN 'b' THEN '1011'
-	WHEN 'c' THEN '1100'
+	WHEN 'c'  THEN '1100'
 	WHEN 'd' THEN '1101'
-	WHEN 'e' THEN '1110'
-	WHEN 'f' THEN '1111'
+	WHEN 'e'  THEN '1110'
+	WHEN 'f'  THEN '1111'
+	WHEN 'A'  THEN '1010'
+	WHEN 'B' THEN '1011'
+	WHEN 'C'  THEN '1100'
+	WHEN 'D' THEN '1101'
+	WHEN 'E'  THEN '1110'
+	WHEN 'F'  THEN '1111'
 	ELSE '0'
 	END;
 	RETURN bitCode;
@@ -1127,18 +1133,19 @@ BEGIN
 	DECLARE bitRef REFERENCE TO tcpBitmapRef.Bit001;
 	
 	WHILE len > 0 DO
-		SET resultBits = GetBinaryCode(SUBSTRING(hexBits FROM I FOR 1));
-		SET binaryBits = binaryBits || resultBits;
-		SET I = I + 1;
+		SET resultBits = GetBinaryCode(SUBSTRING(hexBits FROM J FOR 1));
+		DECLARE binary INT LENGTH(resultBits);
+		WHILE binary > 0 AND LASTMOVE(bitRef) DO
+				SET tcpBitmapRef.{FIELDNAME(bitRef)} = SUBSTRING(resultBits FROM I FOR 1);
+				SET I = I + 1;
+				MOVE bitRef NEXTSIBLING;
+				SET binary = binary - 1;
+		END WHILE;
+		SET I = 1;
+		SET J = J + 1;
 		SET len = len - 1;
 	END WHILE;	
-	SET I = 1;
-	WHILE LASTMOVE(bitRef) DO
-		SET BitName = FIELDNAME(bitRef);
-				SET tcpBitmapRef.{BitName} = SUBSTRING(binaryBits FROM I FOR 1);
-		SET I = I + 1;
-		MOVE bitRef NEXTSIBLING;
-	END WHILE;	 
+		 
 END;
 
 
