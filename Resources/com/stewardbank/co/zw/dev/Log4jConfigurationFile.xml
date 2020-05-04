@@ -43,6 +43,22 @@
             <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
         </layout>
     </appender>
+    <appender name="WToBAppender" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Documents/Steward/Log/WToB.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+    <appender name="BToWAppender" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Documents/Steward/Log/BToW.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+        </layout>
+    </appender>
 
     <logger name="IFTLogger">
 		<level value="DEBUG"/>
@@ -63,6 +79,14 @@
      <logger name="HttpRouterLogger">
 		<level value="DEBUG"/>
 		<appender-ref ref="HTTPRouterLog"/>
+    </logger>
+    <logger name="WToBLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="WToBAppender"/>
+    </logger>
+    <logger name="BToWLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="BToWAppender"/>
     </logger>
 	
 	
