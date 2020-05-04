@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "/log/log4j/log4j.dtd">
+
+<log4j:configuration xmlns:log4j='http://jakarta.apache.org/log4j/'>
+
+   <appender name="IFTLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/IFT.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+        </layout>
+    </appender>
+	 <appender name="RTGSOutGoingLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/RTGSOutgoing.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+        </layout>
+    </appender>
+	 <appender name="ErrorLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/ErrorLog.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+        </layout>
+    </appender>
+    <appender name="TCPRouterLog" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/TCPRouter.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+        </layout>
+    </appender>
+    <appender name="HTTPRouterLog" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/HTTPRouter.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+        </layout>
+    </appender>
+
+    <logger name="IFTLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="IFTLogger"/>
+    </logger>
+	<logger name="RTGSOutGoingLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="RTGSOutGoingLogger"/>
+    </logger>
+	<logger name="ErrorLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="ErrorLogger"/>
+    </logger>
+    <logger name="Log">
+		<level value="DEBUG"/>
+		<appender-ref ref="TCPRouterLog"/>
+    </logger>
+     <logger name="HttpRouterLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="HTTPRouterLog"/>
+    </logger>
+	
+	
+
+</log4j:configuration>

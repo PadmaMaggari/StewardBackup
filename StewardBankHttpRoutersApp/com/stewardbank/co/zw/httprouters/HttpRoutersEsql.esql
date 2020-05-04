@@ -69,7 +69,7 @@ DECLARE rc BOOLEAN;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Request: '||reqMsg) INTO rc ;
+			CALL writeToLogFile(MessageFlowLabel,'HttpRouterLogger','INFO','JSON Request: '||reqMsg) INTO rc ;
 		END IF;
 		SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
 		-- ==================== HTTP DETAILS =========================
@@ -90,11 +90,11 @@ DECLARE rc BOOLEAN;
 		Set OutputRoot.MQRFH2.usr."X-Remote-Host" = httpDetails."X-Remote-Host";
 		Set OutputRoot.MQRFH2.usr."X-Scheme" = httpDetails."X-Scheme";
 		IF EXISTS(getDBDetailsCache.Values[]) THEN
-			CALL writeToLogFile(MessageFlowLabel,'DebugLogger','DEBUG','Values available in shared cache: '||getDBDetailsCache.Values.*[])INTO rc;
+			CALL writeToLogFile(MessageFlowLabel,'HttpRouterLogger','DEBUG','Values available in shared cache: '||getDBDetailsCache.Values.*[])INTO rc;
 			--SET DBDetails.values[] = select A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData and A.DOMAIN = domainName;
 			SET QueueName = getDBDetailsCache.Values.HTTP_REQ;
 		ELSE
-			CALL writeToLogFile(MessageFlowLabel,'DebugLogger','DEBUG','Calling the Cache')INTO rc;
+			CALL writeToLogFile(MessageFlowLabel,'HttpRouterLogger','DEBUG','Calling the Cache')INTO rc;
 			CALL STORE_CACHE(procCodeData);
 			SET QueueName = getDBDetailsCache.Values.HTTP_REQ;
 		END IF;
@@ -113,7 +113,7 @@ DECLARE rc BOOLEAN;
 	BEGIN
 		-- A.PROC_CODE,A.REQ_QUEUE,A.RES_QUEUE
 		SET getDBDetailsCache.Values[] = SELECT A.PROC_CODE,A.HTTP_REQ,A.HTTP_RES FROM Database.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData;
-        CALL writeToLogFile(MessageFlowLabel,'DebugLogger','DEBUG','Retrieved values from Database')INTO rc;
+        CALL writeToLogFile(MessageFlowLabel,'HttpRouterLogger','DEBUG','Retrieved values from Database')INTO rc;
 	END;
 END MODULE;
 
@@ -158,7 +158,7 @@ DECLARE rc BOOLEAN;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Response: '||reqMsg) INTO rc ;
+			CALL writeToLogFile(MessageFlowLabel,'HttpRouterLogger','INFO','JSON Response: '||reqMsg) INTO rc ;
 		END IF;
 		--DECLARE httpReqIdentifier ROW;
 		--SET httpReqIdentifier.val[] = PASSTHRU('SELECT * FROM HTTP_FLOW_DETAILS  WHERE TRANSACTION_STATUS = ? AND ID = (SELECT MAX(ID) FROM HTTP_FLOW_DETAILS)' TO Database.{DSN} VALUES('Success'));
