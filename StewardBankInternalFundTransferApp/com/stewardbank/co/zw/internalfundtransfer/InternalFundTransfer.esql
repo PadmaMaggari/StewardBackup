@@ -2,10 +2,10 @@
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:30-03-2020
-Date of Modification:10-04-2020,15-04-2020,16-04-2020,24-04-2020,
-Description:Business flow pick Request from IFT_SB_IN queue and Generate request in esb and send to t24 
+Date of Modification:10-04-2020,15-04-2020,16-04-2020,24-04-2020,04-05-2020
+Description:Business flow pick Request from IFT_SB_TCP_REQ queue and Generate request in esb and send to t24 
 			and validate the response 
-			and send it to outgoing router queue(RESPONSEQ).
+			and send it to outgoing router queue(ALL_SB_TCP_RES).
  			
 */
 BROKER SCHEMA com.stewardbank.co.zw.internalfundtransfer
@@ -99,7 +99,7 @@ CREATE COMPUTE MODULE InternalFundTransferFlowCaptureException
 		DECLARE Id CHARACTER CAST(Environment.usr.Id AS CHARACTER);
 		-- ============Error  Logging in DB===================
 		DECLARE exe_Desc CHARACTER CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);  
-		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,'','','',outRefer);
+		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,'','','',excpRef.excpNumber,'',outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
