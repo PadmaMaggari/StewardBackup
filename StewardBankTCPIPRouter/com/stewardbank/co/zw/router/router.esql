@@ -16,6 +16,8 @@ DECLARE DSN EXTERNAL CHARACTER '';
 	DECLARE IsLogRequired EXTERNAL CHARACTER '';
 	DECLARE LOG_CONFIG_PATH,MTI EXTERNAL CHARACTER '';
 	DECLARE rc BOOLEAN;
+	
+	DECLARE NETWORKPROCESSCODE EXTERNAL CHARACTER '';
 	DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 	DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
 	DECLARE ExceptionQ EXTERNAL CHARACTER '';
@@ -109,14 +111,22 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Values available in shared cache: '||getDBDetailsCache.Values.*[])INTO rc;
 				--SET DBDetails.values[] = select A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData and A.DOMAIN = domainName;
 				DECLARE qDetails ROW;
-				SET qDetails.values[] = SELECT P.REQ_QUEUE, P.RES_QUEUE  FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData;
+				IF version||class||funct||origin = '0800' OR version||class||funct||origin = '0801' THEN
+					SET qDetails.values[] = SELECT P.REQ_QUEUE, P.RES_QUEUE  FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = NETWORKPROCESSCODE;
+				ELSE
+					SET qDetails.values[] = SELECT P.REQ_QUEUE, P.RES_QUEUE  FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData;
+				END IF;
 				SET QueueName = qDetails.values.REQ_QUEUE;
 	            SET OutputRoot.MQRFH2.usr.resQueueName = qDetails.values.RES_QUEUE;
 			ELSE
 				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Calling the Cache')INTO rc;
 				CALL STORE_CACHE(procCodeData);
 				DECLARE DBValues ROW;
-				SET DBValues.values[] = SELECT T.REQ_QUEUE, T.RES_QUEUE  FROM getDBDetailsCache.Values[] AS T WHERE T.PROC_CODE = procCodeData;
+				IF version||class||funct||origin = '0800' OR version||class||funct||origin = '0801' THEN
+					SET DBValues.values[] = SELECT T.REQ_QUEUE, T.RES_QUEUE  FROM getDBDetailsCache.Values[] AS T WHERE T.PROC_CODE = NETWORKPROCESSCODE;
+				ELSE
+					SET DBValues.values[] = SELECT T.REQ_QUEUE, T.RES_QUEUE  FROM getDBDetailsCache.Values[] AS T WHERE T.PROC_CODE = procCodeData;
+				END IF;
 				SET QueueName = DBValues.values.REQ_QUEUE;
 				SET OutputRoot.MQRFH2.usr.resQueueName = DBValues.values.RES_QUEUE;
 			END IF;
