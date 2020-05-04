@@ -35,6 +35,14 @@
             <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
         </layout>
     </appender>
+    <appender name="HTTPRouterLog" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/HTTPRouter.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+        </layout>
+    </appender>
 
     <logger name="IFTLogger">
 		<level value="DEBUG"/>
@@ -51,6 +59,10 @@
     <logger name="Log">
 		<level value="DEBUG"/>
 		<appender-ref ref="TCPRouterLog"/>
+    </logger>
+     <logger name="HttpRouterLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="HTTPRouterLog"/>
     </logger>
 	
 	

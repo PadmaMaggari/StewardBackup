@@ -1,8 +1,8 @@
-BROKER SCHEMA com.stewardbank.merchantpos
+BROKER SCHEMA com.stewardbank.co.zw.cashadvance
 
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH,RAW_AUDIT_LOGGING,ERROR_AUDIT_LOGGING,EXCEPTION_QUEUE EXTERNAL CHARACTER'';
-CREATE COMPUTE MODULE SB_MerchantPOSCashAdvance_GenerateReqToT24
+CREATE COMPUTE MODULE CashAdvanceFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 CALL GenerateReqToT24();
@@ -12,6 +12,8 @@ CREATE COMPUTE MODULE SB_MerchantPOSCashAdvance_GenerateReqToT24
 
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		
+		
 		/* ==================== SETTING MQRFH2 DETAILS IN ENVIRANMENT ==================== */
 		SET Environment.usr= InputRoot.MQRFH2.usr;
 		/* ==================== DATA BASE LOGGING START ==================== */
@@ -59,7 +61,7 @@ CREATE COMPUTE MODULE SB_MerchantPOSCashAdvance_GenerateReqToT24
 END MODULE;
 
 
-CREATE COMPUTE MODULE SB_MerchantPOSCashAdvance_GenerationResToPostilion
+CREATE COMPUTE MODULE CashAdvanceFlow_GenerationResToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 CALL MiniStmtGenerateResToPostilion();
@@ -119,7 +121,7 @@ CREATE COMPUTE MODULE SB_MerchantPOSCashAdvance_GenerationResToPostilion
 END MODULE;
 
 
-CREATE COMPUTE MODULE SB_MerchantPOSCashAdvance_ExceptionHandling
+CREATE COMPUTE MODULE CashAdvanceFlow_CaptureException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL BuildErrorMsg();
@@ -146,22 +148,25 @@ CREATE COMPUTE MODULE SB_MerchantPOSCashAdvance_ExceptionHandling
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE Id CHARACTER '';
 		SET Id= CAST(Environment.usr.Id AS CHARACTER);
+		
+
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC'; 
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'CashAdvance';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+
+		CALL BuildExceptionDetails(excpRef,outRef,'CashAdvance');
+		SET Environment.cashAdvanceErrorCode=OutputRoot.XMLNSC;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
+		PROPAGATE TO TERMINAL 'out';
+		
 		/* ==================== DATA BASE LOGGING ==================== */
 		DECLARE exe_Desc CHARACTER'';
 		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 
-		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.cashAdvanceErrorCode.CashAdvance.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
-		PROPAGATE TO TERMINAL 'out';
-
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC'; 
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'Ministatement';
-		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-
-		CALL BuildExceptionDetails(excpRef,outRef,'Ministatement');
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
