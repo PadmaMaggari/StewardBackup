@@ -42,7 +42,25 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow
 				CALL retryWithDelay(envRef.Counter);
 				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','retry the request after 10 sec delay for current count:'||CAST(envRef.Counter AS CHARACTER)||'is Complete') INTO rc;
 			END IF;
-			RETURN TRUE;
+			IF Environment.Variables.Retry.Counter > MAX_RETRY_COUNT THEN
+				SET OutputRoot.DFDL = InputRoot.DFDL;
+				SET OutputRoot.DFDL.ISO8583_1987.MTI_MessageFunction = '1';
+				DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987.PrimaryAccountNumber_002;
+				X : WHILE LASTMOVE(outRef) DO
+					DECLARE CurrentFieldName CHAR FIELDNAME(outRef);
+						IF CAST(SUBSTRING(CurrentFieldName AFTER '_')AS INT) > 40 THEN
+							CREATE PREVIOUSSIBLING OF outRef NAME 'ResponseCode_039';
+							SET OutputRoot.DFDL.ISO8583_1987.ResponseCode_039 = '06';
+							SET OutputRoot.DFDL.ISO8583_1987.PrimaryBitmap.Bit039 = '1';
+							PROPAGATE TO TERMINAL 'out1';
+							RETURN FALSE;
+							LEAVE X;
+						END IF;
+					MOVE outRef NEXTSIBLING;
+				END WHILE;				 
+			ELSE	
+				RETURN TRUE;
+			END IF;
 		 ELSE
 		 	RETURN FALSE;
 		 END IF;
