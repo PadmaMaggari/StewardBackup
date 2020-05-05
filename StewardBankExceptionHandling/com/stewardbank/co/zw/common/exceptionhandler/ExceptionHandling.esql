@@ -2,7 +2,7 @@
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:30-03-2020
-Date of Modification:14-04-2020,15-04-2020,16-04-2020,17-04-2020 
+Date of Modification:14-04-2020,15-04-2020,16-04-2020,17-04-2020,04-05-2020,05-05-2020
 Description: Generate a XML message which provide description for Exception which occured in flow and 
 			generate error in iso format to respond back to front end and also handled retry mechanism.
  			
@@ -11,36 +11,36 @@ BROKER SCHEMA com.stewardbank.co.zw.common.exceptionhandler
 PATH com.stewardbank.co.zw.common.esql;     
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE IS_ERROR_RESPONSE_REQUIRED EXTERNAL CHARACTER '';
-DECLARE INIT_LOG4J_ERROR EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE EXCEPTIONQ EXTERNAL CHARACTER '';
 DECLARE MAX_RETRY_COUNT EXTERNAL INTEGER 0;
+DECLARE HTTP_TIMEOUT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE rc BOOLEAN FALSE;
 CREATE COMPUTE MODULE ExceptionHandling
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyMessageHeaders();
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE exceptiondesc,inputChar,logdata CHARACTER '';
+		DECLARE ccsid INTEGER;
+		DECLARE domainDataRef REFERENCE TO InputRoot;
+		DECLARE domainFldName CHARACTER FIELDNAME(InputBody);
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE systemsTraceAuditNumber,dateLocalTransaction,retrievalReferenceNumber CHARACTER '';			
 		--set input properties in environment
 		SET Environment.Variables.Properties = InputRoot.Properties;
 		
 		/* ============================= THIS IS FOR DBLOGGING ***** I'M CASTING  INPUT.DFDL DATA INTO CHARACTER ========================= */
 		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
-		DECLARE timeLocalTransaction CHARACTER InputRoot.DFDL.ISO8583_1987.SystemsTraceAuditNumber_011;
-		DECLARE dateLocalTransaction CHARACTER InputRoot.DFDL.ISO8583_1987.DateLocalTransaction_013;
-		DECLARE retrievalReferenceNumber CHARACTER InputRoot.DFDL.ISO8583_1987.RetrievalReferenceNumber_037;
-		SET Environment.reqMsg= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 		SET OutputRoot.MQRFH2.tcpId.Id=CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id AS CHARACTER);  
 		SET Environment.tcpip.Id=CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id AS CHARACTER);
-		SET Environment.timeLocalTransaction=timeLocalTransaction;            
-		SET Environment.dateLocalTransaction=dateLocalTransaction;
-		SET Environment.retrievalReferenceNumber=retrievalReferenceNumber;
 	
 		/*  ==================================== DB LOGGING PROPERTIES END ===================================== */
 		
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
-		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = INIT_LOG4J_ERROR;
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',INIT_LOG4J_ERROR) INTO rc;		
-		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............start logging Exception...........') INTO rc;
 		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';  
@@ -50,31 +50,37 @@ CREATE COMPUTE MODULE ExceptionHandling
 		DECLARE insertRef REFERENCE TO InputExceptionList.*[1];
 		--get exception in xml format
 		CALL getExceptionDesc(excpRef,insertRef,outRef);
-		
+		--set exception details in environment
 		SET Environment.Variables.ExceptionData = OutputRoot.XMLNSC.ExceptionDetails;
 		DECLARE exceptionTxt CHARACTER Environment.Variables.ExceptionData.excpText;
-		DECLARE exceptiondesc,inputChar,logdata CHARACTER;
-		DECLARE ccsid INTEGER;
-		DECLARE domainFldName CHARACTER FIELDNAME(InputBody);
+		
 		IF CONTAINS(exceptionTxt,'ParserException') THEN
 			SET inputChar='unable to parse the data';
 		ELSE
 			CASE
 	
 				WHEN domainFldName='XMLNSC' AND EXISTS(InputRoot.XMLNSC.*[]) THEN
-					SET inputChar=COALESCE(inputChar,0);
-					SET inputChar=CAST(ASBITSTREAM(InputRoot.XMLNSC) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+					SET inputChar=getPayLoad(FIELDNAME(InputBody),domainDataRef.XMLNSC,encodeRef,ccidRef);
 				WHEN domainFldName='SOAP' AND EXISTS(InputRoot.SOAP.*[]) THEN
-					SET inputChar=CAST(ASBITSTREAM(InputRoot.SOAP) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+					SET inputChar=getPayLoad(FIELDNAME(InputBody),domainDataRef.SOAP,encodeRef,ccidRef);
 				WHEN domainFldName='BLOB' AND EXISTS(InputRoot.BLOB.*[]) THEN
-					SET inputChar=CAST(ASBITSTREAM(InputRoot.BLOB) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+					SET inputChar=getPayLoad(FIELDNAME(InputBody),domainDataRef.BLOB,encodeRef,ccidRef);
 				WHEN domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) THEN
+					SET systemsTraceAuditNumber = InputRoot.DFDL.ISO8583_1987.SystemsTraceAuditNumber_011;
+					SET dateLocalTransaction = InputRoot.DFDL.ISO8583_1987.DateLocalTransaction_013;
+					SET retrievalReferenceNumber = InputRoot.DFDL.ISO8583_1987.RetrievalReferenceNumber_037;
+					SET Environment.reqMsg= getPayLoad(FIELDNAME(InputBody),domainDataRef.DFDL,encodeRef,ccidRef);
 					SET Environment.Variables.DFDL = InputRoot.DFDL;
-					SET inputChar=CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+					SET inputChar=getPayLoad(FIELDNAME(InputBody),domainDataRef.DFDL,encodeRef,ccidRef);
 				WHEN (domainFldName='JSON' AND EXISTS(InputRoot.JSON.*[])) THEN
-					SET inputChar=CAST(ASBITSTREAM(InputRoot.JSON) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+					SET inputChar=getPayLoad(FIELDNAME(InputBody),domainDataRef.JSON,encodeRef,ccidRef);
 			END CASE;
-		END IF;			
+		END IF;
+		--set systemsTraceAuditNumber,dateLocalTransaction,retrievalReferenceNumber to environment
+		SET Environment.systemsTraceAuditNumber=systemsTraceAuditNumber;            
+		SET Environment.dateLocalTransaction=dateLocalTransaction;
+		SET Environment.retrievalReferenceNumber=retrievalReferenceNumber;
+					
 		IF inputChar is not null THEN
 		ELSE
 			SET inputChar=COALESCE(inputChar,'emptydata or unable to parse the data');
@@ -105,7 +111,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 					SET OutputRoot = null;
 					CALL CopyMessageHeaders();
 					IF domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) AND FIELDVALUE(Environment.Variables.ResponseQ) IS NOT NULL THEN
-						CALL revertBackToSystem();
+						CALL revertBackToSystem(ccidRef,encodeRef);
 					END IF;
 					CALL LogException();
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
@@ -120,7 +126,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 					SET OutputRoot = null;
 					CALL CopyMessageHeaders();
 					IF domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) AND FIELDVALUE(Environment.Variables.ResponseQ) IS NOT NULL THEN
-						CALL revertBackToSystem();
+						CALL revertBackToSystem(ccidRef,encodeRef);
 					END IF;
 					SET OutputRoot.XMLNSC.ExceptionDetails = Environment.Variables.ExceptionData;
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
@@ -141,6 +147,9 @@ CREATE COMPUTE MODULE ExceptionHandling
 			RETURN TRUE;
 		END IF;
 	END;
+	/*
+	send exception details to the EXCEPTIONQ after reverting to front end.
+	*/
 	CREATE PROCEDURE LogException() BEGIN
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Capturing Connection refused or Connection Dead or your session has been killed or Unexpected Network Error in Exception Q') INTO rc;
 		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
@@ -161,7 +170,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 	/*
 	revertBackToSystem procedure requires property,domain,responseQueue in environment
 	*/
-	CREATE PROCEDURE revertBackToSystem()
+	CREATE PROCEDURE revertBackToSystem(IN ccidRef INTEGER,IN encodeRef INTEGER)
 	BEGIN 
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end') INTO rc;
 		DECLARE inRef REFERENCE TO Environment.Variables.DFDL.ISO8583_1987;
@@ -172,8 +181,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = INIT_LOG4J_ERROR;
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',INIT_LOG4J_ERROR) INTO rc;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		--generate a error response in iso8583 to front end system in case of failure of t24
 		CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED);
@@ -187,7 +195,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO','reponse queue:') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO',Environment.Variables.ResponseQ) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',CAST(ASBITSTREAM(OutputRoot.DFDL CCSID Environment.Variables.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID Environment.Variables.Properties.CodedCharSetId)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef)) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end done') INTO rc;
 		PROPAGATE TO TERMINAL 'out1';
 	END;
@@ -228,9 +236,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 		END WHILE;
 		SET outRef.excpText = exceptionName||''||OVERLAY(messageText PLACING ':' FROM 1 FOR 1);
 		IF FIELDNAME(timoutField.HTTP.Input.Timeout) IS NOT NULL THEN
-			SET outRef.excpText = 'Timeout. The Broker BR did not provide a response within the specified time interval ('||CAST(timoutField.HTTP.Input.Timeout.OriginalClientWaitTime AS CHARACTER)||' seconds).
-			 						The message reached the main flow, but timed out during processing. 
-			 							It was then given to the timeout flow for processing.';
+			SET outRef.excpText = HTTP_TIMEOUT_ERROR_MSG ||CAST(timoutField.HTTP.Input.Timeout.OriginalClientWaitTime AS CHARACTER)||' seconds).';
 		END IF;
 	END;
 	CREATE PROCEDURE stringValidation (IN text CHARACTER)

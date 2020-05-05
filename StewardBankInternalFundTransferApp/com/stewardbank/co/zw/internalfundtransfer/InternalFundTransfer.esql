@@ -83,6 +83,7 @@ CREATE COMPUTE MODULE InternalFundTransferFlowCaptureException
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
 		DECLARE Id CHARACTER CAST(Environment.usr.Id AS CHARACTER);
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'IFT';
@@ -93,8 +94,8 @@ CREATE COMPUTE MODULE InternalFundTransferFlowCaptureException
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(FIELDNAME(OutputRoot.XMLNSC),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
 		PROPAGATE TO TERMINAL 'out';
 		-- ============Error  Logging in DB===================
-		DECLARE exe_Desc CHARACTER getPayLoad(FIELDNAME(InputBody),outDomainDataRef,encodeRef,ccidRef);  
-		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,'','','',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedException.IFT.ErrorCode,outRefer);
+		DECLARE exe_Desc CHARACTER getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);  
+		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.systemsTraceAuditNumber,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedException.IFT.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(FIELDNAME(OutputRoot.XMLNSC),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
