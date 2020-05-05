@@ -2,7 +2,7 @@
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:30-03-2020
-Date of Modification:10-04-2020,15-04-2020,16-04-2020,24-04-2020,04-05-2020
+Date of Modification:10-04-2020,15-04-2020,16-04-2020,24-04-2020,04-05-2020,05-05-2020
 Description:Business flow pick Request from IFT_SB_TCP_REQ queue and Generate request in esb and send to t24 
 			and validate the response 
 			and send it to outgoing router queue(ALL_SB_TCP_RES).
@@ -10,9 +10,10 @@ Description:Business flow pick Request from IFT_SB_TCP_REQ queue and Generate re
 */
 BROKER SCHEMA com.stewardbank.co.zw.internalfundtransfer
 path com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER;
-DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER;
-DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE InternalFundTransferFlow_GenerateReqTo24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -21,8 +22,16 @@ CREATE COMPUTE MODULE InternalFundTransferFlow_GenerateReqTo24
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		SET Environment.usr= InputRoot.MQRFH2.usr;
+		DECLARE rc BOOLEAN FALSE;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
-		SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
+		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,inRef.SystemsTraceAuditNumber_011,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
@@ -39,48 +48,24 @@ CREATE COMPUTE MODULE InternalFundTransferFlow_GenerateReqTo24
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
-		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;	
 		--set response queue and tcpip connection id in environment
 		DECLARE resQ CHARACTER Environment.usr.resQueueName;
 		DECLARE connId CHARACTER Environment.usr.Id;
 		SET Environment.Variables.ResponseQ = resQ;
 		SET Environment.Variables.TcpIp.ConnectionId = connId;
-		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
-		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','..............start IFT logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Request to IFT_INQ::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef)) INTO rc;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
-		--SET Environment.Variables.SystemsTraceAuditNumber_011 = COALESCE(OutputRoot.DFDL.ISO8583_1987.SystemsTraceAuditNumber_011,null);
-		--SET Environment.Variables.TimeLocalTransaction_012 = COALESCE(OutputRoot.DFDL.ISO8583_1987.TimeLocalTransaction_012,null);
-		--SET Environment.Variables.RetrievalReferenceNumber_037 = COALESCE(OutputRoot.DFDL.ISO8583_1987.RetrievalReferenceNumber_037,null);
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
 	END;
 	
 END MODULE;
 
-CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
-	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
-		CALL CopyEntireMessage();
-		RETURN TRUE;
-	END;
-	CREATE PROCEDURE CopyEntireMessage() BEGIN
-		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
-		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
-		END IF;
-		SET OutputRoot = InputRoot;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Final Response to ResponseQ:'||CAST(ASBITSTREAM(OutputRoot ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','..............end of IFT logging...........') INTO rc;
-	END;
-END MODULE;
 
 CREATE COMPUTE MODULE InternalFundTransferFlowCaptureException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -92,22 +77,25 @@ CREATE COMPUTE MODULE InternalFundTransferFlowCaptureException
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE Id CHARACTER CAST(Environment.usr.Id AS CHARACTER);
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'IFT';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'IFT');
 		SET Environment.Variables.UserDefinedException = OutputRoot.XMLNSC;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(FIELDNAME(OutputRoot.XMLNSC),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
 		PROPAGATE TO TERMINAL 'out';
 		-- ============Error  Logging in DB===================
-		DECLARE exe_Desc CHARACTER CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);  
+		DECLARE exe_Desc CHARACTER getPayLoad(FIELDNAME(InputBody),outDomainDataRef,encodeRef,ccidRef);  
 		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,'','','',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedException.IFT.ErrorCode,outRefer);
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(FIELDNAME(OutputRoot.XMLNSC),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		-- ============END Error  Logging in DB===================
@@ -123,10 +111,19 @@ CREATE COMPUTE MODULE InternalFundTransferFlowT24Req_GenerateReqToPostilion
 	CREATE PROCEDURE GenerateResToPostilion() BEGIN
 		SET Environment.Properties = InputRoot.Properties;
 		SET Environment.MQMD = InputRoot.MQMD;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		SET Environment.t24Res = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
+		SET Environment.t24Res = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL DBLogging(Environment.usr.Id,Environment.t24Res,'T24 Response',ApplicationLabel,BrokerName,inRef.SystemsTraceAuditNumber_011,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.t24Res = OutputRoot.XMLNSC;
@@ -138,22 +135,15 @@ CREATE COMPUTE MODULE InternalFundTransferFlowT24Req_GenerateReqToPostilion
 		SET OutputRoot.Properties = Environment.Properties;
 		SET OutputRoot.MQRFH2.usr = Environment.usr;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
-		
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
-		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
-		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
-		END IF;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
-		
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','Response To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
 	END;
 END MODULE;
 
