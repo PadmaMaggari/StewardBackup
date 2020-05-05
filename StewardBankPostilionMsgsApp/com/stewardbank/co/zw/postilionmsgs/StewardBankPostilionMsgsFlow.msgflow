@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmMQInput.msgnode="ComIbmMQInput.msgnode" xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode" xmlns:ComIbmResetContentDescriptor.msgnode="ComIbmResetContentDescriptor.msgnode" xmlns:com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow="com/stewardbank/co/zw/common/exceptionhandling/exceptionHandlingSubFlow.subflow" xmlns:com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow="com/stewardbank/co/zw/common/t24call/StewardBankT24SubFlow.subflow"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/postilionmsgs/StewardBankPostilionMsgsFlow.msgflow" nsPrefix="com_stewardbank_co_zw_postilionmsgs_StewardBankPostilionMsgsFlow.msgflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log\Log4jConfig.xml">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.APPLICATION_NAME" name="APPLICATION_NAME" defaultValueLiteral="StewardBankPostilionMsgs">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_LOGGING" name="RAW_AUDIT_LOGGING" defaultValueLiteral="RAW_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERROR_AUDIT_LOGGING" name="ERROR_AUDIT_LOGGING" defaultValueLiteral="ERR_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.EXCEPTION_QUEUE" name="EXCEPTION_QUEUE" defaultValueLiteral="SB_EXCQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <translation xmi:type="utility:TranslatableString" key="StewardBankPostilionMsgsFlow" bundleName="com/stewardbank/co/zw/postilionmsgs/StewardBankPostilionMsgsFlow" pluginId="StewardBankPostilionMsgsApp"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankPostilionMsgsApp/icons/full/obj16/StewardBankPostilionMsgsFlow.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankPostilionMsgsApp/icons/full/obj30/StewardBankPostilionMsgsFlow.gif"/>
+    <composition>
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="35,107" queueName="MS_SB_TCP_REQ" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
+        <translation xmi:type="utility:ConstantString" string="PostilionMsgReq"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="203,86">
+        <translation xmi:type="utility:ConstantString" string="StewardBankT24SubFlow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="542,98" queueName="ALL_SB_TCP_RES" destinationMode="list">
+        <translation xmi:type="utility:ConstantString" string="PostilionMsgRes"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="102,19" computeExpression="esql://routine/com.stewardbank.co.zw.postilionmsgs#StewardBankPostilionMsgsFlow_GenerateReqToT24.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="GenerateReqToT24"/>
+      </nodes>
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="348,17" messageDomain="DFDL" resetMessageDomain="true" messageSet="{ISO8583_Lib}" resetMessageSet="true" messageType="{}:ISO8583_1987" resetMessageType="true">
+        <translation xmi:type="utility:ConstantString" string="ValidateISO"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="395,65" computeExpression="esql://routine/com.stewardbank.co.zw.postilionmsgs#StewardBankPostilionMsgsFlow_GenerateResToPostilion.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="GenerateResToPostilion"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="131,195">
+        <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="276,196" computeExpression="esql://routine/com.stewardbank.co.zw.postilionmsgs#StewardBankPostilionMsgsFlow_ExceptionPropagation.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="ExceptionPropagation"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/postilionmsgs/StewardBankPostilionMsgsFlow" pluginId="StewardBankPostilionMsgsApp"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.APPLICATION_NAME">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.APPLICATION_NAME" bundleName="com/stewardbank/co/zw/postilionmsgs/StewardBankPostilionMsgsFlow" pluginId="StewardBankPostilionMsgsApp"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RAW_AUDIT_LOGGING">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_LOGGING" bundleName="com/stewardbank/co/zw/postilionmsgs/StewardBankPostilionMsgsFlow" pluginId="StewardBankPostilionMsgsApp"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERROR_AUDIT_LOGGING">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_LOGGING" bundleName="com/stewardbank/co/zw/postilionmsgs/StewardBankPostilionMsgsFlow" pluginId="StewardBankPostilionMsgsApp"/>
+              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.EXCEPTION_QUEUE">
+                <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_QUEUE" bundleName="com/stewardbank/co/zw/postilionmsgs/StewardBankPostilionMsgsFlow" pluginId="StewardBankPostilionMsgsApp"/>
+              </propertyDescriptor>
+            </propertyDescriptor>
+          </propertyDescriptor>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>
