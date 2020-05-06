@@ -567,7 +567,7 @@ BEGIN
 	IF domainName='XMLNSC' OR domainName='SOAP' OR domainName='BLOB' OR domainName='JSON' THEN
 			SET payload=CAST(ASBITSTREAM(domainDataRef CCSID ccidRef ENCODING encodeRef) AS CHARACTER CCSID ccidRef ENCODING encodeRef);
 	ELSEIF domainName='DFDL' THEN
-		SET payload=CAST(ASBITSTREAM(domainDataRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID ccidRef);
+		SET payload=CAST(ASBITSTREAM(domainDataRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 	END IF;
 	RETURN payload;
 END;
