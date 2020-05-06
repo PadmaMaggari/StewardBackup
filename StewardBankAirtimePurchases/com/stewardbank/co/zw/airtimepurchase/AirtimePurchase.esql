@@ -20,14 +20,18 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateReqToT24
 	
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 	  
-		
-		     
+	
 		
 		/* ==================== SETTING MQRFH2 DETAILS IN ENVIRANMENT ==================== */
 		SET Environment.usr= InputRoot.MQRFH2.usr;
 		/* ==================== DATA BASE LOGGING START ==================== */
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
+		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		SET OutputRoot=NULL;
@@ -46,19 +50,19 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateReqToT24
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','..............Start Airtime Purchases logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Request to Airtime Purchases::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.reqMsg) INTO rc;
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.dfdlData=OutputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== DATA BASE LOGGING ==================== */
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		/* ==================== DATA BASE LOGGING ENDING ==================== */
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.DFDL= Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.reqMsg) INTO rc;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -74,8 +78,14 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateResToPostilion
 	
 	CREATE PROCEDURE airtimePurchasesGenerateResToPostilion() BEGIN
 			/* ==================== DATA BASE LOGGING ==================== */
+			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
+		SET Environment.resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+			
+			
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot=NULL;
@@ -100,7 +110,7 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateResToPostilion
 		SET Environment.dfdlData=InputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== DATA BASE LOGGING ==================== */
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		/* ==================== DATA BASE LOGGING ENDING ==================== */
@@ -108,7 +118,7 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateResToPostilion
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
 		SET OutputRoot.DFDL=Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Request To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.resMsg) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
 		 PROPAGATE TO TERMINAL 'out';
 	END;
@@ -118,14 +128,7 @@ CREATE COMPUTE MODULE AirtimePurchase_CaptureException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 CALL BuildErrorMsg();
-		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
-		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
-		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','..............star Exception logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER)) INTO rc;
+		
 		RETURN FALSE;
 	END;
 
@@ -148,19 +151,27 @@ CALL BuildErrorMsg();
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'AirtimePurchases';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'AirtimePurchases');
-		
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE UserdomainDataRef REFERENCE TO OutputRoot.XMLNSC; 
+		SET Environment.brokerErrorMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		SET Environment.userErrorMsg = getPayLoad(FIELDNAME(InputBody),UserdomainDataRef,encodeRef,ccidRef);
 		
 		SET Environment.airtimePurchasesErrorCode=OutputRoot.XMLNSC;
 		
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..................... AIRTIME PURCHASE EXCEPTION START .....................') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||Environment.userErrorMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Broker Define Built Exception:'||Environment.brokerErrorMsg) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
 		PROPAGATE TO TERMINAL 'out';
 			-- DB Logging===================
-		DECLARE exe_Desc CHARACTER'';  
-		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+--		DECLARE exe_Desc CHARACTER'';  
+--		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 		
-		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.airtimePurchasesErrorCode.AirtimePurchases.ErrorCode,outRefer);
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
+		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,Environment.brokerErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.airtimePurchasesErrorCode.AirtimePurchases.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||Environment.userErrorMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..................... AIRTIME PURCHASE EXCEPTION END .....................') INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 	END;
