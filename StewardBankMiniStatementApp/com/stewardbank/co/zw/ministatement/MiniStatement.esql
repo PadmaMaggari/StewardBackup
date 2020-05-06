@@ -22,8 +22,7 @@ CREATE COMPUTE MODULE MiniStatementFlow_GenerateReqToT24
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		
-  
-		  
+	
 		/* ==================== SETTING MQRFH2 DETAILS IN ENVIRANMENT ==================== */
 		SET Environment.usr= InputRoot.MQRFH2.usr;
 		/* ==================== DATA BASE LOGGING START ==================== */
@@ -83,8 +82,8 @@ CREATE COMPUTE MODULE MiniStatementFlow_GenerateResToPostilion
 	CREATE PROCEDURE GenerateResToPostilion() BEGIN
 		/* ==================== DATA BASE LOGGING ==================== */
 		
-		DECLARE resData CHARACTER;
-		SET Environment.resData= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER); 
+--		DECLARE resData CHARACTER;
+--	 	SET Environment.resData= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER); 
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
@@ -125,7 +124,7 @@ CREATE COMPUTE MODULE MiniStatementFlow_GenerateResToPostilion
 		/* ==================== DATA BASE LOGGING ENDING ==================== */
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
-		SET OutputRoot.MQRFH2.resData=Environment.resData;
+		--SET OutputRoot.MQRFH2.resData=Environment.resData;
 		SET OutputRoot.DFDL=Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'minidebug', 'DEBUG','Request To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'minidebug', 'DEBUG',Environment.resMsg) INTO rc;
