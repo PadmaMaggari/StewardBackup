@@ -32,6 +32,8 @@ CREATE COMPUTE MODULE MiniStatementFlow_GenerateReqToT24
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		    
+		    
+		    
 		 CALL DBLogging(Environment.usr.Id,Environment.reqMsg ,'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
