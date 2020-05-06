@@ -2,7 +2,7 @@
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:02-04-2020
-Date of Modification:15-04-2020,16-04-2020,24-04-2020,04-05-2020,05-05-2020
+Date of Modification:15-04-2020,16-04-2020,24-04-2020,04-05-2020,05-05-2020,06-05-2020
 Description:Business flow pick Request from RTGS_OUT_SB_TCP_REQ queue and Generate request in esb and send to t24 
 			and validate the response 
 			and send it to outgoing router queue(ALL_SB_TCP_RES).
@@ -36,7 +36,7 @@ CREATE COMPUTE MODULE rtgsOutgoing_GenerateReqTo24
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,inRef.SystemsTraceAuditNumber_011,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		SET Environment.dbLog = OutputRoot.XMLNSC;
+		SET Environment.dbLog = OutputRoot.JSON.Data;
 		PROPAGATE TO TERMINAL 'out1';
 		CALL DBLogging(Environment.dbLog.DBLogging.MSGID,Environment.dbLog.DBLogging.MESSAGE,'T24 Request',ApplicationLabel,BrokerName,inRef.SystemsTraceAuditNumber_011,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -56,7 +56,7 @@ CREATE COMPUTE MODULE rtgsOutgoing_GenerateReqTo24
 		SET Environment.Variables.TcpIp.ConnectionId = connId;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','..............start RTGS Outgoing logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Request to RTGS_OUT_SB_TCP_REQ::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',Environment.reqMsg) INTO rc;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
@@ -97,7 +97,8 @@ CREATE COMPUTE MODULE rtgsOutgoingCaptureException
 		-- ============Error  Logging in DB===================
 		DECLARE exe_Desc CHARACTER getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);  
 		CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.systemsTraceAuditNumber,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedException.RTGSOutgoing.ErrorCode,outRefer);
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(FIELDNAME(OutputRoot.XMLNSC),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
+		DECLARE outDomainJsonDataRef REFERENCE TO OutputRoot.JSON.Data;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outDomainJsonDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		-- ============END Error  Logging in DB===================
@@ -129,7 +130,7 @@ CREATE COMPUTE MODULE rtgsOutgoingT24Req_GenerateReqToPostilion
 		SET Environment.t24Res = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL DBLogging(Environment.usr.Id,Environment.t24Res,'T24 Response',ApplicationLabel,BrokerName,inRef.SystemsTraceAuditNumber_011,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		SET Environment.t24Res = OutputRoot.XMLNSC;
+		SET Environment.t24Res = OutputRoot.JSON.Data;
 		PROPAGATE TO TERMINAL 'out1';
 		CALL DBLogging(Environment.t24Res.DBLogging.MSGID,Environment.t24Res.DBLogging.MESSAGE,'Application Response',ApplicationLabel,BrokerName,inRef.SystemsTraceAuditNumber_011,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
