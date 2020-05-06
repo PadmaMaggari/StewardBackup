@@ -39,6 +39,8 @@ CREATE COMPUTE MODULE WalletToBankFlow_ReqGenerationToT24
 
 	CREATE PROCEDURE FrameReqToT24() BEGIN
 		
+				
+		
 		-- **********TCPIP Connection Details **************
 		SET Environment.usr= InputRoot.MQRFH2.usr;
 --		SET Environment.usr.Id= InputRoot.MQRFH2.usr.tcpipDetails.Id;
@@ -183,7 +185,7 @@ CREATE COMPUTE MODULE WalletToBankFlow_FramimgExceptionDetails
 			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
 			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG',req) INTO rc;
 			CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== End WToBLogging ================') INTO rc;
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
 		DECLARE I INTEGER 1;
@@ -199,20 +201,26 @@ CREATE COMPUTE MODULE WalletToBankFlow_FramimgExceptionDetails
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE Id CHARACTER '';
 		SET Id= CAST(Environment.usr.Id AS CHARACTER);
-		-- DB Logging===================
-		DECLARE exe_Desc CHARACTER'';  
-		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
-		
-		-- ***********Calling DB logging procedure for logging Exception Details*********** 
-			CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
-
+	
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'WalletToBank';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'WalletToBank');
+		
+		SET Environment.walletToBankErrorCode=OutputRoot.XMLNSC;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ;
+		PROPAGATE TO TERMINAL 'out';
+		
+		
+			-- DB Logging===================
+		DECLARE exe_Desc CHARACTER'';  
+		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+		
+		-- ***********Calling DB logging procedure for logging Exception Details*********** 
+			CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.walletToBankErrorCode.WalletToBank.ErrorCode,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		
 	END;
 END MODULE;
 		
