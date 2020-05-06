@@ -113,7 +113,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 					IF domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) AND FIELDVALUE(Environment.Variables.ResponseQ) IS NOT NULL THEN
 						CALL revertBackToSystem(ccidRef,encodeRef);
 					END IF;
-					CALL LogException();
+					CALL LogException(encodeRef,ccidRef);
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
 					RETURN FALSE;
 				END IF;
@@ -129,6 +129,8 @@ CREATE COMPUTE MODULE ExceptionHandling
 						CALL revertBackToSystem(ccidRef,encodeRef);
 					END IF;
 					SET OutputRoot.XMLNSC.ExceptionDetails = Environment.Variables.ExceptionData;
+					DECLARE dominOutRef REFERENCE TO OutputRoot.XMLNSC;
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Error Details Start::::::'||getPayLoad(FIELDNAME(OutputRoot.XMLNSC),dominOutRef,encodeRef,ccidRef) || ':::::Error Details End') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
 					RETURN TRUE;
 			ELSE
@@ -150,11 +152,13 @@ CREATE COMPUTE MODULE ExceptionHandling
 	/*
 	send exception details to the EXCEPTIONQ after reverting to front end.
 	*/
-	CREATE PROCEDURE LogException() BEGIN
+	CREATE PROCEDURE LogException(IN encodeRef INTEGER,IN ccidRef INTEGER) BEGIN
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Capturing Connection refused or Connection Dead or your session has been killed or Unexpected Network Error in Exception Q') INTO rc;
 		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';  
 		SET OutputRoot.XMLNSC.ExceptionDetails = Environment.Variables.ExceptionData;
+		DECLARE dominOutRef REFERENCE TO OutputRoot.XMLNSC;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Error Details Start::::::'||getPayLoad(FIELDNAME(OutputRoot.XMLNSC),dominOutRef,encodeRef,ccidRef) || ':::::Error Details End') INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTIONQ;
 		PROPAGATE TO TERMINAL 'out1';
 	END;
