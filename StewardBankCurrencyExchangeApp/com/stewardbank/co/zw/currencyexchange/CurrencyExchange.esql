@@ -28,7 +28,7 @@ CREATE COMPUTE MODULE CurrencyExchange_GenerateReqToT24
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data.channel;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON'); 
 		DECLARE outRef REFERENCE TO OutputRoot.JSON;
 		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data'; 
 		CREATE LASTCHILD OF outRef AS outRef NAME 'channel';
