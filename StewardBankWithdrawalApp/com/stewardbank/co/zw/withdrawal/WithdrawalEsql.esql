@@ -33,19 +33,19 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateReqToT24
 	END;
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
-		DECLARE reqData CHARACTER;
-		SET reqData = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputRoot.DFDL);
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;		
 		SET Environment.usr= InputRoot.MQRFH2.usr;
 		--------------DBLogging-------------------
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),
-		'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,
+		CALL DBLogging(Environment.usr.Id,getPayLoad(domainName,inRef,encodeRef,ccidRef),'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,
 		Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		-----------------------------
 		DECLARE env REFERENCE TO Environment.Variables;
-		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
@@ -62,12 +62,12 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','..............Initializing Withdrawal logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'WarnLogger', 'WARN','..............ISO Message parsed successfully...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','Request from Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		SET OutputRoot.DFDL = NULL;
 		PROPAGATE TO TERMINAL 'out1';
@@ -77,7 +77,7 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateReqToT24
 		SET OutputRoot.MQRFH2.resData=Environment.resData;
 		SET OutputRoot.DFDL = Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
 	END;
 END MODULE;
 
@@ -85,9 +85,9 @@ END MODULE;
 CREATE COMPUTE MODULE WithdrawalFlow_GenerateResToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		-- CALL CopyMessageHeaders();
-		 CALL GenerateResToPostilion();
-		RETURN TRUE;
+		CALL CopyMessageHeaders();
+		CALL GenerateResToPostilion();
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
@@ -101,16 +101,18 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateResToPostilion
 	END;
 
 	CREATE PROCEDURE GenerateResToPostilion() BEGIN
-		
-		SET Environment.resData = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputRoot.DFDL);
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;		
+		SET Environment.resData = getPayLoad(domainName,inRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-----------DBLogging------------
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,getPayLoad(domainName,inRef,encodeRef,ccidRef),'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
+		PROPAGATE TO TERMINAL 'out';
 		-------------------- 
 		DECLARE env REFERENCE TO Environment.Variables;
-		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
@@ -124,24 +126,26 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateResToPostilion
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','Response from T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
-		 CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		 CALL DBLogging(Environment.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		SET OutputRoot.DFDL = NULL;
-		PROPAGATE TO TERMINAL 'out1';
+		PROPAGATE TO TERMINAL 'out';
 		-----------------------------
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
 		SET OutputRoot.MQRFH2.resData=Environment.resData;
 		SET OutputRoot.DFDL = Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','Balance Enquiry Response To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
-
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
+		PROPAGATE TO TERMINAL 'out';
+		
 	END;
 END MODULE;
 
@@ -165,13 +169,18 @@ CREATE COMPUTE MODULE WithdrawalFlow_CaptureException
 	END;
 
 		CREATE PROCEDURE BuildErrorMsg() BEGIN
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputRoot.XMLNSC);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;		
+		
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'DebugLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE Id CHARACTER CAST(Environment.usr.Id AS CHARACTER);
@@ -180,13 +189,13 @@ CREATE COMPUTE MODULE WithdrawalFlow_CaptureException
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'Withdrawal');
 		SET Environment.userDefineError = OutputRoot.XMLNSC;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QNAME;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error  Logging in DB----------
-		DECLARE exe_Desc CHARACTER CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);  
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,outRef,encodeRef,ccidRef);  
 		CALL Error_DBLogging(Environment.tcpip.Id ,Environment.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.timeLocalTransaction,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.userDefineError.Withdrawal.ErrorCode,outRefer);
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
