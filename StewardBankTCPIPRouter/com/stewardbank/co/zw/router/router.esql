@@ -35,8 +35,14 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 		
 		
 	        
-		    DECLARE RequestMsgData CHARACTER'';
-		    SET RequestMsgData =  CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+--		    DECLARE RequestMsgData CHARACTER'';
+--		    SET RequestMsgData =  CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+		    
+		    
+		    	DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
+		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		    
 		 DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		 DECLARE version CHARACTER inRef.MTI_Version;
@@ -49,7 +55,7 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 		 DECLARE refProcessingCode CHARACTER inRef.ProcessingCode_003;
 		 DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
 		 DECLARE procCode,reqMsg CHARACTER InputRoot.DFDL.ISO8583_1987.ProcessingCode_003;
-			SET reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			SET reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 			SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
 			-- ==================== TCPIP DETAILS AND ISO8583 DETAILS =========================
 			Set OutputRoot.MQRFH2.usr.Type = tcpipDetails.Type;
@@ -64,7 +70,7 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 		    Set OutputRoot.MQRFH2.usr.retrievalReferenceNumber = inRef.RetrievalReferenceNumber_037;
 			SET Environment.MQRFH2= OutputRoot.MQRFH2;
 			DECLARE reqMsessage CHARACTER'';
-			SET  Environment.reqMsessage = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+			SET  Environment.reqMsessage = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 			SET Environment.Id=tcpipDetails.Id;
 			DECLARE req CHARACTER;
 			CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -74,16 +80,16 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 			END IF;
 			
 			IF IsLogRequired LIKE 'Y' THEN
-				SET req = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+				SET req = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ISO Request: '||req) INTO rc ;
 				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','TCPIP ID: '||tcpipDetails.Id)INTO rc;
 			END IF;
 			
-			--==========================START OF RAW AUDIT DB LOGGING ======================Environment.reqMsg
-			SET Environment.reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+			--==========================START OF RAW AUDIT DB LOGGING ======================
+			SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 			SET Environment.msgID= CAST(Environment.MQRFH2.usr.Id AS CHARACTER );  
 			DECLARE outRefer REFERENCE TO OutputRoot;		 
-			CALL DBLogging(Environment.msgID,RequestMsgData,'Router Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+			CALL DBLogging(Environment.msgID,Environment.reqMsg,'Router Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out' ;
 			--========================== END OF RAW AUDIT DB LOGGING ======================
@@ -158,6 +164,10 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_BuildExceptionDetails
 	
 
 	CREATE PROCEDURE BuildOutGoingRouterErrorMsg() BEGIN
+		
+		
+		
+		
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -176,9 +186,16 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_BuildExceptionDetails
 		PROPAGATE TO TERMINAL 'out';
 		
 		-- DB Logging===================
+		
+		
+			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
+		--SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		    
 		DECLARE exe_Desc CHARACTER'';  
 		
-		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		
 			  CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.resData,'Router Response Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.userDefineErrorCode.OutGoingRouter.ErrorCode,outRefer);
 			
@@ -199,6 +216,15 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		
 		
+		    	DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
+		--SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		    
+		
+		
+		
+		
 		
 		DECLARE reqMsg CHARACTER'';
 		
@@ -211,7 +237,7 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path';
 		END IF;
 		
-		SET reqMsg = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		
 		/*  =================================== ZSS NOTIFICATION  =================================*/
@@ -232,7 +258,7 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 			
 			SET OutputRoot = InputRoot  ;
 		
-		SET req = CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		SET req = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response: '||req) INTO rc ;
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response TCPIP ID: '||tcpipDetails.Id)INTO rc;
 		
@@ -284,7 +310,7 @@ CREATE COMPUTE MODULE IncomingRouterFlow_BuildExceptionDetails
 		
 		
 	
-		
+		DECLARE exe_Desc CHARACTER'';  
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'InComingRouter';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;    
@@ -297,11 +323,20 @@ CREATE COMPUTE MODULE IncomingRouterFlow_BuildExceptionDetails
 		
 	
 			-- DB Logging===================
-		DECLARE exe_Desc CHARACTER'';  
+			
+			
+			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
 		
-		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		
-		 CALL Error_DBLogging(Environment.tcpip.Id ,Environment.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.timeLocalTransaction,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.userDefineError.InComingRouter.ErrorCode,outRefer);
+			
+--		
+--		
+--		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+--		
+		 CALL Error_DBLogging(Environment.tcpip.Id ,Environment.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.systemsTraceAuditNumber,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.userDefineError.InComingRouter.ErrorCode,outRefer);
 
 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
