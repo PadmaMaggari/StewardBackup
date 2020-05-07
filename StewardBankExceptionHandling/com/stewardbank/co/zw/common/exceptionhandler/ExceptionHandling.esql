@@ -15,6 +15,7 @@ DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE EXCEPTIONQ EXTERNAL CHARACTER '';
 DECLARE MAX_RETRY_COUNT EXTERNAL INTEGER 0;
 DECLARE HTTP_TIMEOUT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER'';
 DECLARE rc BOOLEAN FALSE;
 CREATE COMPUTE MODULE ExceptionHandling
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -129,12 +130,15 @@ CREATE COMPUTE MODULE ExceptionHandling
 						CALL revertBackToSystem(ccidRef,encodeRef);
 					END IF;
 					CALL LogException(encodeRef,ccidRef);
+					
+				CALL CopyMessageHeaders();	
+					
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
 					--SET OutputRoot.XMLNSC.ExceptionDetails = Environment.Variables.ExceptionData;
 					DECLARE dominOutRef REFERENCE TO OutputRoot.XMLNSC;
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Error Details Start::::::'||getPayLoad(FIELDNAME(OutputRoot.XMLNSC),dominOutRef,encodeRef,ccidRef) || ':::::Error Details End') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
-					RETURN FALSE;
+					RETURN TRUE;
 			ELSE
 				/*
 				if parser exception occurs then log it.
@@ -155,18 +159,31 @@ CREATE COMPUTE MODULE ExceptionHandling
 	send exception details to the EXCEPTIONQ after reverting to front end.
 	*/
 	CREATE PROCEDURE LogException(IN encodeRef INTEGER,IN ccidRef INTEGER) BEGIN
+		
+		
+		
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Capturing Connection refused or Connection Dead or your session has been killed or Unexpected Network Error in Exception Q') INTO rc;
 		DECLARE excpRef REFERENCE TO Environment.Variables.ExceptionData;
+		DECLARE exe_Desc CHARACTER;
+		DECLARE outRefer REFERENCE TO OutputRoot;
 		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'ExceptionDetails');
-		SET Environment.userDefineError = OutputRoot.XMLNSC;  
+		SET Environment.Variables.ExceptionData = OutputRoot.XMLNSC;  
 		--SET OutputRoot.XMLNSC.ExceptionDetails = Environment.Variables.ExceptionData;
 		DECLARE dominOutRef REFERENCE TO OutputRoot.XMLNSC;
+		
+		
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Error Details Start::::::'||getPayLoad(FIELDNAME(OutputRoot.XMLNSC),dominOutRef,encodeRef,ccidRef) || ':::::Error Details End') INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTIONQ;
 		PROPAGATE TO TERMINAL 'out1';
+		
+		Set OutputRoot.Properties = Environment.Variables.Properties;
+		SET OutputRoot.XMLNSC =  Environment.Variables.ExceptionData;  
+				
+	
+	
 	END;
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
 		DECLARE I INTEGER 1;
