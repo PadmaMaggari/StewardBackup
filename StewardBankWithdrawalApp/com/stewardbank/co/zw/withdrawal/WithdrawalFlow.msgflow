@@ -15,6 +15,9 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.EXCEPTION_QNAME" name="EXCEPTION_QNAME" defaultValueLiteral="SB_EXCQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG4J_INIT_ERROR_MSG" name="LOG4J_INIT_ERROR_MSG" defaultValueLiteral="[log4j] Initialization Error">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="WithdrawalFlow" bundleName="com/stewardbank/co/zw/withdrawal/WithdrawalFlow" pluginId="StewardBankWithdrawalApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankWithdrawalApp/icons/full/obj16/WithdrawalFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankWithdrawalApp/icons/full/obj30/WithdrawalFlow.gif"/>
@@ -25,7 +28,7 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="198,72" computeExpression="esql://routine/com.stewardbank.co.zw.withdrawal#WithdrawalFlow_GenerateReqToT24.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateReqToT24"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="30,72" queueName="WD_SB_TCP_REQ" messageDomainProperty="DFDL" messageTypeProperty="{}:ISO8583_1987">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="30,72" queueName="WD_SB_TCP_REQ" messageDomainProperty="XMLNSC">
         <translation xmi:type="utility:ConstantString" string="Withdrawal_INQ"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="183,189">
@@ -66,6 +69,9 @@
             <propertyName xmi:type="utility:TranslatableString" key="Property.ERR_AUDIT_QNAME" bundleName="com/stewardbank/co/zw/withdrawal/WithdrawalFlow" pluginId="StewardBankWithdrawalApp"/>
             <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.EXCEPTION_QNAME">
               <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_QNAME" bundleName="com/stewardbank/co/zw/withdrawal/WithdrawalFlow" pluginId="StewardBankWithdrawalApp"/>
+              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4J_INIT_ERROR_MSG">
+                <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR_MSG" bundleName="com/stewardbank/co/zw/withdrawal/WithdrawalFlow" pluginId="StewardBankWithdrawalApp"/>
+              </propertyDescriptor>
             </propertyDescriptor>
           </propertyDescriptor>
         </propertyDescriptor>
