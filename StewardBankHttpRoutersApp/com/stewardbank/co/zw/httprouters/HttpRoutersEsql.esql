@@ -75,7 +75,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Request: '||reqMsg) INTO rc ;  
+			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Request: '||Environment.reqMsg) INTO rc ;   
 		END IF;
 		--SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
 		--SET procCodeData = 'MobileWorld';
@@ -173,7 +173,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Response: '||reqMsg) INTO rc ;
+			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Response: '||Environment.reqMsg) INTO rc ; 
 		END IF;
 		--DECLARE httpReqIdentifier ROW;
 		--SET httpReqIdentifier.val[] = PASSTHRU('SELECT * FROM HTTP_FLOW_DETAILS  WHERE TRANSACTION_STATUS = ? AND ID = (SELECT MAX(ID) FROM HTTP_FLOW_DETAILS)' TO Database.{DSN} VALUES('Success'));
@@ -201,7 +201,7 @@ CREATE COMPUTE MODULE HttpRouterFlow_BuildExceptionDetails
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error'; 
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
