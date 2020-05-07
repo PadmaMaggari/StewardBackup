@@ -1,0 +1,131 @@
+BROKER SCHEMA com.stewardbank.co.zw.currencyexchange
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE resQueueName EXTERNAL CHARACTER;
+DECLARE LOG_CONFIG_PATH,APPLICATION_NAME,RAW_AUDIT_LOGGING,ERROR_AUDIT_LOGGING,EXCEPTION_QUEUE EXTERNAL CHARACTER;
+CREATE COMPUTE MODULE CurrencyExchange_GenerateReqToT24
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateReqToT24();
+		RETURN FALSE;
+	END;
+	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		/* ==================== Setting MQRFH2 Details in Environment ==================== */
+		SET Environment.usr= InputRoot.MQRFH2.usr;
+		/* ==================== Database Logging ==================== */
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;  
+		SET Environment.usr.Id = InputRoot.MQRFH2.usr.RequestIdentifier;  
+		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef); 
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg ,'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
+		PROPAGATE TO TERMINAL 'out1';
+		SET OutputRoot=NULL;
+		/* ==================== Database Logging End ==================== */
+		/* ==================== Framming Request to T24 ==================== */
+		DECLARE env REFERENCE TO Environment.Variables;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data.channel;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		DECLARE outRef REFERENCE TO OutputRoot.JSON;
+		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data'; 
+		CREATE LASTCHILD OF outRef AS outRef NAME 'channel';
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path';
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'CurrencyExchangeLogger', 'DEBUG','..............Start CurrencyExchange logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'CurrencyExchangeLogger', 'DEBUG','Request to CurrencyExchange::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'CurrencyExchangeLogger', 'DEBUG',Environment.reqMsg) INTO rc;
+		DECLARE OutRefer1 REFERENCE TO OutputRoot.JSON.Data;
+		CREATE LASTCHILD OF OutputRoot AS OutRefer1 DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutRefer1 AS OutRefer1 NAME 'Data';
+		SET OutRefer1.channel = InputRoot.JSON.Data.channel;
+		SET Environment.jsonData=OutRefer1;
+		SET OutputRoot=NULL;
+		/* ==================== Database Logging ==================== */
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
+		PROPAGATE TO TERMINAL 'out1';
+		/* ==================== Database Logging End ==================== */
+		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.JSON.Data= Environment.jsonData;
+		CALL writeToLogFile(MessageFlowLabel, 'CurrencyExchangeLogger', 'DEBUG','Request To T24::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'CurrencyExchangeLogger', 'DEBUG',Environment.reqMsg) INTO rc;
+		PROPAGATE TO TERMINAL 'out';
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE CurrencyExchange_GenerateResToPostilion
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateResToPostilion();
+		RETURN false;
+	END;
+	CREATE PROCEDURE GenerateResToPostilion() BEGIN
+		SET Environment.Properties = InputRoot.Properties;
+		SET Environment.MQMD = InputRoot.MQMD;
+		/* ==================== Database Logging ==================== */
+		DECLARE resData CHARACTER;
+		-- SET Environment.resData= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
+		SET Environment.resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot=NULL;
+		/* ==================== Database Logging End ==================== */
+		/* ==================== Framming Response to TCPIP Router ==================== */
+		DECLARE env REFERENCE TO Environment.Variables;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON'); 
+		DECLARE outRef REFERENCE TO OutputRoot.JSON;
+		CREATE LASTCHILD OF OutputRoot.JSON.Data AS outRef NAME 'channel';  
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path ';
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'CurrencyExchangeLogger', 'DEBUG','.........................') INTO rc;
+
+		DECLARE i INT 1;
+		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
+		CREATE LASTCHILD OF OutputRoot AS OutRefer DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutRefer AS OutRefer NAME 'Data';
+		SET OutRefer.statusCode = InputRoot.JSON.Data.statusCode;
+		SET OutRefer.message = InputRoot.JSON.Data.message;
+		CREATE FIELD OutRefer.responseBody.exchangeRatesResponses IDENTITY(JSON.Array)exchangeRatesResponses;
+		DECLARE Inrefer REFERENCE to InputRoot.JSON.Data.responseBody.exchangeRatesResponses.[i];
+		WHILE LASTMOVE(Inrefer) DO  
+			SET OutRefer.responseBody.exchangeRatesResponses.[i] =Inrefer;
+			SET i = i + 1;
+			MOVE Inrefer NEXTSIBLING; 
+		END WHILE;
+		DECLARE envref REFERENCE TO Environment.JSON.Data;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
+		CREATE LASTCHILD OF envref AS envref NAME 'Data';
+		SET envref = OutRefer;
+		SET OutputRoot=NULL;
+		/* ==================== Database Logging ==================== */
+		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
+		PROPAGATE TO TERMINAL 'out';
+		/* ==================== Database Logging End ==================== */
+		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.MQRFH2.usr=Environment.usr;
+		--SET OutputRoot.MQRFH2.resData=Environment.resData;
+		SET OutputRoot.JSON.Data=envref; 
+		CALL writeToLogFile(MessageFlowLabel, 'CurrencyExchangeLogger', 'DEBUG','Request To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'CurrencyExchangeLogger', 'DEBUG',Environment.resMsg) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
+		PROPAGATE TO TERMINAL 'out';
+	END;
+END MODULE;
