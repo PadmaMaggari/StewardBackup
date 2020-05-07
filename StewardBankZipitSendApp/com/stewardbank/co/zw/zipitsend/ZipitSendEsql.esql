@@ -162,7 +162,7 @@ CREATE COMPUTE MODULE ZipitSendFlow_CaptureException
 		DECLARE UserdomainDataRef REFERENCE TO OutputRoot.XMLNSC; 
 		SET Environment.brokerErrorMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		SET Environment.userErrorMsg = getPayLoad(FIELDNAME(InputBody),UserdomainDataRef,encodeRef,ccidRef);
-		SET Environment.zipitsendtErrorCode=OutputRoot.XMLNSC; 
+		SET Environment.zipitsendErrorCode=OutputRoot.XMLNSC; 
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','.....................Start of ZipitSend Exception  .....................') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||Environment.userErrorMsg) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Broker Define Built Exception:'||Environment.brokerErrorMsg) INTO rc;
@@ -171,11 +171,11 @@ CREATE COMPUTE MODULE ZipitSendFlow_CaptureException
 		-- ============Start of Error DB Logging===================
 		--DECLARE exe_Desc CHARACTER'';
 		--SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
-		 CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,Environment.brokerErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.zipitsendtErrorCode.ZipitSend.ErrorCode,outRefer);
+		 CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,Environment.brokerErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.zipitsendErrorCode.ZipitSend.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||Environment.userErrorMsg) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','.....................End of ZipitSend Exception  .....................') INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
-		PROPAGATE TO TERMINAL 'out'; 
+		PROPAGATE TO TERMINAL 'out';  
 		-- ============End of Error DB Logging===================
 	END;
 END MODULE;
