@@ -84,9 +84,9 @@ CREATE COMPUTE MODULE ExceptionHandling
 		SET Environment.retrievalReferenceNumber=retrievalReferenceNumber;
 					
 		IF inputChar is not null THEN
-		ELSE
+		ELSE      
 			SET inputChar=COALESCE(inputChar,'emptydata or unable to parse the data');
-		END IF;	
+		END IF;	     
 		DECLARE CR CHARACTER CAST(CAST('X''0A''' AS BLOB) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
 		SET logdata = exceptionTxt||CR||'INPUT_ORIGINAL_MESSAGE:START'||CR||inputChar||CR||'INPUT_ORIGINAL_MESSAGE:STOP' ;
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR',exceptionTxt) into rc;
