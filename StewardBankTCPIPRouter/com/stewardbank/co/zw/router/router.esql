@@ -197,8 +197,7 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_BuildExceptionDetails
 		
 		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		
-			  CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.resData,'Router Response Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.userDefineErrorCode.OutGoingRouter.ErrorCode,outRefer);
-			
+			CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id ,Environment.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.systemsTraceAuditNumber,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
 			
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q ;
 		PROPAGATE TO TERMINAL 'out1';
@@ -214,6 +213,8 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 
 
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		
+	
 		
 		
 		    	DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
