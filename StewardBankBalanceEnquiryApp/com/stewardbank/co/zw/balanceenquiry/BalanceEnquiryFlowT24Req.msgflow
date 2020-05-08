@@ -28,22 +28,22 @@
       <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="22,62" queueName="BE_SB_TCP_REQ" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="BE_INQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="749,182" queueName="ALL_SB_TCP_RES" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="749,181" queueName="ALL_SB_TCP_RES" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="BE_OUTQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="471,67" computeExpression="esql://routine/com.stewardbank.co.zw.balanceenquiry#BalanceEnquiryFlow_GenerateResToPostilion.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="580,63" computeExpression="esql://routine/com.stewardbank.co.zw.balanceenquiry#BalanceEnquiryFlow_GenerateResToPostilion.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateResToPostilion"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="226,181" computeExpression="esql://routine/com.stewardbank.co.zw.balanceenquiry#BalanceEnquiryFlowCaptureException.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="321,180" computeExpression="esql://routine/com.stewardbank.co.zw.balanceenquiry#BalanceEnquiryFlowCaptureException.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="376,63" messageDomain="DFDL" resetMessageDomain="true" messageSet="{ISO8583_Lib}" resetMessageSet="true" messageType="{}:ISO8583_1987" resetMessageType="true">
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="444,59" messageDomain="DFDL" resetMessageDomain="true" messageSet="{ISO8583_Lib}" resetMessageSet="true" messageType="{}:ISO8583_1987" resetMessageType="true">
         <translation xmi:type="utility:ConstantString" string="ValidateISO"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_4" location="41,180">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="214,63">
+      <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="262,63">
         <translation xmi:type="utility:ConstantString" string="StewardBankT24SubFlow"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
@@ -59,6 +59,7 @@
         <bendPoints>591,-71,-26,-191</bendPoints>
       </connections>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_11" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.Output1" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
