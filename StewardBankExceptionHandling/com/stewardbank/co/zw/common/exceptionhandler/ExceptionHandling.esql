@@ -34,7 +34,8 @@ CREATE COMPUTE MODULE ExceptionHandling
 		DECLARE systemsTraceAuditNumber,dateLocalTransaction,retrievalReferenceNumber CHARACTER '';			
 		--set input properties in environment
 		SET Environment.Variables.Properties = InputRoot.Properties;
-		
+		SET Environment.Variables.MQMD = InputRoot.MQMD;
+		SET Environment.Variables.MQRFH2 = InputRoot.MQRFH2;
 		/* ============================= THIS IS FOR DBLOGGING ***** I'M CASTING  INPUT.DFDL DATA INTO CHARACTER ========================= */
 		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
 		SET OutputRoot.MQRFH2.tcpId.Id=CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id AS CHARACTER);  
@@ -170,6 +171,8 @@ CREATE COMPUTE MODULE ExceptionHandling
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTIONQ;
 		PROPAGATE TO TERMINAL 'out1';		
 		Set OutputRoot.Properties = Environment.Variables.Properties;
+		Set OutputRoot.MQMD = Environment.Variables.MQMD;
+		Set OutputRoot.MQRFH2 = Environment.Variables.MQRFH2;
 		SET OutputRoot.XMLNSC =  Environment.Variables.UserDefinedErrorCodes;  
 	END;
 	
