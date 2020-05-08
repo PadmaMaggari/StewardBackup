@@ -1,10 +1,28 @@
 
 BROKER SCHEMA com.stewardbank.dblogging
 
-
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER'';
 CREATE DATABASE MODULE Raw_audit_logging_Database
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
+		
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		DECLARE loggingData CHARACTER;
+		DECLARE ccidRef INTEGER Root.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER Root.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO Root.XMLNSC; 
+		SET loggingData = getPayLoad(FIELDNAME(Body),domainDataRef,encodeRef,ccidRef); 
+		
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path';
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'rawAuditLogging', 'DEBUG','..............RAW_AUDIT_LOGGING ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'rawAuditLogging', 'DEBUG',loggingData) INTO rc;
+		
+		
 		DECLARE Inpref REFERENCE TO Root.JSON.Data.DBLogging;
 		DECLARE creationDate TIMESTAMP CAST(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');
 		call insertdb_logging(Inpref.MSGID,creationDate,Inpref.MESSAGE,Inpref.MESSAGE_TYPE,Inpref.APPNAME,Inpref.BROKERNAME,Inpref.TIME_LOCAL_TRANSACTION,Inpref.DATE_LOCAL_TRANSACTION,Inpref.RETRIEVAL_REFERENCE_NUMBER);
