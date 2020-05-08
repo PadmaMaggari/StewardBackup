@@ -20,6 +20,8 @@ CREATE COMPUTE MODULE BillPayments_GenerateReqToT24
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 	
+	
+	
 		/* ==================== SETTING MQRFH2 DETAILS IN ENVIRANMENT ==================== */
 		SET Environment.usr= InputRoot.MQRFH2.usr;
 		/* ==================== DATA BASE LOGGING START ==================== */
@@ -149,7 +151,7 @@ CREATE COMPUTE MODULE BankBillPayments_CaptureException
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE Id CHARACTER '';
 		SET Id= CAST(Environment.usr.Id AS CHARACTER);
-
+		DECLARE userErrorMsg CHARACTER;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'BillPayments';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
@@ -158,26 +160,23 @@ CREATE COMPUTE MODULE BankBillPayments_CaptureException
 		
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
-		DECLARE UserdomainDataRef REFERENCE TO OutputRoot.XMLNSC; 
-		SET Environment.brokerErrorMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-		SET Environment.userErrorMsg = getPayLoad(FIELDNAME(InputBody),UserdomainDataRef,encodeRef,ccidRef);
+		DECLARE UserdomainDataRef REFERENCE TO InputRoot.XMLNSC;
+		SET userErrorMsg = getPayLoad(FIELDNAME(InputBody),UserdomainDataRef,encodeRef,ccidRef);
 		
 		SET Environment.billPaymentsErrorCode=OutputRoot.XMLNSC;
 
 
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..................... BILL PAYMENTS EXCEPTION START .....................') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||Environment.userErrorMsg) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Broker Define Built Exception:'||Environment.brokerErrorMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..................... BILL PAYMENTS EXCEPTION .....................') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||userErrorMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','TCPIP ID:'||InputRoot.MQRFH2.usr.Id) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
 		PROPAGATE TO TERMINAL 'out';
 		/* ==================== DATA BASE LOGGING ==================== */
 		--DECLARE exe_Desc CHARACTER'';
 		--SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 
-		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,Environment.brokerErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.billPaymentsErrorCode.BillPayments.ErrorCode,outRefer);
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||Environment.userErrorMsg) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..................... BILL PAYMENTS EXCEPTION END .....................') INTO rc;
+		--CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,Environment.brokerErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.billPaymentsErrorCode.BillPayments.ErrorCode,outRefer);
+		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 
