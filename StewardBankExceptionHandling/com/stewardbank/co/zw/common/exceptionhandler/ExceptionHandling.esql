@@ -130,9 +130,6 @@ CREATE COMPUTE MODULE ExceptionHandling
 						CALL revertBackToSystem(ccidRef,encodeRef);
 					END IF;
 					CALL LogException(encodeRef,ccidRef);
-					
-				CALL CopyMessageHeaders();	
-					
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
 					--SET OutputRoot.XMLNSC.ExceptionDetails = Environment.Variables.ExceptionData;
 					DECLARE dominOutRef REFERENCE TO OutputRoot.XMLNSC;
@@ -159,9 +156,6 @@ CREATE COMPUTE MODULE ExceptionHandling
 	send exception details to the EXCEPTIONQ after reverting to front end.
 	*/
 	CREATE PROCEDURE LogException(IN encodeRef INTEGER,IN ccidRef INTEGER) BEGIN
-		
-		
-		
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Capturing Connection refused or Connection Dead or your session has been killed or Unexpected Network Error in Exception Q') INTO rc;
 		DECLARE excpRef REFERENCE TO Environment.Variables.ExceptionData;
 		DECLARE exe_Desc CHARACTER;
@@ -170,21 +164,15 @@ CREATE COMPUTE MODULE ExceptionHandling
 		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'ExceptionDetails');
-		SET Environment.Variables.ExceptionData = OutputRoot.XMLNSC;  
-		--SET OutputRoot.XMLNSC.ExceptionDetails = Environment.Variables.ExceptionData;
+		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;  
 		DECLARE dominOutRef REFERENCE TO OutputRoot.XMLNSC;
-		
-		
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Error Details Start::::::'||getPayLoad(FIELDNAME(OutputRoot.XMLNSC),dominOutRef,encodeRef,ccidRef) || ':::::Error Details End') INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTIONQ;
-		PROPAGATE TO TERMINAL 'out1';
-		
+		PROPAGATE TO TERMINAL 'out1';		
 		Set OutputRoot.Properties = Environment.Variables.Properties;
-		SET OutputRoot.XMLNSC =  Environment.Variables.ExceptionData;  
-				
-	
-	
+		SET OutputRoot.XMLNSC =  Environment.Variables.UserDefinedErrorCodes;  
 	END;
+	
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
 		DECLARE I INTEGER 1;
 		DECLARE J INTEGER;

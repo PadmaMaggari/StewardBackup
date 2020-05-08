@@ -26,6 +26,9 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow
 		 END IF;
 		 IF Environment.Variables.Counter IS NULL THEN 
 		 	CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Environment.Variables.Counter is null maybe didnt capture tcp exceptionMsg') INTO rc;
+			SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			PROPAGATE TO TERMINAL 'out1';
 			RETURN FALSE; 
 		 END IF;
 		 CALL CopyEntireMessage();
