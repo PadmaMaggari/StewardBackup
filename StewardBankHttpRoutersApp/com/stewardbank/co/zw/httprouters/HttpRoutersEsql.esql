@@ -63,12 +63,12 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
 		IF EXISTS(InputRoot.JSON[]) THEN
-			MOVE inRef TO InputRoot.JSON.Data;
+			MOVE inRef TO InputRoot.JSON.Data.receive.isomsg;
 		ELSE
 			MOVE inRef TO InputRoot.XMLNSC.log.receive.isomsg; 
 		END IF;
 		DECLARE httpDetails REFERENCE TO InputRoot.HTTPInputHeader;
-		-- DECLARE procCode CHARACTER COALESCE(SUBSTRING(inRef.field.Item[2].value FROM 1 FOR 2),SUBSTRING(FIELDVALUE(inRef.field[2]) FROM 1 FOR 2),'');
+		DECLARE procCode CHARACTER COALESCE(SUBSTRING(inRef.field.Item[3].value FROM 1 FOR 2),SUBSTRING(FIELDVALUE(inRef.field[3]) FROM 1 FOR 2),'');
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
@@ -77,9 +77,9 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Request: '||Environment.reqMsg) INTO rc ;   
 		END IF;
-		--SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
+		SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
 		--SET procCodeData = 'MobileWorld';
-		SET procCodeData = InputRoot.JSON.Data.channel; 
+		--SET procCodeData = InputRoot.JSON.Data.channel; 
 		-- ==================== HTTP DETAILS =========================
 		Set OutputRoot.MQRFH2.usr.HTTP.Properties = InputRoot.Properties;
 		Set OutputRoot.MQRFH2.usr."Content-Type" = httpDetails."Content-Type";
