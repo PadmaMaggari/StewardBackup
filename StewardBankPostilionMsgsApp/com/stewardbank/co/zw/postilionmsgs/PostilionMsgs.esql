@@ -13,18 +13,25 @@ PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH, APPLICATION_NAME, RAW_AUDIT_LOGGING, ERROR_AUDIT_LOGGING, EXCEPTION_QUEUE EXTERNAL CHARACTER;
 CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_GenerateReqToT24     
 	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
+	BEGIN     
 		CALL GenerateReqToT24();
 		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE GenerateReqToT24 () BEGIN
 
-
+      
+		
 		SET Environment.usr = InputRoot.MQRFH2.usr;
 		/* ==================== Database Logging Start ==================== */
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Request',ApplicationLabel,BrokerName, Environment.usr.timeLocalTransaction, Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
+		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		
+		
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName, Environment.usr.timeLocalTransaction, Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		SET OutputRoot = NULL;
@@ -45,12 +52,12 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_GenerateReqToT24
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG','..............Start Postilion Messages logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG','Request to Postilion Msgs::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG',Environment.reqMsg) INTO rc;
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.DFDL = OutputRoot.DFDL;
 		SET OutputRoot = NULL;
 		/* ==================== Database Logging Start ==================== */
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Request', ApplicationLabel, BrokerName, Environment.usr.timeLocalTransaction, Environment.usr.dateLocalTransaction, Environment.usr.retrievalReferenceNumber, outRefer);		
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'T24 Request', ApplicationLabel, BrokerName, Environment.usr.timeLocalTransaction, Environment.usr.dateLocalTransaction, Environment.usr.retrievalReferenceNumber, outRefer);		
 
 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
@@ -59,7 +66,7 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_GenerateReqToT24
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.DFDL = Environment.DFDL;
 		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG',Environment.reqMsg) INTO rc;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -75,13 +82,15 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_GenerateResToPostilion
 
 	CREATE PROCEDURE GenerateResToPostilion() BEGIN
 		/* ==================== Database Logging Starting ==================== */
-
-		DECLARE resData CHARACTER;
-		SET Environment.resData = CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);		
+			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
+		SET Environment.resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		
 
 
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'T24 Response', ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction, Environment.usr.dateLocalTransaction, Environment.usr.retrievalReferenceNumber, outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'T24 Response', ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction, Environment.usr.dateLocalTransaction, Environment.usr.retrievalReferenceNumber, outRefer);
 
 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
@@ -106,7 +115,7 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_GenerateResToPostilion
 		SET Environment.dfdlData=InputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== Database Logging Starting ==================== */
-		CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER),'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 
 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
@@ -117,7 +126,7 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_GenerateResToPostilion
 		SET OutputRoot.MQRFH2.resData = Environment.resData;
 		SET OutputRoot.DFDL = Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG','Request To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG',Environment.resMsg) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
 		PROPAGATE TO TERMINAL 'out';
 	END;
@@ -128,15 +137,6 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_ExceptionPropagation
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL BuildErrorMsg();
-		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
-		IF (rc = FALSE) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
-		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG','..............Start Exception logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
-
 		RETURN FALSE;
 	END;
 
@@ -158,18 +158,29 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_ExceptionPropagation
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 
 		CALL BuildExceptionDetails(excpRef,outRef,'PostilionMsgs');
+		DECLARE brokerErrorMsg CHARACTER;
+		DECLARE userErrorMsg CHARACTER;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE  UserdomainDataRef REFERENCE TO InputRoot.XMLNSC;
+		SET userErrorMsg = getPayLoad(FIELDNAME(InputBody),UserdomainDataRef,encodeRef,ccidRef); 
+		     
+		
 		SET Environment.postilionMsgsErrorCode = OutputRoot.XMLNSC;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
+--		/* ==================== Database Logging Ended ==================== */
+
+
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..................... POSTILION MSGS EXCEPTION .....................') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||userErrorMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','TCPIP ID:'||InputRoot.MQRFH2.usr.Id) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
 		PROPAGATE TO TERMINAL 'out';
-		/* ==================== Database Logging Started ==================== */
-		DECLARE exe_Desc CHARACTER'';
-		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
+		
+		/* ==================== DATA BASE LOGGING ==================== */
 
-		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.postilionMsgsErrorCode.PostilionMsgs.ErrorCode,outRefer);
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
+		 CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
-		/* ==================== Database Logging Ended ==================== */
+
 	END;
 END MODULE;
