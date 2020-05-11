@@ -173,7 +173,8 @@ CREATE COMPUTE MODULE ExceptionHandling
 		Set OutputRoot.Properties = Environment.Variables.Properties;
 		Set OutputRoot.MQMD = Environment.Variables.MQMD;
 		Set OutputRoot.MQRFH2 = Environment.Variables.MQRFH2;
-		SET OutputRoot.XMLNSC =  Environment.Variables.UserDefinedErrorCodes;  
+		SET OutputRoot.XMLNSC =  Environment.Variables.UserDefinedErrorCodes;
+		SET OutputRoot.XMLNSC.ExceptionDetails.ExcpNumber = Environment.Variables.ExceptionData.excpNumber;    
 	END;
 	
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
