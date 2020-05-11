@@ -210,7 +210,8 @@ CREATE COMPUTE MODULE WalletToBankFlow_FramimgExceptionDetails
 --		SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 		
 		-- ***********Calling DB logging procedure for logging Exception Details*********** 
-			CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,Environment.brokerErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(InputRoot.XMLNSC.ExceptionDetails.excpNumber AS CHARACTER),Environment.walletToBankErrorCode.WalletToBank.ErrorCode,outRefer);
+			CALL Error_DBLogging(Environment.usr.Id,Environment.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,Environment.brokerErrorMsg,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,CAST(COALESCE(excpRef.excpNumber,excpRef.ExcpNumber,'') AS CHARACTER),Environment.walletToBankErrorCode.WalletToBank.ErrorCode,outRefer);
+			
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		
