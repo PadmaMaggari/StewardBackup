@@ -47,6 +47,9 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow
 				RETURN TRUE;
 			END IF;
 		 ELSE
+		 	SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			PROPAGATE TO TERMINAL 'out1';
 		 	RETURN FALSE;
 		 END IF;
 		
