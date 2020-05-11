@@ -17,7 +17,7 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 		CALL GenerateReqToT24();
 		RETURN FALSE;
 	END;
-	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		CREATE PROCEDURE GenerateReqToT24() BEGIN
 		/* ==================== Setting MQRFH2 Details in Environment ==================== */
 		SET Environment.usr= InputRoot.MQRFH2.usr;
 		/* ==================== Database Logging ==================== */
@@ -59,7 +59,7 @@ CREATE COMPUTE MODULE Zipit_GenerateReqToT24
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.DFDL= Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',Environment.reqMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',Environment.reqMsg) INTO rc; 
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -78,7 +78,7 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 		CALL GenerateResToPostilion();
 		RETURN FALSE;
 	END;
-	CREATE PROCEDURE GenerateResToPostilion() BEGIN
+CREATE PROCEDURE GenerateResToPostilion() BEGIN
 		SET Environment.Properties = InputRoot.Properties;
 		SET Environment.MQMD = InputRoot.MQMD;
 		/* ==================== Database Logging ==================== */
@@ -105,7 +105,7 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path ';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','.........................') INTO rc;
-		/*field to field mapping*/
+		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.dfdlData=InputRoot.DFDL;
 		SET OutputRoot=NULL;
@@ -120,7 +120,7 @@ CREATE COMPUTE MODULE Zipit_GenerateResToPostilion
 		SET OutputRoot.DFDL=Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Request To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',Environment.resMsg) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName; 
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -150,9 +150,9 @@ CREATE COMPUTE MODULE ZipitFlowCaptureException
 		DECLARE Id CHARACTER '';
 		SET Id= CAST(Environment.usr.Id AS CHARACTER);
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'ZipitReceive';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'ZipitReceive'; 
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'ZipitReceive'); 
+		CALL BuildExceptionDetails(excpRef,outRef,'ZipitReceive');
 		DECLARE brokerErrorMsg CHARACTER;
 		DECLARE userErrorMsg CHARACTER;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
@@ -160,14 +160,14 @@ CREATE COMPUTE MODULE ZipitFlowCaptureException
 		DECLARE UserdomainDataRef REFERENCE TO InputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		SET brokerErrorMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-		SET userErrorMsg = getPayLoad(FIELDNAME(InputBody),UserdomainDataRef,encodeRef,ccidRef);
+		SET userErrorMsg = getPayLoad(FIELDNAME(InputBody),UserdomainDataRef,encodeRef,ccidRef);		
 		SET Environment.ZipitReceiveErrorCode=OutputRoot.XMLNSC;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..................... ZipitReceive Exception .....................') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||userErrorMsg) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','TCPIP ID:'||InputRoot.MQRFH2.usr.Id) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
 		PROPAGATE TO TERMINAL 'out';
-		/* ==================== Database Logging ==================== */
+		/* ==================== DATA BASE LOGGING ==================== */
 		--DECLARE exe_Desc CHARACTER'';
 		--SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.ZipitReceiveErrorCode.ZipitReceive.ErrorCode,outRefer);

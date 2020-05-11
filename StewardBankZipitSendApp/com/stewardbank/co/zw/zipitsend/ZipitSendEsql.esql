@@ -83,8 +83,6 @@ CREATE COMPUTE MODULE ZipitSendFlow_GenerateResToPostilion
 		SET Environment.Properties = InputRoot.Properties;
 		SET Environment.MQMD = InputRoot.MQMD;
 		/* ==================== Database Logging ==================== */
-		DECLARE resData CHARACTER;
-		-- SET Environment.resData= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
@@ -108,7 +106,7 @@ CREATE COMPUTE MODULE ZipitSendFlow_GenerateResToPostilion
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path ';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','.........................') INTO rc;
-		/*field to field mapping*/
+		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.dfdlData=InputRoot.DFDL;
 		SET OutputRoot=NULL;
@@ -145,7 +143,7 @@ CREATE COMPUTE MODULE ZipitSendFlow_CaptureException
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ; 
+			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
@@ -170,11 +168,11 @@ CREATE COMPUTE MODULE ZipitSendFlow_CaptureException
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','TCPIP ID:'||InputRoot.MQRFH2.usr.Id) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
 		PROPAGATE TO TERMINAL 'out';
-		/* ==================== Database Logging ==================== */
+		/* ==================== DATA BASE LOGGING ==================== */
 		--DECLARE exe_Desc CHARACTER'';
 		--SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
 		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.ZipitSendErrorCode.ZipitSend.ErrorCode,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING; 
-		PROPAGATE TO TERMINAL 'out';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
+		PROPAGATE TO TERMINAL 'out'; 
 	END;
 END MODULE;
