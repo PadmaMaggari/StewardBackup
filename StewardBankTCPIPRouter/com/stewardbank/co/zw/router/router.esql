@@ -29,15 +29,8 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 		RETURN FALSE;
 	END;
 
-	
-
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
-		
---		    DECLARE RequestMsgData CHARACTER'';
---		    SET RequestMsgData =  CAST(ASBITSTREAM(InputRoot.DFDL CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
-		    
-		    
-		    	DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
@@ -161,13 +154,8 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_BuildExceptionDetails
 		RETURN FALSE;
 	END;
 
-	
-
 	CREATE PROCEDURE BuildOutGoingRouterErrorMsg() BEGIN
-		
-		
-		
-		
+	
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -193,18 +181,10 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_BuildExceptionDetails
 		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER'';  
 		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-		
-		
-		
-			CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','=====================================  OUTGOING ROUTER  EXCEPTIOPN =================================') INTO rc ;
-		
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','=====================================  OUTGOING ROUTER  EXCEPTIOPN =================================') INTO rc ;
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','ISO Response: '||exe_Desc) INTO rc ;
-				CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','TCPIP ID: '||InputRoot.MQRFH2.usr.Id)INTO rc;
-		
-			
-		
-			CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id ,Environment.reqMsg,'Router Response Error',ApplicationLabel,BrokerName,exe_Desc,Environment.systemsTraceAuditNumber,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
-			
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','TCPIP ID: '||InputRoot.MQRFH2.usr.Id)INTO rc;
+		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id ,Environment.reqMsg,'Router Response Error',ApplicationLabel,BrokerName,exe_Desc,Environment.systemsTraceAuditNumber,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q ;
 		PROPAGATE TO TERMINAL 'out1';
 	END;
@@ -217,12 +197,9 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 		RETURN FALSE;
 	END;
 
-
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
-	
-		   
 		DECLARE reqMsg,resMsg CHARACTER'';
-		 	DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 		SET resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
@@ -256,34 +233,30 @@ CREATE COMPUTE MODULE InternalFundTransferFlowPostilionReq_RouteBasedOnProtocol
 		IF  MTI LIKE MTI_Version||MTI_MessageClass||MTI_MessageFunction||MTI_MessageOrigin  THEN 
 			
 			DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(InputRoot.MQRFH2.usr.Id,reqMsg,'Router Response Zss',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
+			CALL DBLogging(InputRoot.MQRFH2.usr.Id,reqMsg,'Router Response Zss',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+				
+				SET OutputRoot = InputRoot  ;
+			
+			SET req = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response: '||req) INTO rc ;
+				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response TCPIP ID: '||tcpipDetails.Id)INTO rc;
+			
+			
+			PROPAGATE TO TERMINAL 'out2';
+		ELSE
+	
+			-- =================== CALLING DB RAW AUDIT LOGGING ==============
+			DECLARE outRefer REFERENCE TO OutputRoot;
+			CALL DBLogging(InputRoot.MQRFH2.usr.Id,reqMsg,'Router Response',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
 			
 			SET OutputRoot = InputRoot  ;
+			PROPAGATE TO TERMINAL 'out' DELETE NONE;
 		
-		SET req = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response: '||req) INTO rc ;
-			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response TCPIP ID: '||tcpipDetails.Id)INTO rc;
-		
-		
-		PROPAGATE TO TERMINAL 'out2';
-			ELSE
-	
-		
-		
-		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(InputRoot.MQRFH2.usr.Id,reqMsg,'Router Response',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
-		
-		SET OutputRoot = InputRoot  ;
-		PROPAGATE TO TERMINAL 'out' DELETE NONE;
-		
-			END IF;
-		
-		
+		END IF;
 		
 		
 	END;
@@ -311,9 +284,6 @@ CREATE COMPUTE MODULE IncomingRouterFlow_BuildExceptionDetails
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		
-		
-	
 		DECLARE exe_Desc CHARACTER'';  
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'InComingRouter';
@@ -324,34 +294,20 @@ CREATE COMPUTE MODULE IncomingRouterFlow_BuildExceptionDetails
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ ;
 		PROPAGATE TO TERMINAL 'out';
 		
-		
-		
-			
-	
 			-- DB Logging===================
-			
-			
-			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
 		
 		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','=====================================  INCOMING ROUTER  EXCEPTIOPN =================================') INTO rc ;
 		
-		
-			CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','=====================================  INCOMING ROUTER  EXCEPTIOPN =================================') INTO rc ;
-		
-		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','ISO Request: '||exe_Desc) INTO rc ;
-				CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','TCPIP ID: '||Environment.tcpip.Id)INTO rc;
-		
-			
-		 CALL Error_DBLogging(Environment.tcpip.Id ,Environment.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.systemsTraceAuditNumber,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.userDefineError.InComingRouter.ErrorCode,outRefer);
-
-
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','TCPIP ID: '||Environment.tcpip.Id)INTO rc;
+		CALL Error_DBLogging(Environment.tcpip.Id ,Environment.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.systemsTraceAuditNumber,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.userDefineError.InComingRouter.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
-		
-		
 		
 	END;
 END MODULE;
