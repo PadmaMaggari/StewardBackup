@@ -43,7 +43,7 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow
 			ELSE
 				SET envRef.Counter = envRef.Counter + 1;
 				CALL retryWithDelay(envRef.Counter);
-				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','retry the request after '||RETRY_INTERVAL||' sec delay for current count:'||CAST(envRef.Counter AS CHARACTER)||'is Complete') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','retry the request after '||CAST(RETRY_INTERVAL AS CHARACTER)||' sec delay for current count:'||CAST(envRef.Counter AS CHARACTER)||'is Complete') INTO rc;
 				RETURN TRUE;
 			END IF;
 		 ELSE
