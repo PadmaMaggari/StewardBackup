@@ -2,12 +2,12 @@
 
 BROKER SCHEMA com.stewardbank.co.zw.currencyconvertor
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE resQueueName EXTERNAL CHARACTER;
+--DECLARE resQueueName EXTERNAL CHARACTER;
 DECLARE LOG_CONFIG_PATH,APPLICATION_NAME,RAW_AUDIT_LOGGING,ERROR_AUDIT_LOGGING,EXCEPTION_QUEUE EXTERNAL CHARACTER;
 CREATE COMPUTE MODULE CurrencyConvertor_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL GenerateReqToT24();
+		CALL GenerateReqToT24();  
 		RETURN FALSE;
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
@@ -16,11 +16,11 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateReqToT24
 		/* ==================== Database Logging ==================== */
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
-		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding; 
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
 		SET Environment.usr.Id = InputRoot.MQRFH2.usr.RequestIdentifier;
 		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg ,'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg ,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		SET OutputRoot=NULL;
@@ -50,7 +50,7 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateReqToT24
 		SET Environment.jsonData=OutRefer1;
 		SET OutputRoot=NULL;
 		/* ==================== Database Logging ==================== */
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'T24 Request',ApplicationLabel,BrokerName,'','','',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		/* ==================== Database Logging End ==================== */
@@ -79,7 +79,7 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateResToPostilion
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
 		SET Environment.resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'T24 Response',ApplicationLabel,BrokerName,'','','',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot=NULL;
@@ -116,7 +116,7 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateResToPostilion
 		SET envref = OutRefer;
 		SET OutputRoot=NULL;
 		/* ==================== Database Logging ==================== */
-		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'Application Response',ApplicationLabel,BrokerName,'','','',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		/* ==================== Database Logging End ==================== */
@@ -130,6 +130,9 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateResToPostilion
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
+
+
+
 CREATE COMPUTE MODULE CurrencyConvertor_CaptureException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -169,9 +172,8 @@ CREATE COMPUTE MODULE CurrencyConvertor_CaptureException
 		/* ==================== DATA BASE LOGGING ==================== */
 		--DECLARE exe_Desc CHARACTER'';
 		--SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
-
-		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.CurrencyConvertorErrorCode.CurrencyConvertor.ErrorCode,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
+		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,'','','',CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.CurrencyConvertorErrorCode.CurrencyConvertor.ErrorCode,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING; 
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
