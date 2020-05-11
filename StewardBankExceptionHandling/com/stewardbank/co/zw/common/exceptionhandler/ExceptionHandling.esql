@@ -117,7 +117,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 					END IF;
 					CALL LogException(encodeRef,ccidRef);
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;			
-					RETURN FALSE;
+					RETURN TRUE;
 				END IF;
 			ELSEIF (CONTAINS(exceptionTxt,'ParserException') OR 
 				CONTAINS(exceptionTxt,'Connection refused') OR
