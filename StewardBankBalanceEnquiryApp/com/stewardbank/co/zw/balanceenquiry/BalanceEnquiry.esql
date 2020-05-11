@@ -157,7 +157,7 @@ CREATE COMPUTE MODULE BalanceEnquiryFlowCaptureException
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'BalanceEnquiry';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'BalanceEnquiry');
-		SET Environment.Variables.UserDefinedException = OutputRoot.XMLNSC;
+		SET Environment.UserDefinedException = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
@@ -165,7 +165,7 @@ CREATE COMPUTE MODULE BalanceEnquiryFlowCaptureException
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QNAME;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error  Logging in DB----------
-		CALL Error_DBLogging(Environment.tcpip.Id ,Environment.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.timeLocalTransaction,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.UserDefinedException.BalanceEnquiry.ErrorCode,outRefer);
+		CALL Error_DBLogging(Id ,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,CAST(COALESCE(excpRef.excpNumber,excpRef.ExcpNumber,'') AS CHARACTER),Environment.UserDefinedException.BalanceEnquiry.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out';

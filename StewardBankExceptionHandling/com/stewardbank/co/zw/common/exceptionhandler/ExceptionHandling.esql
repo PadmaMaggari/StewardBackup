@@ -16,6 +16,7 @@ DECLARE EXCEPTIONQ EXTERNAL CHARACTER '';
 DECLARE MAX_RETRY_COUNT EXTERNAL INTEGER 0;
 DECLARE HTTP_TIMEOUT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER'';
+DECLARE ALL_SB_TCP_RES EXTERNAL CHARACTER'';
 DECLARE rc BOOLEAN FALSE;
 CREATE COMPUTE MODULE ExceptionHandling
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -210,9 +211,9 @@ CREATE COMPUTE MODULE ExceptionHandling
 		SET outRef.MTI_MessageClass=SUBSTRING(mtiRes FROM 2 FOR 1);
 		SET outRef.MTI_MessageFunction=SUBSTRING(mtiRes FROM 3 FOR 1); 
 		SET outRef.MTI_MessageOrigin=SUBSTRING(mtiRes FROM 4 FOR 1);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_TCP_RES;--Environment.Variables.ResponseQ;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO','reponse queue:') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO',Environment.Variables.ResponseQ) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO','ALL_SB_TCP_RES') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef)) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end done') INTO rc;
