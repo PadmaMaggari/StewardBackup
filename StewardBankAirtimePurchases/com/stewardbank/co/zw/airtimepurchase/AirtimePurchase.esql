@@ -28,9 +28,9 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateReqToT24
 			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
-		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		SET OutputRoot=NULL;
@@ -49,19 +49,19 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateReqToT24
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','..............Start Airtime Purchases logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Request to Airtime Purchases::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.reqMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.dfdlData=OutputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== DATA BASE LOGGING ==================== */
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.Variables.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		/* ==================== DATA BASE LOGGING ENDING ==================== */
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.DFDL= Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.reqMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -80,11 +80,11 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateResToPostilion
 			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
-		SET Environment.resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 			
 			
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.Variables.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot=NULL;
@@ -109,15 +109,15 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateResToPostilion
 		SET Environment.dfdlData=InputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== DATA BASE LOGGING ==================== */
-		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.usr.Id,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		/* ==================== DATA BASE LOGGING ENDING ==================== */
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
 		SET OutputRoot.DFDL=Environment.dfdlData;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Request To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.resMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Responce To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
 		 PROPAGATE TO TERMINAL 'out';
 	END;
