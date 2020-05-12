@@ -13,7 +13,8 @@ CREATE DATABASE MODULE Raw_audit_logging_Database
 		DECLARE ccidRef INTEGER Root.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER Root.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO Root.XMLNSC; 
-		SET loggingData = getPayLoad(FIELDNAME(Body),domainDataRef,encodeRef,ccidRef); 
+		DECLARE domainName CHARACTER FIELDNAME(Root.XMLNSC);
+		SET loggingData = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
 		
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
@@ -76,7 +77,8 @@ CREATE COMPUTE MODULE RawAuditLogiggingFlow_CaptureException
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE  UserdomainDataRef REFERENCE TO InputRoot.XMLNSC;
-		SET userErrorMsg = getPayLoad(FIELDNAME(InputBody),UserdomainDataRef,encodeRef,ccidRef); 
+		DECLARE domainName CHARACTER FIELDNAME(InputRoot.XMLNSC);
+		SET userErrorMsg = getPayLoad(domainName,UserdomainDataRef,encodeRef,ccidRef); 
 		     
 		
 		SET Environment.miniStatementErrorCode=OutputRoot.XMLNSC;
