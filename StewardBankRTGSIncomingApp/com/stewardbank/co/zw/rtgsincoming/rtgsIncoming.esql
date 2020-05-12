@@ -1,0 +1,152 @@
+BROKER SCHEMA com.stewardbank.co.zw.rtgsincoming
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,RTGS_INCOMING_SB_Q EXTERNAL CHARACTER '';
+DECLARE UUID SHARED CHARACTER '';
+
+
+CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateReqToPostilion
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL CopyMessageHeaders();
+		CALL CopyEntireMessage();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.BLOB;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF (rc = FALSE) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Start RTGSIncoming logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','RTGSIncoming Request in RAW data start') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','RTGSIncoming Request in RAW data end') INTO rc;
+		SET OutputRoot.Properties.MessageSet = '{MT103}';
+		SET OutputRoot.Properties.MessageType = '{}:MT103';
+		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
+		parse(InputRoot.BLOB.BLOB ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','RTGSIncoming Request Original start') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','RTGSIncoming Request Original end') INTO rc;
+		
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET OutputRoot.Properties = InputRoot.Properties;
+		CALL CopyEntireMessage();
+		RETURN FALSE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF (rc = FALSE) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Start RTGSIncoming  ReqToPostilion logging...........') INTO rc;
+		DECLARE Response ROW;
+		DECLARE sql CHARACTER '';
+		SET UUID = UUIDASCHAR;
+		SET sql='INSERT INTO RTGS_INCOMING VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,ID_SEQ.NEXTVAL)';
+		SET Response.insert[]=PASSTHRU(sql VALUES(UUID,inDomainDataRef.MT103.header.Block1.SessionNumber,CURRENT_TIMESTAMP,
+		inDomainDataRef.MT103.header.Block1.SequenceNum,
+		getPayLoad(FIELDNAME(inDomainDataRef.MT103),inDomainDataRef.MT103,encodeRef,ccidRef),'','','',inDomainDataRef.MT103.body.MT20,
+		inDomainDataRef.MT103.body.MT32A,inDomainDataRef.MT103.body.MT59Data.MT59DataField,'','','','','',CURRENT_TIMESTAMP,''));
+		--get account details from db lookup
+		SET sql='SELECT * FROM ACCOUNTENQUIRY WHERE ACCOUNTNUMBER=?';
+		DECLARE CR CHARACTER CAST(CAST('X''0A''' AS BLOB) AS CHARACTER CCSID ccidRef);
+		DECLARE LF CHARACTER CAST(CAST('X''0D''' AS BLOB) AS CHARACTER CCSID ccidRef);
+		DECLARE MT50Data CHARACTER SUBSTRING(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField BEFORE CR) BEFORE LF) FROM 2);
+		DECLARE MT59Data CHARACTER SUBSTRING(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField BEFORE CR) BEFORE LF) FROM 2);
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',MT59Data) INTO rc;
+		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(MT59Data));
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RTGS_INCOMING_SB_Q ;
+		IF EXISTS(Response.accountEnquiry.*[])THEN
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{MT103}' TYPE '{}:MT103')  ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+			PROPAGATE TO TERMINAL 'out1';
+		ELSE
+			--get sample 0200 template from db
+			SET sql= 'SELECT REQUEST FROM T24RESPONSE WHERE MTIREQ=0200 AND PCODE=40'; 
+			SET Response.ROW[]=PASSTHRU(sql);
+			CREATE LASTCHILD OF Environment DOMAIN('DFDL') PARSE(Response.ROW[1].REQUEST  ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+			--mapping mt103 to iso8583
+			SET Environment.DFDL.ISO8583_1987.PrimaryBitmap.Bit004 = 1;
+			SET Environment.DFDL.ISO8583_1987.PrimaryBitmap.Bit049 = 1;
+			SET Environment.DFDL.ISO8583_1987.SecondaryBitmap.Bit102 = 1;
+			SET Environment.DFDL.ISO8583_1987.SecondaryBitmap.Bit103 = 1;
+			SET Environment.DFDL.ISO8583_1987.AmountTransaction_004 = CAST(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 10) AS DECIMAL);
+			SET Environment.DFDL.ISO8583_1987.CurrencyCodeTransaction_049 = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 1 FOR 3);
+			SET Environment.DFDL.ISO8583_1987.AccountIdentification1_102 = MT50Data;
+			SET Environment.DFDL.ISO8583_1987.AccountIdentification2_103 = MT59Data;
+			SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
+			SET OutputRoot.Properties.MessageType = '{}: ISO8583_1987';
+			DECLARE envDataRef REFERENCE TO Environment.DFDL;
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
+			PARSE(ASBITSTREAM(Environment.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming  ReqToPostilion logging...........') INTO rc;
+	
+	END;
+END MODULE;
+CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET OutputRoot.Properties = InputRoot.Properties;
+		CALL CopyEntireMessage();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF (rc = FALSE) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Start RTGSIncoming Exception logging...........') INTO rc;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE exe_Desc CHARACTER'';  
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'RTGSIncoming';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;    
+		CALL BuildExceptionDetails(excpRef,outRef,'RTGSIncoming');
+		SET Environment.userDefineError = OutputRoot.XMLNSC;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SB_EXCQ ;
+		PROPAGATE TO TERMINAL 'out';
+		
+			-- DB Logging===================
+		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
+		--CALL Error_DBLogging(Environment.tcpip.Id ,Environment.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.systemsTraceAuditNumber,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.userDefineError.InComingRouter.ErrorCode,outRefer);
+		--SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
+		--PROPAGATE TO TERMINAL 'out';
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming Exception logging...........') INTO rc;
+		
+	END;
+END MODULE;

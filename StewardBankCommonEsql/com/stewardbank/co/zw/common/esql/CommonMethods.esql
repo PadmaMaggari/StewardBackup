@@ -568,8 +568,8 @@ BEGIN
 			SET payload=CAST(ASBITSTREAM(domainDataRef CCSID ccidRef ENCODING encodeRef) AS CHARACTER CCSID ccidRef ENCODING encodeRef);
 	ELSEIF domainName='DFDL' THEN
 		SET payload=CAST(ASBITSTREAM(domainDataRef  ENCODING encodeRef CCSID ccidRef  SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER CCSID ccidRef);
-		
-		      
+	ELSEIF domainName='MT103' THEN
+		SET payload=CAST(ASBITSTREAM(domainDataRef  ENCODING encodeRef CCSID ccidRef  SET '{MT103}' TYPE '{}:MT103') AS CHARACTER CCSID ccidRef);    
 	END IF;  
 	RETURN payload;
 END;
