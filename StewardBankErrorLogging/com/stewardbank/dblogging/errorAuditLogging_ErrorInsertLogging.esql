@@ -5,30 +5,25 @@ DECLARE LOG_CONFIG_PATH,RAW_AUDIT_LOGGING,ERROR_AUDIT_LOGGING,EXCEPTION_QUEUE EX
 CREATE DATABASE MODULE errorAuditLogging_ErrorInsertLogging
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		
-		
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;  
-		DECLARE loggingData CHARACTER;
-		DECLARE ccidRef INTEGER Root.Properties.CodedCharSetId;
-		DECLARE encodeRef INTEGER Root.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO Root.XMLNSC; 
-		SET loggingData = getPayLoad(FIELDNAME(Body),domainDataRef,encodeRef,ccidRef); 
-		
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path';
 		END IF;
+		DECLARE loggingData CHARACTER;
+		DECLARE ccidRef INTEGER Root.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER Root.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO Root.XMLNSC; 
+		DECLARE domainName CHARACTER FIELDNAME(Root.XMLNSC);
+		SET loggingData = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
 		CALL writeToLogFile(MessageFlowLabel, 'errorRawAuditLogging', 'DEBUG','..............ERROR_AUDIT_LOGGING ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'errorRawAuditLogging', 'DEBUG',loggingData) INTO rc;
-		
-		
-		DECLARE Inpref REFERENCE TO Root.JSON.Data.DBLogging;
+		DECLARE inRef REFERENCE TO Root.JSON.Data.DBLogging;
 		DECLARE creationDate TIMESTAMP CAST(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');
-		call insertdb_logging_error(Inpref.MSGID,creationDate,Inpref.MESSAGE,Inpref.MESSAGE_TYPE,Inpref.APPNAME,Inpref.BROKERNAME,Inpref.ERRORDESCRIPTION,Inpref.TIME_LOCAL_TRANSACTION,Inpref.DATE_LOCAL_TRANSACTION,Inpref.RETRIEVAL_REFERENCE_NUMBER,Inpref.BORKER_ERROR_CODE,Inpref.USER_DEFINE_ERROR_CODE);
+		call insertdb_logging_error(inRef.MSGID,creationDate,inRef.MESSAGE,inRef.MESSAGE_TYPE,inRef.APPNAME,inRef.BROKERNAME,inRef.ERRORDESCRIPTION,inRef.TIME_LOCAL_TRANSACTION,inRef.DATE_LOCAL_TRANSACTION,inRef.RETRIEVAL_REFERENCE_NUMBER,inRef.BORKER_ERROR_CODE,inRef.USER_DEFINE_ERROR_CODE);
 		RETURN TRUE; 
 	END; 
-
 END MODULE;      
 
 CREATE PROCEDURE insertdb_logging_error (IN MSGID CHARACTER,IN LIGGING_TIME TIMESTAMP,IN MESSAGE CHARACTER,IN MESSAGE_TYPE CHARACTER,IN APPNAME CHARACTER,IN BROKERNAME CHARACTER,IN EXCEPTIONdESC CHARACTER,IN TIME_LOCAL_TRANSACTION CHARACTER,IN DATE_LOCAL_TRANSACTION CHARACTER,IN RETRIEVAL_REFERENCE_NUMBER CHARACTER,IN BORKER_ERROR_CODE CHARACTER,IN USER_DEFINE_ERROR_CODE CHARACTER)
@@ -43,12 +38,7 @@ CREATE COMPUTE MODULE ErrorAuditLoggingFlow_CapturerException
 		 CALL BuildErrorMsg();
 		RETURN FALSE;
 	END;
-
-	
-
 		CREATE PROCEDURE BuildErrorMsg() BEGIN
-		
-		
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -57,29 +47,22 @@ CREATE COMPUTE MODULE ErrorAuditLoggingFlow_CapturerException
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		DECLARE Id CHARACTER '';
-		SET Id= CAST(Environment.usr.Id AS CHARACTER);
-		
-
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC'; 
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'ErrorAuditLogging';
-		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-     
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;     
 		CALL BuildExceptionDetails(excpRef,outRef,'ErrorAuditLogging');
 		DECLARE brokerErrorMsg CHARACTER;
 		DECLARE userErrorMsg CHARACTER;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE  UserdomainDataRef REFERENCE TO InputRoot.XMLNSC;
-		SET userErrorMsg = getPayLoad(FIELDNAME(InputBody),UserdomainDataRef,encodeRef,ccidRef); 
-		     
-		
+		DECLARE domainName CHARACTER FIELDNAME(InputRoot.XMLNSC);
+		SET userErrorMsg = getPayLoad(domainName,UserdomainDataRef,encodeRef,ccidRef); 
 		SET Environment.miniStatementErrorCode=OutputRoot.XMLNSC;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','.....................ERROR_AUDIT_LOGGING EXCEPTION .....................') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||userErrorMsg) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
 		PROPAGATE TO TERMINAL 'out';
-		
 	END;
 END MODULE;
 
