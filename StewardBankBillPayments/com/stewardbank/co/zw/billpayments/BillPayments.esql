@@ -121,7 +121,7 @@ CREATE COMPUTE MODULE BankBillPayments_GenerateResToPostilion
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
 		SET OutputRoot.DFDL=Environment.dfdlData;
-		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG','Request To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG','Responce To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG',Environment.resMsg) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
 		PROPAGATE TO TERMINAL 'out';
