@@ -22,7 +22,7 @@ CREATE COMPUTE MODULE MiniStatementFlow_GenerateReqToT24
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		
-		     
+		  
 	
 		/* ==================== SETTING MQRFH2 DETAILS IN ENVIRANMENT ==================== */
 		SET Environment.usr= InputRoot.MQRFH2.usr;
@@ -180,7 +180,7 @@ CREATE COMPUTE MODULE MiniStatementFlow_CaptureException
 		SET Environment.miniStatementErrorCode=OutputRoot.XMLNSC;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..................... MINI STATEMENT EXCEPTION .....................') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||userErrorMsg) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','TCPIP ID:'||InputRoot.MQRFH2.usr.Id) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','TCPIP ID:'||Id) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
 		PROPAGATE TO TERMINAL 'out';
 		
