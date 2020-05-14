@@ -1,0 +1,66 @@
+BROKER SCHEMA com.stewardbank.co.zw.dblogging
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH,EXCEPTION_Q EXTERNAL CHARACTER'';
+CREATE DATABASE MODULE RawAuditDBLoggingFlow_InsertLogs
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		DECLARE loggingData CHARACTER;
+		DECLARE ccidRef INTEGER Root.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER Root.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO Root.XMLNSC; 
+		DECLARE domainName CHARACTER FIELDNAME(Root.XMLNSC);
+		SET loggingData = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path';
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'RawLogger', 'DEBUG','..............RAW_AUDIT_LOGGING ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RawLogger', 'DEBUG',loggingData) INTO rc;
+		DECLARE Inpref REFERENCE TO Root.JSON.Data.DBLogging;
+		DECLARE creationDate TIMESTAMP CAST(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');
+		CALL insertdb_logging(Inpref.MSGID,creationDate,Inpref.MESSAGE,Inpref.MESSAGE_TYPE,Inpref.APPNAME,Inpref.BROKERNAME,Inpref.TIME_LOCAL_TRANSACTION,Inpref.DATE_LOCAL_TRANSACTION,Inpref.RETRIEVAL_REFERENCE_NUMBER);
+		RETURN TRUE;
+	END;  
+END MODULE;
+CREATE PROCEDURE insertdb_logging (IN MSGID CHARACTER,IN LIGGING_TIME TIMESTAMP,IN MESSAGE CHARACTER,IN MESSAGE_TYPE CHARACTER,IN APPNAME CHARACTER,IN BROKERNAME CHARACTER,IN TIME_LOCAL_TRANSACTION CHARACTER,IN DATE_LOCAL_TRANSACTION CHARACTER,IN RETRIEVAL_REFERENCE_NUMBER CHARACTER)
+LANGUAGE DATABASE
+EXTERNAL NAME "INSERT_RAW_AUDIT";
+
+CREATE COMPUTE MODULE RawAuditDBLoggingFlow_CaptureException
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL BuildErrorMsg();
+		RETURN FALSE;
+	END;
+	
+	CREATE PROCEDURE BuildErrorMsg() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE Id CHARACTER '';
+		SET Id= CAST(Environment.usr.Id AS CHARACTER);
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC'; 
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'RawAuditLogging';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'RawAuditLogging');
+		DECLARE brokerErrorMsg CHARACTER;
+		DECLARE userErrorMsg CHARACTER;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE  domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE domainName CHARACTER FIELDNAME(InputRoot.XMLNSC);
+		SET userErrorMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
+		SET Environment.UserDefinedErrorCode=OutputRoot.XMLNSC;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','.....................RAW_AUDIT_LOGGING EXCEPTION .....................') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','User Define Exception:'||userErrorMsg) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+	END;
+END MODULE;
