@@ -1,3 +1,12 @@
+/*
+Author:Rathod Veerender
+Version:0.0.1
+Date of Creation:13-05-2020
+Date of Modification:14-05-2020
+Description:Pick file from remote location and based on the account send request to t24 or zss.
+			If it is t24 account then send MT103 else send ISO8583 to ZSS.
+ 			
+*/
 BROKER SCHEMA com.stewardbank.co.zw.rtgsincoming
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,RTGS_INCOMING_SB_Q EXTERNAL CHARACTER '';
@@ -8,7 +17,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateReqToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyMessageHeaders();
-		CALL CopyEntireMessage();
+		CALL BuildMT103FromRaw();
 		RETURN TRUE;
 	END;
 
@@ -21,8 +30,10 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateReqToPostilion
 			SET I = I + 1;
 		END WHILE;
 	END;
-
-	CREATE PROCEDURE CopyEntireMessage() BEGIN
+	/*
+	build MT103 from raw data recevied from remote location
+	*/
+	CREATE PROCEDURE BuildMT103FromRaw() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -52,11 +63,14 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
-		CALL CopyEntireMessage();
+		CALL LogRequestAndBuildISO8583OrMT103Req();
 		RETURN FALSE;
 	END;
-
-	CREATE PROCEDURE CopyEntireMessage() BEGIN
+	/*
+	Log Incoming Request i.e MT103 in RTGS_INCOMING_DETAILS Table and form ISO8583 if account is in T24 or
+	else form MT103 
+	*/
+	CREATE PROCEDURE LogRequestAndBuildISO8583OrMT103Req() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -115,11 +129,11 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
-		CALL CopyEntireMessage();
+		CALL BuildErrorMsg();
 		RETURN TRUE;
 	END;
 
-	CREATE PROCEDURE CopyEntireMessage() BEGIN
+	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
