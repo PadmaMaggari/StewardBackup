@@ -6,10 +6,10 @@ Date of Modification:06-04-2020 (We will get the queue details from DB based on 
 Description: This is the TCPIP router flow.It will route the message to actual transaction flow based on Processing Code.
 This TCPIP Router would be triggered whenever Postilion initiate the request to ESB.
 */
-
 BROKER SCHEMA com.stewardbank.co.zw.router
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE getDBDetailsCache SHARED ROW;
+CREATE COMPUTE MODULE IncomingRouterFlow_RouteToInterfaceBasedonProcessingCode
 DECLARE DSN EXTERNAL CHARACTER '';
 DECLARE SCH EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
@@ -17,17 +17,18 @@ DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE rc BOOLEAN;
 DECLARE NETWORKPROCESSCODE EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
-DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
-DECLARE ExceptionQ EXTERNAL CHARACTER '';
-CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
-
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyEntireMessage();
 		RETURN FALSE;
 	END;
-
+	
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+		END IF;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
@@ -61,12 +62,6 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 		SET Environment.reqMsessage = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		SET Environment.Id=tcpipDetails.Id;
 		DECLARE req CHARACTER;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
-		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
-		END IF;
-
 		IF IsLogRequired LIKE 'Y' THEN
 			SET req = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','=====================================  INCOMMING  ROUTER =================================') INTO rc ;
@@ -142,11 +137,15 @@ CREATE COMPUTE MODULE incominrouter_RouteToInterfaceBasedonProcessingCode
 END MODULE;
 
 
-CREATE COMPUTE MODULE IncomingRouterFlow_BuildExceptionDetails
+CREATE COMPUTE MODULE IncomingRouterFlow_CaptureExceptionDetails
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE rc BOOLEAN;
+DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyMessageHeaders();
-		CALL BuildExceptionForIncomingRouter();
+		CALL CaptureExceptionDetails();
 		RETURN FALSE;
 	END;
 
@@ -160,7 +159,12 @@ CREATE COMPUTE MODULE IncomingRouterFlow_BuildExceptionDetails
 		END WHILE;
 	END;
 
-	CREATE PROCEDURE BuildExceptionForIncomingRouter() BEGIN
+	CREATE PROCEDURE CaptureExceptionDetails() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE exe_Desc CHARACTER'';
@@ -169,7 +173,7 @@ CREATE COMPUTE MODULE IncomingRouterFlow_BuildExceptionDetails
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'InComingRouter');
 		SET Environment.userDefineError = OutputRoot.XMLNSC;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ ;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q ;
 		PROPAGATE TO TERMINAL 'out';
 		-- DB Logging===================
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
@@ -180,7 +184,7 @@ CREATE COMPUTE MODULE IncomingRouterFlow_BuildExceptionDetails
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','TCPIP ID: '||Environment.tcpip.Id)INTO rc;
 		CALL Error_DBLogging(Environment.tcpip.Id ,Environment.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.systemsTraceAuditNumber,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.userDefineError.InComingRouter.ErrorCode,outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 	END;
 END MODULE;
