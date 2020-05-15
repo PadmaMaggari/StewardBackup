@@ -25,8 +25,19 @@
 								</xsd:complexType>
 							</xsd:element>
 							<xsd:element dfdl:initiator="%#123;2:" dfdl:lengthKind="delimited" dfdl:terminator="%#125;" name="Block2" type="xsd:string"/>
-							<xsd:element dfdl:initiator="%#123;3:" dfdl:lengthKind="delimited" dfdl:terminator="%#125;%#125;" name="Block3" type="xsd:string"/>
-						</xsd:sequence>
+							<xsd:element dfdl:initiator="%#123;3:" dfdl:lengthKind="delimited" dfdl:terminator="%#125;" name="Block3">
+               <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element dfdl:initiator="%#123;103:" dfdl:length="3" dfdl:terminator="%#125;" name="Tag103-ServiceIdentifier" type="xsd:string"/>
+                    <xsd:element dfdl:initiator="%#123;113:" dfdl:length="4" dfdl:occursCountKind="implicit" dfdl:terminator="%#125;" minOccurs="0" name="Tag113-BankingPriority" type="xsd:string"/>
+                    <xsd:element dfdl:initiator="%#123;108:" dfdl:length="16" dfdl:lengthKind="explicit" dfdl:occursCountKind="implicit" dfdl:terminator="%#125;" minOccurs="0" name="Tag108-MessageUserReference" type="xsd:string"/>
+                      <xsd:element dfdl:initiator="%#123;119:" dfdl:length="8" dfdl:occursCountKind="implicit" dfdl:terminator="%#125;" minOccurs="0" name="Tag119-ValidationFlag" type="xsd:string"/>                                      
+                     
+                    <xsd:element dfdl:initiator="%#123;115:" dfdl:length="30" dfdl:occursCountKind="implicit" dfdl:terminator="%#125;" minOccurs="0" name="Tag115-AddresseInformation" type="xsd:string"/>                                                                                                                        
+                  </xsd:sequence>
+                </xsd:complexType>
+              </xsd:element>
+                        </xsd:sequence>
 					</xsd:complexType>
 				</xsd:element>
 				<xsd:element dfdl:initiator="{{4:%CR;%LF;" dfdl:lengthKind="delimited" dfdl:occursCountKind="implicit" dfdl:terminator="-}" maxOccurs="unbounded" name="body">
