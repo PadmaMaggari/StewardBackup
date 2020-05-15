@@ -182,10 +182,8 @@ CREATE COMPUTE MODULE MiniStatementFlow_CaptureException
 		DECLARE userErrorMsg CHARACTER;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE UserdomainDataRef REFERENCE TO InputRoot.XMLNSC;
-		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-		SET brokerErrorMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-		SET userErrorMsg = getPayLoad(FIELDNAME(InputBody),UserdomainDataRef,encodeRef,ccidRef);
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		SET userErrorMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 
 
 		SET Environment.miniStatementErrorCode=OutputRoot.XMLNSC;
@@ -199,7 +197,7 @@ CREATE COMPUTE MODULE MiniStatementFlow_CaptureException
 		/* ==================== DATA BASE LOGGING ==================== */
 		--DECLARE exe_Desc CHARACTER'';
 		IF REQUIRED_DB_LOGGING LIKE 'Y' THEN
-			CALL Error_DBLogging(Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,CAST(COALESCE(excpRef.excpNumber,excpRef.ExcpNumber,'') AS CHARACTER),Environment.miniStatementErrorCode.Ministatement.ErrorCode,outRefer);
+			CALL Error_DBLogging(Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,CAST(Environment.Variables.excpNumber AS CHARACTER),Environment.miniStatementErrorCode.Ministatement.ErrorCode,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
