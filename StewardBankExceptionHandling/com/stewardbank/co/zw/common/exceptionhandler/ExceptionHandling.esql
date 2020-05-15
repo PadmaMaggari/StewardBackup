@@ -39,7 +39,8 @@ CREATE COMPUTE MODULE ExceptionHandling
 		SET Environment.Variables.MQRFH2 = InputRoot.MQRFH2;
 		/* ============================= THIS IS FOR DBLOGGING ***** I'M CASTING  INPUT.DFDL DATA INTO CHARACTER ========================= */
 		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
-		SET OutputRoot.MQRFH2.tcpId.Id=CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id AS CHARACTER);  
+		SET OutputRoot.MQRFH2.tcpId.Id=CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id AS CHARACTER);
+		SET OutputRoot.MQRFH2.usr.Id=CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id AS CHARACTER);  
 		SET Environment.tcpip.Id=CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id AS CHARACTER);
 	
 		/*  ==================================== DB LOGGING PROPERTIES END ===================================== */
@@ -55,6 +56,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 		CALL getExceptionDesc(excpRef,insertRef,outRef);
 		--set exception details in environment
 		SET Environment.Variables.ExceptionData.excpText = OutputRoot.XMLNSC.ExceptionDetails.excpText; --Here changed to get the exact exception information
+		SET Environment.Variables.excpNumber= OutputRoot.XMLNSC.ExceptionDetails.excpNumber;
 		DECLARE exceptionTxt CHARACTER Environment.Variables.ExceptionData.excpText;
 		
 		IF CONTAINS(exceptionTxt,'ParserException') THEN
@@ -194,6 +196,11 @@ CREATE COMPUTE MODULE ExceptionHandling
 	CREATE PROCEDURE revertBackToSystem(IN ccidRef INTEGER,IN encodeRef INTEGER)
 	BEGIN 
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end') INTO rc;
+		/* details like tcpip id and systemTraceNumber and dateLocalTransaction and retrievalRefarenceNumber */
+		SET OutputRoot.MQRFH2.usr.Id= Environment.usr.Id;
+		SET OutputRoot.MQRFH2.usr.timeLocalTransaction= Environment.systemsTraceAuditNumber;
+		SET OutputRoot.MQRFH2.usr.dateLocalTransaction= Environment.dateLocalTransaction;
+		SET OutputRoot.MQRFH2.usr.retrievalReferenceNumber= Environment.retrievalReferenceNumber;
 		DECLARE inRef REFERENCE TO Environment.Variables.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
@@ -205,7 +212,9 @@ CREATE COMPUTE MODULE ExceptionHandling
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		--generate a error response in iso8583 to front end system in case of failure of t24
+		
 		CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED);
+		
 		
 		CALL MTIResponse(CAST(inRef.MTI_Version AS CHARACTER),CAST(inRef.MTI_MessageClass AS CHARACTER),CAST(inRef.MTI_MessageFunction AS CHARACTER),CAST(inRef.MTI_MessageOrigin AS CHARACTER)) into mtiRes;
 		SET outRef.MTI_Version=SUBSTRING(mtiRes FROM 1 FOR 1);
