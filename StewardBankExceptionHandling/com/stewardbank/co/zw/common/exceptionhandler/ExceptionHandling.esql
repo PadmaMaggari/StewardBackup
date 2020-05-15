@@ -54,7 +54,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 		--get exception in xml format
 		CALL getExceptionDesc(excpRef,insertRef,outRef);
 		--set exception details in environment
-		SET Environment.Variables.ExceptionData = OutputRoot.XMLNSC.ExceptionDetails.excpText; --Here changed to get the exact exception information
+		SET Environment.Variables.ExceptionData.excpText = OutputRoot.XMLNSC.ExceptionDetails.excpText; --Here changed to get the exact exception information
 		DECLARE exceptionTxt CHARACTER Environment.Variables.ExceptionData.excpText;
 		
 		IF CONTAINS(exceptionTxt,'ParserException') THEN
