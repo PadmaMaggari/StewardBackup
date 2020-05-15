@@ -190,7 +190,7 @@ CREATE COMPUTE MODULE BankBillPayments_CaptureException
 		PROPAGATE TO TERMINAL 'out';
 		/* ==================== DATA BASE LOGGING ==================== */
 		IF REQUIRED_DB_LOGGING LIKE 'Y' THEN
-		CALL Error_DBLogging(Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,CAST(COALESCE(excpRef.excpNumber,excpRef.ExcpNumber,'') AS CHARACTER),Environment.billPaymentsErrorCode.BillPayments.ErrorCode,outRefer);
+		CALL Error_DBLogging(Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,CAST(Environment.Variables.excpNumber AS CHARACTER),Environment.billPaymentsErrorCode.BillPayments.ErrorCode,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
