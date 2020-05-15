@@ -132,8 +132,6 @@ DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 			SET OutputRoot.DFDL = InputRoot.DFDL;
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','=====================================Business QUEUENAME=================================') INTO rc ;
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG',QueueName) INTO rc ;
-			
-			
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;
 			PROPAGATE TO TERMINAL 'out' ;
 		END IF;
