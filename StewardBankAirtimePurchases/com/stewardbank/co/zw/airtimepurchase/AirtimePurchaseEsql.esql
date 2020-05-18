@@ -22,7 +22,7 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateReqToT24
 	  
 	
 		/* ==================== SETTING MQRFH2 DETAILS IN ENVIRANMENT ==================== */
-		SET Environment.usr= InputRoot.MQRFH2.usr;
+		SET Environment.Variables.usr= InputRoot.MQRFH2.usr;
 		/* ==================== DATA BASE LOGGING START ==================== */
 		DECLARE outRefer REFERENCE TO OutputRoot;
 			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
@@ -30,7 +30,7 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateReqToT24
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		IF REQUIRED_DB_LOGGING LIKE 'Y' THEN
-		CALL DBLogging(Environment.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.Variables.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.Variables.usr.timeLocalTransaction,Environment.Variables.usr.dateLocalTransaction,Environment.Variables.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
@@ -55,17 +55,17 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','TCPIP ID:'||InputRoot.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		CALL FieldToFieldMapping(inRef,outRef,'');
-		SET Environment.dfdlData=OutputRoot.DFDL;
+		SET Environment.Variables.dfdlData=OutputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== DATA BASE LOGGING ==================== */
 		IF REQUIRED_DB_LOGGING LIKE 'Y' THEN
-		CALL DBLogging(Environment.usr.Id,Environment.Variables.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.Variables.usr.Id,Environment.Variables.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.Variables.usr.timeLocalTransaction,Environment.Variables.usr.dateLocalTransaction,Environment.Variables.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		/* ==================== DATA BASE LOGGING ENDING ==================== */
 		SET OutputRoot.Properties=InputRoot.Properties;
-		SET OutputRoot.DFDL= Environment.dfdlData;
+		SET OutputRoot.DFDL= Environment.Variables.dfdlData;
 		IF REQUIRED_LOG4J_LOGGING LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Request To T24::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
@@ -94,7 +94,7 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateResToPostilion
 			
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF REQUIRED_DB_LOGGING LIKE 'Y' THEN
-		CALL DBLogging(Environment.usr.Id,Environment.Variables.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.Variables.usr.Id,Environment.Variables.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.Variables.usr.timeLocalTransaction,Environment.Variables.usr.dateLocalTransaction,Environment.Variables.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
@@ -117,25 +117,25 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateResToPostilion
 		
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
-		SET Environment.dfdlData=InputRoot.DFDL;
+		SET Environment.Variables.dfdlData=InputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== DATA BASE LOGGING ==================== */
 		IF REQUIRED_DB_LOGGING LIKE 'Y' THEN
-		CALL DBLogging(Environment.usr.Id,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.Variables.usr.Id,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.Variables.usr.timeLocalTransaction,Environment.Variables.usr.dateLocalTransaction,Environment.Variables.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		/* ==================== DATA BASE LOGGING ENDING ==================== */
 		SET OutputRoot.Properties=InputRoot.Properties;
-		SET OutputRoot.MQRFH2.usr=Environment.usr;
-		SET OutputRoot.DFDL=Environment.dfdlData;
+		SET OutputRoot.MQRFH2.usr=Environment.Variables.usr;
+		SET OutputRoot.DFDL=Environment.Variables.dfdlData;
 		IF REQUIRED_LOG4J_LOGGING LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','.........................') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Responce To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.Variables.resMsg) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','TCPIP ID:'||Environment.usr.Id) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','TCPIP ID:'||Environment.Variables.usr.Id) INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.usr.resQueueName;
 		 PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -161,7 +161,7 @@ CALL BuildErrorMsg();
 		
 			DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE Id CHARACTER '';
-		SET Id= CAST(Environment.usr.Id AS CHARACTER);
+		SET Id= CAST(Environment.Variables.usr.Id AS CHARACTER);
 	DECLARE userErrorMsg CHARACTER;
 			CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'AirtimePurchases';
@@ -172,7 +172,7 @@ CALL BuildErrorMsg();
 		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
 		SET userErrorMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		
-		SET Environment.airtimePurchasesErrorCode=OutputRoot.XMLNSC;
+		SET Environment.Variables.airtimePurchasesErrorCode=OutputRoot.XMLNSC;
 		IF REQUIRED_LOG4J_LOGGING LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..................... AIRTIME PURCHASE EXCEPTION  .....................') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||userErrorMsg) INTO rc;
@@ -184,7 +184,7 @@ CALL BuildErrorMsg();
 		
 		--CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
 		IF REQUIRED_DB_LOGGING LIKE 'Y' THEN
-		CALL Error_DBLogging(Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,CAST(Environment.Variables.excpNumber AS CHARACTER),Environment.airtimePurchasesErrorCode.AirtimePurchases.ErrorCode,outRefer);
+		CALL Error_DBLogging(Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,Environment.Variables.usr.timeLocalTransaction,Environment.Variables.usr.dateLocalTransaction,Environment.Variables.usr.retrievalReferenceNumber,CAST(Environment.Variables.excpNumber AS CHARACTER),Environment.Variables.airtimePurchasesErrorCode.AirtimePurchases.ErrorCode,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';

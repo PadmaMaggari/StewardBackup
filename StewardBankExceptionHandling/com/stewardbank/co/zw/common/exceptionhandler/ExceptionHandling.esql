@@ -178,7 +178,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 		Set OutputRoot.MQMD = Environment.Variables.MQMD;
 		Set OutputRoot.MQRFH2 = Environment.Variables.MQRFH2;
 		SET OutputRoot.XMLNSC =  Environment.Variables.UserDefinedErrorCodes;
-		SET OutputRoot.XMLNSC.ExceptionDetails.excpNumber = Environment.Variables.ExceptionData.excpNumber;    
+		SET OutputRoot.XMLNSC.ExceptionDetails.excpNumber = Environment.Variables.excpNumber;    
 	END;
 	
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
@@ -197,10 +197,11 @@ CREATE COMPUTE MODULE ExceptionHandling
 	BEGIN 
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end') INTO rc;
 		/* details like tcpip id and systemTraceNumber and dateLocalTransaction and retrievalRefarenceNumber */
-		SET OutputRoot.MQRFH2.usr.Id= Environment.usr.Id;
-		SET OutputRoot.MQRFH2.usr.timeLocalTransaction= Environment.systemsTraceAuditNumber;
-		SET OutputRoot.MQRFH2.usr.dateLocalTransaction= Environment.dateLocalTransaction;
-		SET OutputRoot.MQRFH2.usr.retrievalReferenceNumber= Environment.retrievalReferenceNumber;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+--		SET OutputRoot.MQRFH2.usr.Id= Environment.MQRFH2.usr.Id;
+--		SET OutputRoot.MQRFH2.usr.timeLocalTransaction= Environment.systemsTraceAuditNumber;
+--		SET OutputRoot.MQRFH2.usr.dateLocalTransaction= Environment.dateLocalTransaction;
+--		SET OutputRoot.MQRFH2.usr.retrievalReferenceNumber= Environment.retrievalReferenceNumber;
 		DECLARE inRef REFERENCE TO Environment.Variables.DFDL.ISO8583_1987;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
