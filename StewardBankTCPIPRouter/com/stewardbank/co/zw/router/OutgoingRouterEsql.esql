@@ -90,7 +90,7 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_CaptureExceptionDetails
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'OutGoingRouter');
 		SET Environment.Variables.OutgoingRouterErrorCodes = OutputRoot.XMLNSC;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q ;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		-- DB Logging===================
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
