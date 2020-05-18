@@ -19,18 +19,28 @@ CREATE COMPUTE MODULE ZipitSendFlow_GenerateReqToT24
 		RETURN FALSE;
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path';
+		END IF;
 		/* ==================== Setting MQRFH2 Details in Environment ==================== */
-		SET Environment.usr= InputRoot.MQRFH2.usr;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		SET Environment.Variables.Id = InputRoot.MQRFH2.usr.Id;
+		SET Environment.Variables.timeLocalTransaction = InputRoot.MQRFH2.usr.timeLocalTransaction;
+		SET Environment.Variables.dateLocalTransaction = InputRoot.MQRFH2.usr.dateLocalTransaction;
+		SET Environment.Variables.retrievalReferenceNumber = InputRoot.MQRFH2.usr.retrievalReferenceNumber;
 		/* ==================== Database Logging ==================== */
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
-		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg ,'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.Variables.timeLocalTransaction,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
-		SET OutputRoot=NULL;
 		/* ==================== Database Logging End ==================== */
 		/* ==================== Framming Request to T24 ==================== */
 		DECLARE env REFERENCE TO Environment.Variables;
@@ -40,27 +50,21 @@ CREATE COMPUTE MODULE ZipitSendFlow_GenerateReqToT24
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
-		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
-		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path';
-		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','..............Start ZipitSend logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','Request to ZipitSend::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG',Environment.reqMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		CALL FieldToFieldMapping(inRef,outRef,'');
-		SET Environment.dfdlData=OutputRoot.DFDL;
+		SET Environment.dfdlData = OutputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== Database Logging ==================== */
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.Variables.timeLocalTransaction,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out1';
 		/* ==================== Database Logging End ==================== */
-		SET OutputRoot.Properties=InputRoot.Properties;
-		SET OutputRoot.DFDL= Environment.dfdlData;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.DFDL = Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG',Environment.reqMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -80,15 +84,23 @@ CREATE COMPUTE MODULE ZipitSendFlow_GenerateResToPostilion
 		RETURN FALSE;
 	END;
 	CREATE PROCEDURE GenerateResToPostilion() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path ';
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','.........................') INTO rc;
 		SET Environment.Properties = InputRoot.Properties;
 		SET Environment.MQMD = InputRoot.MQMD;
 		/* ==================== Database Logging ==================== */
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
-		SET Environment.resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.Variables.Id,Environment.Variables.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.Variables.timeLocalTransaction,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot=NULL;
@@ -99,29 +111,21 @@ CREATE COMPUTE MODULE ZipitSendFlow_GenerateResToPostilion
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
-		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
-		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path ';
-		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','.........................') INTO rc;
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
 		SET Environment.dfdlData=InputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== Database Logging ==================== */
-		CALL DBLogging(Environment.usr.Id,Environment.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.Variables.Id,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.Variables.timeLocalTransaction,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out';
 		/* ==================== Database Logging End ==================== */
-		SET OutputRoot.Properties=InputRoot.Properties;
-		SET OutputRoot.MQRFH2.usr=Environment.usr;
-		--SET OutputRoot.MQRFH2.resData=Environment.resData;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL=Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','Request To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG',Environment.resMsg) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.usr.resQueueName;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -162,16 +166,14 @@ CREATE COMPUTE MODULE ZipitSendFlow_CaptureException
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		SET brokerErrorMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		SET userErrorMsg = getPayLoad(FIELDNAME(InputBody),UserdomainDataRef,encodeRef,ccidRef);		
-		SET Environment.ZipitSendErrorCode=OutputRoot.XMLNSC;
+		SET Environment.Variables.ZipitSendErrorCodes = OutputRoot.XMLNSC.ZipitSend;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..................... ZipitSend Exception .....................') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||userErrorMsg) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','TCPIP ID:'||InputRoot.MQRFH2.usr.Id) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
 		PROPAGATE TO TERMINAL 'out';
 		/* ==================== DATA BASE LOGGING ==================== */
-		--DECLARE exe_Desc CHARACTER'';
-		--SET exe_Desc = CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
-		CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.ZipitSendErrorCode.ZipitSend.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,Environment.Variables.timeLocalTransaction,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.ZipitSendErrorCodes.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
 		PROPAGATE TO TERMINAL 'out'; 
 	END;
