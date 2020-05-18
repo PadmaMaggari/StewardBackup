@@ -29,7 +29,7 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
-		SET Environment.Variables.Id = tcpipDetails.Id;
+		SET Environment.Variables.Id = COALESCE(tcpipDetails.Id,InputRoot.MQRFH2.usr.Id,'');
 		DECLARE req CHARACTER;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
