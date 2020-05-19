@@ -55,8 +55,10 @@ CREATE COMPUTE MODULE ExceptionHandling
 		--get exception in xml format
 		CALL getExceptionDesc(excpRef,insertRef,outRef);
 		--set exception details in environment
-		SET Environment.Variables.ExceptionData.excpText = OutputRoot.XMLNSC.ExceptionDetails.excpText; --Here changed to get the exact exception information
+		SET Environment.Variables.ExceptionData = OutputRoot.XMLNSC.ExceptionDetails; --Here changed to get the exact exception information
 		SET Environment.Variables.excpNumber= OutputRoot.XMLNSC.ExceptionDetails.excpNumber;
+		SET Environment.Variables.excpText = OutputRoot.XMLNSC.ExceptionDetails.excpText;
+		SET Environment.Variables.excpType = OutputRoot.XMLNSC.ExceptionDetails.excpType;
 		DECLARE exceptionTxt CHARACTER Environment.Variables.ExceptionData.excpText;
 		
 		IF CONTAINS(exceptionTxt,'ParserException') THEN
@@ -178,7 +180,9 @@ CREATE COMPUTE MODULE ExceptionHandling
 		Set OutputRoot.MQMD = Environment.Variables.MQMD;
 		Set OutputRoot.MQRFH2 = Environment.Variables.MQRFH2;
 		SET OutputRoot.XMLNSC =  Environment.Variables.UserDefinedErrorCodes;
-		SET OutputRoot.XMLNSC.ExceptionDetails.excpNumber = Environment.Variables.excpNumber;    
+		SET OutputRoot.XMLNSC.ExceptionDetails.excpNumber = Environment.Variables.excpNumber;
+		SET OutputRoot.XMLNSC.ExceptionDetails.excpText = Environment.Variables.excpText;
+		SET OutputRoot.XMLNSC.ExceptionDetails.excpType = Environment.Variables.excpType;    
 	END;
 	
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
