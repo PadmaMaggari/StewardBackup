@@ -102,23 +102,53 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 			PROPAGATE TO TERMINAL 'out1';
 		ELSE
 			--get sample 0200 template from db
-			SET sql= 'SELECT REQUEST FROM T24RESPONSE WHERE MTIREQ=0200 AND PCODE=40'; 
-			SET Response.ROW[]=PASSTHRU(sql);
-			CREATE LASTCHILD OF Environment DOMAIN('DFDL') PARSE(Response.ROW[1].REQUEST  ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+			--SET sql= 'SELECT REQUEST FROM T24RESPONSE WHERE MTIREQ=0200 AND PCODE=40'; 
+			--SET Response.ROW[]=PASSTHRU(sql);
+		--	CREATE LASTCHILD OF Environment DOMAIN('DFDL') PARSE(Response.ROW[1].REQUEST  ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 			--mapping mt103 to iso8583
-			SET Environment.DFDL.ISO8583_1987.PrimaryBitmap.Bit004 = 1;
-			SET Environment.DFDL.ISO8583_1987.PrimaryBitmap.Bit049 = 1;
-			SET Environment.DFDL.ISO8583_1987.SecondaryBitmap.Bit102 = 1;
-			SET Environment.DFDL.ISO8583_1987.SecondaryBitmap.Bit103 = 1;
-			SET Environment.DFDL.ISO8583_1987.AmountTransaction_004 = CAST(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 10) AS DECIMAL);
-			SET Environment.DFDL.ISO8583_1987.CurrencyCodeTransaction_049 = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 1 FOR 3);
-			SET Environment.DFDL.ISO8583_1987.AccountIdentification1_102 = MT50Data;
-			SET Environment.DFDL.ISO8583_1987.AccountIdentification2_103 = MT59Data;
 			SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
 			SET OutputRoot.Properties.MessageType = '{}: ISO8583_1987';
-			DECLARE envDataRef REFERENCE TO Environment.DFDL;
-			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
-			PARSE(ASBITSTREAM(Environment.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+			CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
+			CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+--			SET outRef.TCPHeaderBitmap.Bit001 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit002 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit003 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit004 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit005 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit006 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit007 = 1;
+--			SET outRef.TCPHeaderBitmap.Bit008 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit009 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit010 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit011 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit012 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit013 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit014 = 0;
+--			SET outRef.TCPHeaderBitmap.Bit015 = 1;
+--			SET outRef.TCPHeaderBitmap.Bit016 = 1;
+--			SET outRef.MTI_Version = 0;
+--			SET outRef.MTI_MessageClass = 2;
+--			SET outRef.MTI_MessageFunction = 0;
+--			SET outRef.MTI_MessageOrigin = 0;
+----			CALL UpdateMsgWithAsciiBitMap(outRef);
+--			SET outRef.PrimaryBitmap.Bit001 = 1;
+--			SET outRef.PrimaryBitmap.Bit004 = 1;
+--			SET outRef.PrimaryBitmap.Bit049 = 1;
+--			SET outRef.SecondaryBitmap.Bit102 = 1;
+--			SET outRef.SecondaryBitmap.Bit103 = 1;
+			SET outRef.MTI_Version = 0;
+			SET outRef.MTI_MessageClass = 2;
+			SET outRef.MTI_MessageFunction = 0;
+			SET outRef.MTI_MessageOrigin = 0;
+			SET outRef.AmountTransaction_004 = CAST(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 10) AS DECIMAL);
+			SET outRef.CurrencyCodeTransaction_049 = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 1 FOR 3);
+			SET outRef.AccountIdentification1_102 = MT50Data;
+			SET outRef.AccountIdentification2_103 = MT59Data;
+			CALL UpdateMsgWithAsciiBitMap(outRef);
+			--DECLARE envDataRef REFERENCE TO Environment.DFDL;
+			--CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
+			--PARSE(ASBITSTREAM(Environment.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 			PROPAGATE TO TERMINAL 'out';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming  ReqToPostilion logging...........') INTO rc;

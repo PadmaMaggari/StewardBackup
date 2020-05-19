@@ -22,22 +22,22 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankRTGSIncomingApp/icons/full/obj16/rtgsIncomingFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankRTGSIncomingApp/icons/full/obj30/rtgsIncomingFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="7,39" inputDirectory="C:\vee\STEWARD_Bank\ACE" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtp="true" fileFtpServer="localhost:21" fileFtpUser="ftp">
+      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="20,93" inputDirectory="C:\vee\STEWARD_Bank\ACE" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtp="true" fileFtpServer="localhost:21" fileFtpUser="ftp">
         <translation xmi:type="utility:ConstantString" string="FetchMT103FromZetts"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="136,13" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingFlow_GenerateReqToPostilion.Main">
         <translation xmi:type="utility:ConstantString" string="ConvertBLOBTOMT103"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="259,141" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingFlow_GenerateExceptionDetails.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="379,144" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingFlow_GenerateExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="559,79" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="573,69" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="Q"/>
       </nodes>
       <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="295,15" messageDomain="DFDL" resetMessageDomain="true" messageSet="{MT103}" resetMessageSet="true" messageType="{}:MT103" resetMessageType="true" resetMessageFormat="true" validateTiming="immediate" validateMaster="contentAndValue">
         <translation xmi:type="utility:ConstantString" string="CheckMT103"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_8" location="127,98">
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_8" location="147,151">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="367,63" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingFlow_ReqToPostilion.Main" computeMode="destinationAndMessage">
