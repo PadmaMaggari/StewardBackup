@@ -951,7 +951,8 @@ BEGIN
 	CALL PopulatePackedBitmap(tcpBitmapRef,17);
 	CREATE NEXTSIBLING OF mtiOrigin AS primaryBitRef NAME 'PrimaryBitmap';
 	CALL PopulatePackedBitmap(primaryBitRef,65);
-	IF CAST(SUBSTRING(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '_')BEFORE '_') AS INT) > 64 THEN
+	DECLARE currentFieldNumber INT CAST(SUBSTRING(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '_')BEFORE '_') AS INT);
+	IF CAST(SUBSTRING(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '_')BEFORE '_') AS INT) > 64 OR CAST(SUBSTRING(FIELDNAME(outPayLoadRef.*[<]) AFTER '_') AS INT) > 64 THEN
 		SET SecondaryBitmap = TRUE;
 		SET outPayLoadRef.PrimaryBitmap.Bit001 = 1;
 		CREATE NEXTSIBLING OF primaryBitRef AS secondryBitRef NAME 'SecondaryBitmap';
@@ -1401,4 +1402,4 @@ CREATE LASTCHILD of outRef AS outRef DOMAIN 'JSON';
 	SET outRef.DBLogging.BORKER_ERROR_CODE=BORKER_ERROR_CODE;      
 	SET outRef.DBLogging.USER_DEFINE_ERROR_CODE=USER_DEFINE_ERROR_CODE;      
             
-END;
+END; 
