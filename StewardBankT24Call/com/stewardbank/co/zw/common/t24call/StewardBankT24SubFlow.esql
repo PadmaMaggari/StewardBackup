@@ -2,8 +2,8 @@
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:14-04-2020
-Date of Modification: 20-04-2020
-Description: retry for 3 times when tcp connection is down or unavaiable.
+Date of Modification: 20-04-2020,20-05-2020
+Description: compute module StewardBankT24SubFlow is for retrying 3 times when tcp connection is down or unavaiable.
  			
 */
 BROKER SCHEMA com.stewardbank.co.zw.common.t24call
@@ -62,4 +62,72 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow
 			DECLARE varDelay BOOLEAN SLEEP(RETRY_INTERVAL);
 		END IF;
 	END;
+END MODULE;
+
+CREATE COMPUTE MODULE StewardBankT24SubFlow_addHeaderData
+	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+	DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET OutputRoot.Properties = InputRoot.Properties;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE ccsidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE data BLOB ASBITSTREAM(InputRoot.DFDL ENCODING encodeRef CCSID ccsidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader'); 
+ 		DECLARE tcpHeader BLOB ;
+ 		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','..............Start logging T24 sub flow...........') INTO rc;
+ 		--JAVA procedure call to get 2 byte header
+ 		SET tcpHeader = Get2ByteHeader(data);
+ 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','Data with header'||CAST(tcpHeader AS CHARACTER CCSID ccsidRef)) INTO rc;
+ 		DECLARE hexBits CHARACTER SUBSTRING(CAST(tcpHeader AS CHARACTER) FROM 3 FOR 4);
+ 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','Hex Data of Header:'||hexBits) INTO rc;
+ 		----TCp bitmaps population
+ 		--CALL UpdateTCPHeaderBitmaps(tcpBitmapRef,hexBits);
+ 		DECLARE dataWithHeader CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || hexBits || SUBSTRING(CAST(data AS CHARACTER) FROM 3);
+ 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','Data with Header'||dataWithHeader) INTO rc;
+ 		SET OutputRoot.Properties.MessageType = '{}:ISO8583WithHeader';
+ 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
+ 		PARSE(CAST(dataWithHeader AS BLOB)  ENCODING encodeRef CCSID ccsidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader');
+ 		DECLARE outDomainRef REFERENCE TO OutputRoot.DFDL;
+ 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','OutputRoot:') INTO rc;
+ 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainRef,encodeRef,ccsidRef)) INTO rc;
+ 		RETURN TRUE;
+	END;
+
+	
+END MODULE;
+
+CREATE COMPUTE MODULE StewardBankT24SubFlow_removeHeaderData
+	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+	DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET OutputRoot.Properties = InputRoot.Properties;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE ccsidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE data BLOB ASBITSTREAM(InputRoot.DFDL ENCODING encodeRef CCSID ccsidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader'); 
+ 		DECLARE tcpHeader BLOB ;
+ 		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+ 		DECLARE isoData CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || SUBSTRING(CAST(data AS CHARACTER) FROM 7);
+ 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','iso data after removing header:'||isoData) INTO rc;
+ 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
+ 		PARSE(CAST(isoData AS BLOB)  ENCODING encodeRef CCSID ccsidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+ 		DECLARE outDomainRef REFERENCE TO OutputRoot.DFDL;
+ 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','OutputRoot:') INTO rc;
+ 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainRef,encodeRef,ccsidRef)) INTO rc;
+ 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','..............end logging T24 sub flow...........') INTO rc;
+ 		RETURN TRUE;
+	END;
+
+	
 END MODULE;

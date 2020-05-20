@@ -49,6 +49,16 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 		DECLARE MTI_MessageClass CHARACTER InputRoot.DFDL.ISO8583_1987.MTI_MessageClass;
 		DECLARE MTI_MessageFunction CHARACTER InputRoot.DFDL.ISO8583_1987.MTI_MessageFunction;
 		DECLARE MTI_MessageOrigin CHARACTER InputRoot.DFDL.ISO8583_1987.MTI_MessageOrigin;
+		DECLARE data BLOB ASBITSTREAM(InputRoot.DFDL ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987'); 
+ 		DECLARE tcpHeader BLOB ;
+		--JAVA procedure call to get 2 byte header
+ 		SET tcpHeader = Get2ByteHeader(data);
+ 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Data with header'||CAST(tcpHeader AS CHARACTER CCSID ccidRef)) INTO rc;
+ 		DECLARE hexBits CHARACTER SUBSTRING(CAST(tcpHeader AS CHARACTER) FROM 3 FOR 4);
+ 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Hex Data of Header:'||hexBits) INTO rc;
+ 		DECLARE dataWithHeader CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || hexBits || SUBSTRING(CAST(data AS CHARACTER) FROM 3);
+ 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Data with Header'||dataWithHeader) INTO rc;
+ 		
 		IF MTI LIKE MTI_Version||MTI_MessageClass||MTI_MessageFunction||MTI_MessageOrigin THEN
 			DECLARE outRefer REFERENCE TO OutputRoot;
 			CALL DBLogging(InputRoot.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Router Response Zss',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
@@ -65,7 +75,14 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 			CALL DBLogging(InputRoot.MQRFH2.usr.Id,Environment.Variables.resMsg,'Router Response',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
-			SET OutputRoot = InputRoot;
+			SET OutputLocalEnvironment.Destination.TCPIP.Output.Id = InputRoot.MQRFH2.usr.Id;
+			SET OutputRoot.Properties.MessageType = '{}:ISO8583WithHeader';
+	 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
+	 		PARSE(CAST(dataWithHeader AS BLOB)  ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader');
+	 		DECLARE outDomainRef REFERENCE TO OutputRoot.DFDL;
+	 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','OutputRoot:') INTO rc;
+	 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainRef,encodeRef,ccidRef)) INTO rc;
+ 		
 			PROPAGATE TO TERMINAL 'out';
 		END IF;
 	END;
@@ -113,5 +130,38 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_CaptureExceptionDetails
 		CALL Error_DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Router Response Error',ApplicationLabel,BrokerName,exe_Desc,Environment.Variables.systemsTraceAuditNumber,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.OutgoingRouterErrorCodes.OutGoingRouter.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q ;
 		PROPAGATE TO TERMINAL 'out1';
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE OutgoingRouterFlow_LogSentData
+	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+	DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO','..............Start Logging after sending msg...........') INTO rc;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG',getPayLoad(FIELDNAME(InputRoot.DFDL.ISO8583WithHeader),inDomainDataRef,encodeRef,ccidRef)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','local environemnt::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Hostname:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Hostname) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Port:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Port AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Client Address:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.ClientDetails.Address) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Client Hostname:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.ClientDetails.Hostname) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','id:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Id) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','seq number:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.SequenceNumber AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','open time:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.OpenTimestamp AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','close time:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.CloseTimestamp AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','..............end Logging after sending msg...........') INTO rc;
+		RETURN FALSE;
 	END;
 END MODULE;

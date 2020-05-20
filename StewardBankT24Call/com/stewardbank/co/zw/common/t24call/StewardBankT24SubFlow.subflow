@@ -22,13 +22,13 @@
       <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="16,22">
         <translation xmi:type="utility:TranslatableString" key="InTerminal.Input" bundleName="com/stewardbank/co/zw/common/t24call/StewardBankT24SubFlow" pluginId="StewardBankT24Call"/>
       </nodes>
-      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="477,27">
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="522,31">
         <translation xmi:type="utility:TranslatableString" key="OutTerminal.Output" bundleName="com/stewardbank/co/zw/common/t24call/StewardBankT24SubFlow" pluginId="StewardBankT24Call"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="138,29" connectionDetails="{ESBPolicies}:T24Client" closeOutputStream="true" modifyInputStream="reserveThenRelease">
+      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="141,28" connectionDetails="{ESBPolicies}:T24Client" closeOutputStream="true" modifyInputStream="reserve">
         <translation xmi:type="utility:ConstantString" string="T24ClientOut"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="250,28" connectionDetails="{ESBPolicies}:T24Client" timeoutWaitingForData="90" closeInputStream="true" modifyOutputStream="reserveThenRelease" idLocation="$LocalEnvironment/WrittenDestination/TCPIP/Output/ConnectionDetails[1]/Id" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
+      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="250,28" connectionDetails="{ESBPolicies}:T24Client" timeoutWaitingForData="90" closeInputStream="true" modifyOutputStream="release" idLocation="$LocalEnvironment/WrittenDestination/TCPIP/Output/ConnectionDetails[1]/Id" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583WithHeader">
         <translation xmi:type="utility:ConstantString" string="T24ClientReceiveData"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="290,156" computeExpression="esql://routine/com.stewardbank.co.zw.common.t24call#StewardBankT24SubFlow.Main" computeMode="destinationAndMessage">
@@ -40,9 +40,12 @@
       <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output1" location="498,157">
         <translation xmi:type="utility:TranslatableString" key="OutTerminal.out1" bundleName="com/stewardbank/co/zw/common/t24call/StewardBankT24SubFlow" pluginId="StewardBankT24Call"/>
       </nodes>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="OutTerminal.Output" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_1" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="67,77" computeExpression="esql://routine/com.stewardbank.co.zw.common.t24call#StewardBankT24SubFlow_addHeaderData.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="addHeaderData"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="381,30" computeExpression="esql://routine/com.stewardbank.co.zw.common.t24call#StewardBankT24SubFlow_removeHeaderData.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="removeHeaderData"/>
+      </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.timeout" targetTerminalName="InTerminal.Input">
         <bendPoints>64,-3,-26,-67</bendPoints>
@@ -66,6 +69,11 @@
         <bendPoints>-244,-140,-100,-13</bendPoints>
       </connections>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="OutTerminal.Output1" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_4" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_14" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_15" targetNode="OutTerminal.Output" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">

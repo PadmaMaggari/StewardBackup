@@ -21,7 +21,7 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_GenerateReqToT24
 	CREATE PROCEDURE GenerateReqToT24 () BEGIN
 
       
-		
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		SET Environment.usr = InputRoot.MQRFH2.usr;
 		/* ==================== Database Logging Start ==================== */
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -122,7 +122,7 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_GenerateResToPostilion
 		PROPAGATE TO TERMINAL 'out';
 		/* ==================== Database Logging Ended ==================== */
 		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2.usr = Environment.usr;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.MQRFH2.resData = Environment.resData;
 		SET OutputRoot.DFDL = Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG','Request To Postilion::') INTO rc;

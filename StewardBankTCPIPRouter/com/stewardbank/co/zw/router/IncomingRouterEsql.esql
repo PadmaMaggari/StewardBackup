@@ -45,7 +45,7 @@ DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 		DECLARE DBDetails ROW;
 		DECLARE QueueName CHARACTER;
 		DECLARE refProcessingCode CHARACTER inRef.ProcessingCode_003;
-		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
+		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Receive.ConnectionDetails;
 		DECLARE procCode,reqMsg CHARACTER InputRoot.DFDL.ISO8583_1987.ProcessingCode_003;
 		SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
 		-- ==================== TCPIP DETAILS AND ISO8583 DETAILS =========================
@@ -196,5 +196,52 @@ DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 		CALL Error_DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.Variables.systemsTraceAuditNumber,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefineErrorCodes.InComingRouter.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE IncomingRouterFlow_ProcessLength
+	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+	DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		DECLARE I INTEGER 0;
+		DECLARE J,AA INTEGER;
+		DECLARE sumAll INTEGER 0;
+		SET J = CARDINALITY(InputRoot.DFDL.ISO8583TCPHeader.*[]) - 1;
+		DECLARE it INTEGER CARDINALITY(InputRoot.DFDL.ISO8583TCPHeader.*[]);
+		WHILE I <= J DO
+			SET AA = InputRoot.DFDL.ISO8583TCPHeader.[I+1];
+			SET it = it - 1;
+			SET sumAll = sumAll + POWER(2,it) * AA;
+			SET I = I + 1;
+		END WHILE;
+		SET OutputLocalEnvironment.TCPIP.Receive.Length = sumAll;
+		SET OutputLocalEnvironment.TCPIP.Receive.Id = InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id;
+		SET Environment.ReqLength = sumAll;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','..............Start  logging header data...........') INTO rc;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Calculated Length:'||CAST(sumAll AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','RAW Data:'||getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccidRef)) INTO rc;
+		DECLARE portRef CHARACTER CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Port AS CHARACTER);
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Incoming Port:'||portRef) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Incoming conn id:'||CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','server input TCP open timestamp:' ||CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.OpenTimestamp AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','server input TCP close timestamp:' ||CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.CloseTimestamp AS CHARACTER)) INTO rc;
+		IF CONTAINS(portRef,'8806') THEN
+			PROPAGATE TO TERMINAL 'out';
+		ELSE
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','..............end  logging header data...........') INTO rc;
+		RETURN FALSE;
 	END;
 END MODULE;
