@@ -6,188 +6,183 @@ Date of Creation:30-03-2020
 Description: Airtime Purchase
 */
 BROKER SCHEMA com.stewardbank.co.zw.airtimepurchase
-PATH com.stewardbank.co.zw.common.esql; 
-DECLARE LOG_CONFIG_PATH,RAW_AUDIT_LOGGING,ERROR_AUDIT_LOGGING,EXCEPTION_QUEUE,REQUIRED_LOG4J_LOGGING,REQUIRED_DB_LOGGING EXTERNAL CHARACTER'';
-
-
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE IsLogRequired EXTERNAL CHARACTER'';
 CREATE COMPUTE MODULE AirtimePurchase_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL GenerateReqToT24();
-		RETURN FALSE;
+		CALL GenerateReqToT24();
+		RETURN TRUE;
 	END;
-
-	
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
-	  
-	
-		/* ==================== SETTING MQRFH2 DETAILS IN ENVIRANMENT ==================== */
-		SET Environment.Variables.usr= InputRoot.MQRFH2.usr;
-		/* ==================== DATA BASE LOGGING START ==================== */
-		DECLARE outRefer REFERENCE TO OutputRoot;
-			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
-		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-		IF REQUIRED_DB_LOGGING LIKE 'Y' THEN
-		CALL DBLogging(Environment.Variables.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.Variables.usr.timeLocalTransaction,Environment.Variables.usr.dateLocalTransaction,Environment.Variables.usr.retrievalReferenceNumber,outRefer);
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		--------------DBLogging-------------------
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,
+			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
-		SET OutputRoot=NULL;
-		/* ==================== DATA BASE LOGGING ENDING ==================== */
-		/* ==================== FRAMMING REQUEST TO T24 ==================== */
+		-----------------------------
 		DECLARE env REFERENCE TO Environment.Variables;
-		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
-		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;  
-		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+		--set response queue and tcpip connection id in environment
+		DECLARE resQ CHARACTER Environment.MQRFH2.usr.resQueueName;
+		DECLARE connId CHARACTER Environment.MQRFH2.usr.Id;
+		SET Environment.Variables.ResponseQ = resQ;
+		SET Environment.Variables.TcpIp.ConnectionId = connId;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','..............Initializing Airtime Purchase logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','..............ISO Message parsed successfully...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Request from Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
 		END IF;
-		IF REQUIRED_LOG4J_LOGGING LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','..............Start Airtime Purchases logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Request to Airtime Purchases::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','TCPIP ID:'||InputRoot.MQRFH2.usr.Id) INTO rc;
-		END IF;
+		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
-		SET Environment.Variables.dfdlData=OutputRoot.DFDL;
-		SET OutputRoot=NULL;
-		/* ==================== DATA BASE LOGGING ==================== */
-		IF REQUIRED_DB_LOGGING LIKE 'Y' THEN
-		CALL DBLogging(Environment.Variables.usr.Id,Environment.Variables.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.Variables.usr.timeLocalTransaction,Environment.Variables.usr.dateLocalTransaction,Environment.Variables.usr.retrievalReferenceNumber,outRefer);
+		SET Environment.dfdlData = OutputRoot.DFDL;
+		----- Database Logging ------------
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		SET OutputRoot.DFDL = NULL;
 		PROPAGATE TO TERMINAL 'out1';
-		/* ==================== DATA BASE LOGGING ENDING ==================== */
+		----------------------
 		SET OutputRoot.Properties=InputRoot.Properties;
-		SET OutputRoot.DFDL= Environment.Variables.dfdlData;
-		IF REQUIRED_LOG4J_LOGGING LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','TCPIP ID:'||InputRoot.MQRFH2.usr.Id) INTO rc;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.DFDL = Environment.dfdlData;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Request To T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
 		END IF;
-		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
-
-
 CREATE COMPUTE MODULE AirtimePurchase_GenerateResToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL airtimePurchasesGenerateResToPostilion();
+		CALL airtimePurchasesGenerateResToPostilion();
 		RETURN FALSE;
 	END;
-
-	
 	CREATE PROCEDURE airtimePurchasesGenerateResToPostilion() BEGIN
-			/* ==================== DATA BASE LOGGING ==================== */
-			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
-		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
-		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-			
-			
-		DECLARE outRefer REFERENCE TO OutputRoot;
-		IF REQUIRED_DB_LOGGING LIKE 'Y' THEN
-		CALL DBLogging(Environment.Variables.usr.Id,Environment.Variables.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.Variables.usr.timeLocalTransaction,Environment.Variables.usr.dateLocalTransaction,Environment.Variables.usr.retrievalReferenceNumber,outRefer);
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
-		PROPAGATE TO TERMINAL 'out';
-		SET OutputRoot=NULL;
-		/* ==================== DATA BASE LOGGING ENDING ==================== */
-		/* ==================== FRAMMING RESPONSE TO TCPIP ROUTER ==================== */
-		
-		DECLARE env REFERENCE TO Environment.Variables;
+		SET Environment.Properties = InputRoot.Properties;
+		SET Environment.MQMD = InputRoot.MQMD;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.resData = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		-----------DBLogging------------
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.resData,'T24 Response',ApplicationLabel,BrokerName,inRef.SystemsTraceAuditNumber_011,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		SET Environment.resData = OutputRoot.JSON.Data;
+		PROPAGATE TO TERMINAL 'out';
+		--------------------
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
-		
-		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
-		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','..........Logging generated Response...............') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','T24 Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','TCPIP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
-		
 		--field to field mapping
 		CALL FieldToFieldMapping(inRef,outRef,'');
-		SET Environment.Variables.dfdlData=InputRoot.DFDL;
-		SET OutputRoot=NULL;
-		/* ==================== DATA BASE LOGGING ==================== */
-		IF REQUIRED_DB_LOGGING LIKE 'Y' THEN
-		CALL DBLogging(Environment.Variables.usr.Id,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.Variables.usr.timeLocalTransaction,Environment.Variables.usr.dateLocalTransaction,Environment.Variables.usr.retrievalReferenceNumber,outRefer);
+		SET Environment.dfdlData = OutputRoot.DFDL;
+		----- Database Logging ------------
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_LOGGING;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		SET OutputRoot.DFDL = NULL;
 		PROPAGATE TO TERMINAL 'out';
-		/* ==================== DATA BASE LOGGING ENDING ==================== */
-		SET OutputRoot.Properties=InputRoot.Properties;
-		SET OutputRoot.MQRFH2.usr=Environment.Variables.usr;
-		SET OutputRoot.DFDL=Environment.Variables.dfdlData;
-		IF REQUIRED_LOG4J_LOGGING LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','.........................') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Responce To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',Environment.Variables.resMsg) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','TCPIP ID:'||Environment.Variables.usr.Id) INTO rc;
+		----------------------
+		SET OutputRoot.Properties = Environment.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+		SET OutputRoot.DFDL = Environment.dfdlData;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','Airtieme Purchase Response To Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'airtimePurchasesDebug', 'DEBUG','TCPIP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.usr.resQueueName;
-		 PROPAGATE TO TERMINAL 'out';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
+		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
-
 CREATE COMPUTE MODULE AirtimePurchase_CaptureException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-CALL BuildErrorMsg();
-		
+		CALL BuildErrorMsg();
 		RETURN FALSE;
 	END;
-
-	
-
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
-		
-			DECLARE outRefer REFERENCE TO OutputRoot;
-		DECLARE Id CHARACTER '';
-		SET Id= CAST(Environment.Variables.usr.Id AS CHARACTER);
-	DECLARE userErrorMsg CHARACTER;
-			CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'AirtimePurchases';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'AirtimePurchases');
-		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
-		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
-		SET userErrorMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-		
-		SET Environment.Variables.airtimePurchasesErrorCode=OutputRoot.XMLNSC;
-		IF REQUIRED_LOG4J_LOGGING LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..................... AIRTIME PURCHASE EXCEPTION  .....................') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application User Define Built Exception:'||userErrorMsg) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','TCPIP ID:'||Id) INTO rc;
+		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_QUEUE;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
-			-- DB Logging===================
-		
-		--CALL Error_DBLogging(InputRoot.MQRFH2.usr.Id,InputRoot.MQRFH2.usr.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
-		IF REQUIRED_DB_LOGGING LIKE 'Y' THEN
-		CALL Error_DBLogging(Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,userErrorMsg,Environment.Variables.usr.timeLocalTransaction,Environment.Variables.usr.dateLocalTransaction,Environment.Variables.usr.retrievalReferenceNumber,CAST(Environment.Variables.excpNumber AS CHARACTER),Environment.Variables.airtimePurchasesErrorCode.AirtimePurchases.ErrorCode,outRefer);
+		------------Error Logging in DB----------
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.AirtimePurchases.ErrorCode,outRefer);
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_LOGGING;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
+		----------------------------------
 	END;
 END MODULE;
-
