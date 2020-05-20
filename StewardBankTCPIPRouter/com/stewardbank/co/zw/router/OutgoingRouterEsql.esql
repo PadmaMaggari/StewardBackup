@@ -149,7 +149,7 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_LogSentData
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO','..............Start Logging after sending msg...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','..............Start Logging after sending msg...........') INTO rc;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG',getPayLoad(FIELDNAME(InputRoot.DFDL.ISO8583WithHeader),inDomainDataRef,encodeRef,ccidRef)) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','local environemnt::') INTO rc;
