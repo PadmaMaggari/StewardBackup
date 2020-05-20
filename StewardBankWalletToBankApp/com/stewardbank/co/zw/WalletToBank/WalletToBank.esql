@@ -63,8 +63,8 @@ CREATE COMPUTE MODULE WalletToBankFlow_GenerateReqToT24
 		CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== Request End ================') INTO rc;
 		--===================Mapping field to field=============================
 		-- ................Generating Request To T24 Esql Module...........
-		--CALL FieldToFieldMapping(inRef,outRef,'');
-		SET OutputRoot.DFDL = InputRoot.DFDL;
+		CALL FieldToFieldMapping(inRef,outRef,'');
+		--SET OutputRoot.DFDL = InputRoot.DFDL;
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -114,11 +114,11 @@ CREATE COMPUTE MODULE WalletToBankFlow_GenerateResToPostilion
 		CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG',Environment.Variables.t24Res) INTO rc;
 		CALL writeToLogFile (MessageFlowLabel,'WToBLogger','DEBUG','=================== Request End ================') INTO rc;
 		--field to field mapping
-		--CALL FieldToFieldMapping(inRef,outRef,'');
-		SET OutputRoot.DFDL = InputRoot.DFDL;
+		CALL FieldToFieldMapping(inRef,outRef,'');
+		--SET OutputRoot.DFDL = InputRoot.DFDL;
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
-		CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.t24Res,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.t24Res,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET OutputRoot.DFDL = NULL;
 		PROPAGATE TO TERMINAL 'out';
