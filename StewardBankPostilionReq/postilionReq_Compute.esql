@@ -1,0 +1,22 @@
+
+
+CREATE COMPUTE MODULE postilionReq_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		DECLARE version CHARACTER inRef.MTI_Version;
+		 DECLARE class CHARACTER inRef.MTI_MessageClass;
+		 DECLARE funct CHARACTER inRef.MTI_MessageFunction;
+		 DECLARE origin CHARACTER inRef.MTI_MessageOrigin;
+		 SET OutputRoot.Properties = InputRoot.Properties;
+		 SET OutputRoot.MQRFH2.usr = InputRoot.MQRFH2.usr;
+		 SET OutputRoot.DFDL = InputRoot.DFDL;
+		 IF version||class||funct||origin = '0210' OR version||class||funct||origin = '0410' THEN
+		 	PROPAGATE TO TERMINAL 'out';
+		 		RETURN FALSE;
+		 ELSE
+		 	PROPAGATE TO TERMINAL 'out1';
+		 	RETURN FALSE;
+		 END IF;
+	END;
+END MODULE;
