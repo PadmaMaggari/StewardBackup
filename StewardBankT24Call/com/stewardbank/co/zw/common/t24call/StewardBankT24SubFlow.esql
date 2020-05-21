@@ -72,7 +72,7 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow_addHeaderData
 		SET OutputRoot.Properties = InputRoot.Properties;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE ccsidRef INTEGER InputRoot.Properties.CodedCharSetId;
-		DECLARE data BLOB ASBITSTREAM(InputRoot.DFDL ENCODING encodeRef CCSID ccsidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader'); 
+		DECLARE data BLOB ASBITSTREAM(InputRoot.DFDL ENCODING encodeRef CCSID ccsidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987'); 
  		DECLARE tcpHeader BLOB ;
  		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
