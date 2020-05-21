@@ -73,12 +73,25 @@ CREATE COMPUTE MODULE ExceptionHandling
 				WHEN domainFldName='BLOB' AND EXISTS(InputRoot.BLOB.*[]) THEN
 					SET inputChar=getPayLoad(FIELDNAME(InputBody),domainDataRef.BLOB,encodeRef,ccidRef);
 				WHEN domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) THEN
-					SET systemsTraceAuditNumber = InputRoot.DFDL.ISO8583_1987.SystemsTraceAuditNumber_011;
-					SET dateLocalTransaction = InputRoot.DFDL.ISO8583_1987.DateLocalTransaction_013;
-					SET retrievalReferenceNumber = InputRoot.DFDL.ISO8583_1987.RetrievalReferenceNumber_037;
-					SET Environment.reqMsg= getPayLoad(FIELDNAME(InputBody),domainDataRef.DFDL,encodeRef,ccidRef);
-					SET Environment.Variables.DFDL = InputRoot.DFDL;
-					SET inputChar=getPayLoad(FIELDNAME(InputBody),domainDataRef.DFDL,encodeRef,ccidRef);
+					DECLARE inputRef REFERENCE TO InputRoot.DFDL;
+					SET Environment.Variables.DFDL = inputRef;
+					CASE
+						WHEN FIELDNAME(inputRef.ISO8583TCPHeader) IS NOT NULL AND EXISTS(InputRoot.DFDL.*[]) THEN
+							SET inputChar = getPayLoad(FIELDNAME(inputRef.ISO8583TCPHeader),inputRef,encodeRef,ccidRef);
+							SET Environment.reqMsg = inputChar;
+						WHEN FIELDNAME(inputRef.ISO8583WithHeader) IS NOT NULL AND EXISTS(InputRoot.DFDL.*[]) THEN
+							SET systemsTraceAuditNumber = inputRef.ISO8583WithHeader.SystemsTraceAuditNumber_011;
+							SET dateLocalTransaction = inputRef.ISO8583WithHeader.DateLocalTransaction_013;
+							SET retrievalReferenceNumber = inputRef.ISO8583WithHeader.RetrievalReferenceNumber_037;
+							SET inputChar = getPayLoad(FIELDNAME(inputRef.ISO8583WithHeader),inputRef,encodeRef,ccidRef);
+							SET Environment.reqMsg = inputChar;
+					ELSE
+						SET systemsTraceAuditNumber = inputRef.ISO8583_1987.SystemsTraceAuditNumber_011;
+						SET dateLocalTransaction = inputRef.ISO8583_1987.DateLocalTransaction_013;
+						SET retrievalReferenceNumber = inputRef.ISO8583_1987.RetrievalReferenceNumber_037;
+						SET inputChar = getPayLoad(FIELDNAME(InputBody),inputRef,encodeRef,ccidRef);
+						SET Environment.reqMsg = inputChar;
+					END CASE;
 				WHEN (domainFldName='JSON' AND EXISTS(InputRoot.JSON.*[])) THEN
 					SET inputChar=getPayLoad(FIELDNAME(InputBody),domainDataRef.JSON,encodeRef,ccidRef);
 			END CASE;
@@ -201,36 +214,73 @@ CREATE COMPUTE MODULE ExceptionHandling
 	BEGIN 
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end') INTO rc;
 		/* details like tcpip id and systemTraceNumber and dateLocalTransaction and retrievalRefarenceNumber */
+		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
---		SET OutputRoot.MQRFH2.usr.Id= Environment.MQRFH2.usr.Id;
---		SET OutputRoot.MQRFH2.usr.timeLocalTransaction= Environment.systemsTraceAuditNumber;
---		SET OutputRoot.MQRFH2.usr.dateLocalTransaction= Environment.dateLocalTransaction;
---		SET OutputRoot.MQRFH2.usr.retrievalReferenceNumber= Environment.retrievalReferenceNumber;
-		DECLARE inRef REFERENCE TO Environment.Variables.DFDL.ISO8583_1987;
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
-		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
-		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
-		DECLARE mtiRes CHARACTER '';
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
 		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		DECLARE inputRef REFERENCE TO InputRoot.DFDL;
+		DECLARE isoData,mtiRes CHARACTER '';
+		DECLARE tcpHeader,data BLOB;
+		
+		CASE
+			WHEN FIELDNAME(inputRef.ISO8583TCPHeader) IS NOT NULL AND EXISTS(InputRoot.DFDL.*[]) THEN
+					SET isoData = getPayLoad(FIELDNAME(inputRef.ISO8583TCPHeader),inputRef,encodeRef,ccidRef);
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Incoming Req Data to revertBackToSystem:'||isoData) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','dfdl root is ISO8583TCPHeader') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Since no mti to map revert to front end failed') INTO rc;
+					
+			 WHEN FIELDNAME(inputRef.ISO8583WithHeader) IS NOT NULL AND EXISTS(InputRoot.DFDL.*[]) THEN
+			 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
+					SET isoData = getPayLoad(FIELDNAME(inRef),inputRef,encodeRef,ccidRef);
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Incoming Req Data to revertBackToSystem:'||isoData) INTO rc;
+					CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL');
+			 		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583WithHeader';
+			 		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583WithHeader;
+			 		SET outRef.TCPHeaderBitmap[] = inRef.TCPHeaderBitmap[];
+			 		CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED);
+					SET data = ASBITSTREAM(OutputRoot.DFDL ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader'); 
+ 					DECLARE isoData CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || SUBSTRING(CAST(data AS CHARACTER) FROM 7);
+			 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','iso data after removing header:'||isoData) INTO rc;
+			 		SET OutputRoot = null;
+			 		SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
+			 		SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
+			 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
+			 		PARSE(CAST(isoData AS BLOB)  ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+			 		
+			 		CALL MTIResponse(CAST(inRef.MTI_Version AS CHARACTER),CAST(inRef.MTI_MessageClass AS CHARACTER),CAST(inRef.MTI_MessageFunction AS CHARACTER),CAST(inRef.MTI_MessageOrigin AS CHARACTER)) into mtiRes;
+					SET OutputRoot.DFDL.ISO8583_1987.MTI_Version=SUBSTRING(mtiRes FROM 1 FOR 1);
+					SET OutputRoot.DFDL.ISO8583_1987.MTI_MessageClass=SUBSTRING(mtiRes FROM 2 FOR 1);
+					SET OutputRoot.DFDL.ISO8583_1987.MTI_MessageFunction=SUBSTRING(mtiRes FROM 3 FOR 1); 
+					SET OutputRoot.DFDL.ISO8583_1987.MTI_MessageOrigin=SUBSTRING(mtiRes FROM 4 FOR 1);
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Postilion::') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef)) INTO rc;
+			 		
+		ELSE
+				DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+				SET isoData = getPayLoad(FIELDNAME(InputBody),inputRef,encodeRef,ccidRef);
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Incoming Req Data to revertBackToSystem:'||isoData) INTO rc;
+				SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
+				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL');
+			 	CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+				DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+				CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED);
+				CALL MTIResponse(CAST(inRef.MTI_Version AS CHARACTER),CAST(inRef.MTI_MessageClass AS CHARACTER),CAST(inRef.MTI_MessageFunction AS CHARACTER),CAST(inRef.MTI_MessageOrigin AS CHARACTER)) into mtiRes;
+				SET outRef.MTI_Version=SUBSTRING(mtiRes FROM 1 FOR 1);
+				SET outRef.MTI_MessageClass=SUBSTRING(mtiRes FROM 2 FOR 1);
+				SET outRef.MTI_MessageFunction=SUBSTRING(mtiRes FROM 3 FOR 1); 
+				SET outRef.MTI_MessageOrigin=SUBSTRING(mtiRes FROM 4 FOR 1);
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Postilion::') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef)) INTO rc;
+		END CASE;
+		
 		--generate a error response in iso8583 to front end system in case of failure of t24
 		
-		CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED);
-		
-		
-		CALL MTIResponse(CAST(inRef.MTI_Version AS CHARACTER),CAST(inRef.MTI_MessageClass AS CHARACTER),CAST(inRef.MTI_MessageFunction AS CHARACTER),CAST(inRef.MTI_MessageOrigin AS CHARACTER)) into mtiRes;
-		SET outRef.MTI_Version=SUBSTRING(mtiRes FROM 1 FOR 1);
-		SET outRef.MTI_MessageClass=SUBSTRING(mtiRes FROM 2 FOR 1);
-		SET outRef.MTI_MessageFunction=SUBSTRING(mtiRes FROM 3 FOR 1); 
-		SET outRef.MTI_MessageOrigin=SUBSTRING(mtiRes FROM 4 FOR 1);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_TCP_RES;--Environment.Variables.ResponseQ;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_TCP_RES;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO','reponse queue:') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO','ALL_SB_TCP_RES') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO',ALL_SB_TCP_RES) INTO rc;
+		
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end done') INTO rc;
 		PROPAGATE TO TERMINAL 'out1';
 	END;
