@@ -17,6 +17,11 @@ DECLARE MAX_RETRY_COUNT EXTERNAL INTEGER 0;
 DECLARE HTTP_TIMEOUT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER'';
 DECLARE ALL_SB_TCP_RES EXTERNAL CHARACTER'';
+DECLARE NETWKCD EXTERNAL CHARACTER'';
+DECLARE FINCD EXTERNAL CHARACTER'';
+DECLARE FINRPTCD EXTERNAL CHARACTER'';
+DECLARE REVCD EXTERNAL CHARACTER'';
+DECLARE REVRPTCD EXTERNAL CHARACTER'';
 DECLARE rc BOOLEAN FALSE;
 CREATE COMPUTE MODULE ExceptionHandling
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -229,52 +234,71 @@ CREATE COMPUTE MODULE ExceptionHandling
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Incoming Req Data to revertBackToSystem:'||isoData) INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','dfdl root is ISO8583TCPHeader') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Since no mti to map revert to front end failed') INTO rc;
-					
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end done') INTO rc;
+					RETURN;
 			 WHEN FIELDNAME(inputRef.ISO8583WithHeader) IS NOT NULL AND EXISTS(InputRoot.DFDL.*[]) THEN
 			 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
-					SET isoData = getPayLoad(FIELDNAME(inRef),inputRef,encodeRef,ccidRef);
+			 		IF (CONTAINS(CAST(inRef.MTI_Version AS CHARACTER)|| CAST(inRef.MTI_MessageClass AS CHARACTER)||CAST(inRef.MTI_MessageFunction AS CHARACTER)||CAST(inRef.MTI_MessageOrigin AS CHARACTER),NETWKCD)
+			 			OR CONTAINS(CAST(inRef.MTI_Version AS CHARACTER)|| CAST(inRef.MTI_MessageClass AS CHARACTER)||CAST(inRef.MTI_MessageFunction AS CHARACTER)||CAST(inRef.MTI_MessageOrigin AS CHARACTER),REVCD)
+			 			OR CONTAINS(CAST(inRef.MTI_Version AS CHARACTER)|| CAST(inRef.MTI_MessageClass AS CHARACTER)||CAST(inRef.MTI_MessageFunction AS CHARACTER)||CAST(inRef.MTI_MessageOrigin AS CHARACTER),REVRPTCD)
+			 			OR CONTAINS(CAST(inRef.MTI_Version AS CHARACTER)|| CAST(inRef.MTI_MessageClass AS CHARACTER)||CAST(inRef.MTI_MessageFunction AS CHARACTER)||CAST(inRef.MTI_MessageOrigin AS CHARACTER),FINCD)
+			 			OR CONTAINS(CAST(inRef.MTI_Version AS CHARACTER)|| CAST(inRef.MTI_MessageClass AS CHARACTER)||CAST(inRef.MTI_MessageFunction AS CHARACTER)||CAST(inRef.MTI_MessageOrigin AS CHARACTER),FINRPTCD))=FALSE THEN
+						SET isoData = getPayLoad(FIELDNAME(inRef),inputRef,encodeRef,ccidRef);
+						CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Incoming Req Data to revertBackToSystem:'||isoData) INTO rc;
+						CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL');
+				 		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583WithHeader';
+				 		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583WithHeader;
+				 		SET outRef.TCPHeaderBitmap[] = inRef.TCPHeaderBitmap[];
+				 		CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED);
+				 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+						DECLARE isoData CHARACTER getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainDataRef,encodeRef,ccidRef);--ASBITSTREAM(OutputRoot.DFDL ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader'); 
+	 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','iso data with header:'||isoData) INTO rc;
+	 					SET isoData = SUBSTRING(isoData FROM 1 FOR 2) || SUBSTRING(isoData FROM 7);
+				 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','iso data after removing header:'||isoData) INTO rc;
+				 		SET OutputRoot = null;
+				 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+				 		SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
+				 		SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
+				 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
+				 		PARSE(CAST(isoData AS BLOB)  ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+				 		
+				 		CALL MTIResponse(CAST(inRef.MTI_Version AS CHARACTER),CAST(inRef.MTI_MessageClass AS CHARACTER),CAST(inRef.MTI_MessageFunction AS CHARACTER),CAST(inRef.MTI_MessageOrigin AS CHARACTER)) into mtiRes;
+						SET OutputRoot.DFDL.ISO8583_1987.MTI_Version=SUBSTRING(mtiRes FROM 1 FOR 1);
+						SET OutputRoot.DFDL.ISO8583_1987.MTI_MessageClass=SUBSTRING(mtiRes FROM 2 FOR 1);
+						SET OutputRoot.DFDL.ISO8583_1987.MTI_MessageFunction=SUBSTRING(mtiRes FROM 3 FOR 1); 
+						SET OutputRoot.DFDL.ISO8583_1987.MTI_MessageOrigin=SUBSTRING(mtiRes FROM 4 FOR 1);
+						CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Postilion::') INTO rc;
+						CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef)) INTO rc;
+			 		ELSE
+			 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','No Response To Postilion Since MTI may be 0800,0220,0221,0420,0421') INTO rc;
+						RETURN;
+			 		END IF;
+		ELSE
+			DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+			IF (CONTAINS(CAST(inRef.MTI_Version AS CHARACTER)|| CAST(inRef.MTI_MessageClass AS CHARACTER)||CAST(inRef.MTI_MessageFunction AS CHARACTER)||CAST(inRef.MTI_MessageOrigin AS CHARACTER),NETWKCD)
+			 	OR CONTAINS(CAST(inRef.MTI_Version AS CHARACTER)|| CAST(inRef.MTI_MessageClass AS CHARACTER)||CAST(inRef.MTI_MessageFunction AS CHARACTER)||CAST(inRef.MTI_MessageOrigin AS CHARACTER),REVCD)
+			 	OR CONTAINS(CAST(inRef.MTI_Version AS CHARACTER)|| CAST(inRef.MTI_MessageClass AS CHARACTER)||CAST(inRef.MTI_MessageFunction AS CHARACTER)||CAST(inRef.MTI_MessageOrigin AS CHARACTER),REVRPTCD)
+			 	OR CONTAINS(CAST(inRef.MTI_Version AS CHARACTER)|| CAST(inRef.MTI_MessageClass AS CHARACTER)||CAST(inRef.MTI_MessageFunction AS CHARACTER)||CAST(inRef.MTI_MessageOrigin AS CHARACTER),FINCD)
+			 	OR CONTAINS(CAST(inRef.MTI_Version AS CHARACTER)|| CAST(inRef.MTI_MessageClass AS CHARACTER)||CAST(inRef.MTI_MessageFunction AS CHARACTER)||CAST(inRef.MTI_MessageOrigin AS CHARACTER),FINRPTCD))=FALSE THEN
+					SET isoData = getPayLoad(FIELDNAME(InputBody),inputRef,encodeRef,ccidRef);
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Incoming Req Data to revertBackToSystem:'||isoData) INTO rc;
+					SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
 					CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL');
-			 		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583WithHeader';
-			 		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583WithHeader;
-			 		SET outRef.TCPHeaderBitmap[] = inRef.TCPHeaderBitmap[];
-			 		CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED);
-			 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
-					DECLARE isoData CHARACTER getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainDataRef,encodeRef,ccidRef);--ASBITSTREAM(OutputRoot.DFDL ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader'); 
- 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','iso data with header:'||isoData) INTO rc;
- 					SET isoData = SUBSTRING(isoData FROM 1 FOR 2) || SUBSTRING(isoData FROM 7);
-			 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','iso data after removing header:'||isoData) INTO rc;
-			 		SET OutputRoot = null;
-			 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-			 		SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
-			 		SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
-			 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
-			 		PARSE(CAST(isoData AS BLOB)  ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
-			 		
-			 		CALL MTIResponse(CAST(inRef.MTI_Version AS CHARACTER),CAST(inRef.MTI_MessageClass AS CHARACTER),CAST(inRef.MTI_MessageFunction AS CHARACTER),CAST(inRef.MTI_MessageOrigin AS CHARACTER)) into mtiRes;
-					SET OutputRoot.DFDL.ISO8583_1987.MTI_Version=SUBSTRING(mtiRes FROM 1 FOR 1);
-					SET OutputRoot.DFDL.ISO8583_1987.MTI_MessageClass=SUBSTRING(mtiRes FROM 2 FOR 1);
-					SET OutputRoot.DFDL.ISO8583_1987.MTI_MessageFunction=SUBSTRING(mtiRes FROM 3 FOR 1); 
-					SET OutputRoot.DFDL.ISO8583_1987.MTI_MessageOrigin=SUBSTRING(mtiRes FROM 4 FOR 1);
+				 	CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+					DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+					CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED);
+					CALL MTIResponse(CAST(inRef.MTI_Version AS CHARACTER),CAST(inRef.MTI_MessageClass AS CHARACTER),CAST(inRef.MTI_MessageFunction AS CHARACTER),CAST(inRef.MTI_MessageOrigin AS CHARACTER)) into mtiRes;
+					SET outRef.MTI_Version=SUBSTRING(mtiRes FROM 1 FOR 1);
+					SET outRef.MTI_MessageClass=SUBSTRING(mtiRes FROM 2 FOR 1);
+					SET outRef.MTI_MessageFunction=SUBSTRING(mtiRes FROM 3 FOR 1); 
+					SET outRef.MTI_MessageOrigin=SUBSTRING(mtiRes FROM 4 FOR 1);
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Postilion::') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef)) INTO rc;
-			 		
-		ELSE
-				DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
-				SET isoData = getPayLoad(FIELDNAME(InputBody),inputRef,encodeRef,ccidRef);
-				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Incoming Req Data to revertBackToSystem:'||isoData) INTO rc;
-				SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
-				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL');
-			 	CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
-				DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
-				CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED);
-				CALL MTIResponse(CAST(inRef.MTI_Version AS CHARACTER),CAST(inRef.MTI_MessageClass AS CHARACTER),CAST(inRef.MTI_MessageFunction AS CHARACTER),CAST(inRef.MTI_MessageOrigin AS CHARACTER)) into mtiRes;
-				SET outRef.MTI_Version=SUBSTRING(mtiRes FROM 1 FOR 1);
-				SET outRef.MTI_MessageClass=SUBSTRING(mtiRes FROM 2 FOR 1);
-				SET outRef.MTI_MessageFunction=SUBSTRING(mtiRes FROM 3 FOR 1); 
-				SET outRef.MTI_MessageOrigin=SUBSTRING(mtiRes FROM 4 FOR 1);
-				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Postilion::') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef)) INTO rc;
+			ELSE
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','No Response To Postilion Since MTI may be 0800,0220,0221,0420,0421') INTO rc;
+				RETURN;
+			END IF;
+			
 		END CASE;
 		
 		--generate a error response in iso8583 to front end system in case of failure of t24
