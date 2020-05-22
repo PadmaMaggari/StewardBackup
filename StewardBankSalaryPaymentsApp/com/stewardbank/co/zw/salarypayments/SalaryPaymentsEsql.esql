@@ -1,0 +1,174 @@
+BROKER SCHEMA com.stewardbank.co.zw.salarypayments
+
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,SALARY_PAYMENTS_SB_Q,T24,ZSS EXTERNAL CHARACTER '';
+DECLARE UUID SHARED CHARACTER '';
+CREATE COMPUTE MODULE csv_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		CASE
+
+		WHEN domainName LIKE 'DFDL' THEN
+			SET OutputRoot.Properties = InputRoot.Properties;
+			-- SET InputRoot.Properties.MessageSet= '{SB_CSV_Lib}';
+			-- SET InputRoot.Properties.MessageType= '{}:stewardBank_CSV';
+			SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
+			SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';
+			CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
+			CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+			DECLARE inRef REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
+			-- SET outRef. = InputRoot
+			CALL CSVToISOMapping(inRef,outRef);
+			RETURN FALSE;
+		ELSE
+			RETURN FALSE;
+		END CASE;
+	END;
+	CREATE PROCEDURE CSVToISOMapping (IN inRef REFERENCE, INOUT outRef REFERENCE)
+	BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		SET Environment.Variables.FileName = InputLocalEnvironment.File.Name;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF (rc = FALSE) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............Start SalaryPayments  ReqToPostilion logging...........') INTO rc;
+		DECLARE Response ROW;
+		DECLARE sql CHARACTER '';
+		SET UUID = UUIDASCHAR;
+		DECLARE currenttimestamp TIMESTAMP cast(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');
+
+		DECLARE currenttimestamp1 GMTTIMESTAMP;
+		-- SET sql='INSERT INTO SALARY_PAYMENTS VALUES(?,?,?,?,?,?,?,?,?,?,ID_SEQ.NEXTVAL,?)';
+		-- SET Response.insert[]=PASSTHRU(sql VALUES(UUID,inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CURRENT_TIMESTAMP,
+		-- getPayLoad(FIELDNAME(inDomainDataRef.stewardBank_CSV),inDomainDataRef.stewardBank_CSV,encodeRef,ccidRef),'','','','',OutputRoot.Properties.CreationTime,CURRENT_TIMESTAMP,'',Environment.Variables.FileName));
+
+		CALL insertSalaryPayment(UUID,inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
+		getPayLoad(FIELDNAME(inDomainDataRef.stewardBank_CSV),inDomainDataRef.stewardBank_CSV,encodeRef,ccidRef),'','','','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
+		--mapping CSV to ISO8583
+		SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
+		SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';
+		--SET outRef.TCPHeaderBitmap[]=inRef.TCPHeaderBitmap[]; 
+		DECLARE debitDate CHARACTER '  ';
+		DECLARE narration CHARACTER '                        ';
+		SET outRef.MTI_Version='0'; 
+		SET outRef.MTI_MessageClass='2';
+		SET outRef.MTI_MessageFunction='0';
+		SET outRef.MTI_MessageOrigin='0';
+		-- SET outRef.PrimaryAccountNumber_002 = '';
+		-- SET outRef.ProcessingCode_003 = '';
+		SET outRef.AmountTransaction_004 = inRef.AMOUNT; --4
+		--DECLARE a,b INTEGER;
+		-- SET a=10;
+		-- SET b=LENGTH(inRef.DEBIT_DATE);
+		-- While a<=b do
+		-- SET inRef.DEBIT_DATE = inRef.DEBIT_DATE ||' ';
+		-- SET b=b+1;
+		-- END WHILE;
+		SET outRef.TransmissionDatetime_007 = inRef.DEBIT_DATE||debitDate; -- CSV Field 7
+		--SET outRef.TimeLocalTransaction_012 = SUBSTRING(inRef.CREDIT_DATE FROM 3 FOR 6); -- CSV Field 8
+		SET outRef.DateLocalTransaction_013 = SUBSTRING(inRef.CREDIT_DATE FROM 5 FOR 4); -- CSV Field 8
+		-- SET outRef.DateExpiration_014 = SUBSTRING(inRef.CREDIT_DATE FROM 3 FOR 4);
+		SET outRef.DateSettlement_015 = SUBSTRING(inRef.CREDIT_DATE FROM 5 FOR 4); -- CSV Field 8
+		SET outRef.RetrievalReferenceNumber_037 = SUBSTRING(inRef.CREDIT_THEIR_REFERENCE FROM 1 FOR 12); -- CSV Field 9
+		SET outRef.CardAcceptorNameLocation_043 = inRef.NARRATION||narration; -- CSV Field 10
+		SET outRef.CurrencyCodeTransaction_049 = inRef.CURRENNCY; -- CSV Field 3
+		SET outRef.AccountIdentification1_102 = inRef.CREDIT_ACCOUNT; -- CSV Field 5
+		SET outRef.AccountIdentification2_103 = inRef.DEBIT_ACCOUNT; -- CSV Field 2
+		SET outRef.TransactionDescription_104 = inRef.TRANSACTION_TYPE; -- CSV Field 1
+		CALL UpdateMsgWithAsciiBitMap(outRef);
+		--get account details from db lookup
+		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?'; 
+		DECLARE DebitAccount CHARACTER outRef.AccountIdentification2_103;   
+		CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',DebitAccount) INTO rc;
+		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(DebitAccount)); 
+		SET Environment.Variables.dfdlData = OutputRoot.DFDL.ISO8583_1987;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SALARY_PAYMENTS_SB_Q;
+		IF EXISTS (Response.accountEnquiry.*[]) THEN
+			
+			--T24 Call
+			SET OutputRoot.DFDL.ISO8583_1987 = Environment.Variables.dfdlData;
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToT24 logging...........') INTO rc;
+			PROPAGATE TO TERMINAL 'out';
+		ELSE
+			 
+			--ZSS Call
+			SET OutputRoot.DFDL.ISO8583_1987 = Environment.Variables.dfdlData;
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToZSS logging...........') INTO rc;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE T24_ZssStatusUpdate_Compute      
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+
+		CALL CopyEntireMessage();
+		RETURN FALSE;
+	END;
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		SET UUID = UUIDASCHAR;
+		DECLARE currenttimestamp TIMESTAMP cast(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');
+
+		CASE
+
+		WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN 
+			CALL insertSalaryPayment(UUID,inDomainDataRef.ISO8583_1987.AccountIdentification1_102,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
+			'','00',getPayLoad(FIELDNAME(inDomainDataRef.ISO8583_1987),inDomainDataRef.ISO8583_1987,encodeRef,ccidRef),'','SUCCESS',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),inDomainDataRef.ISO8583_1987.RetrievalReferenceNumber_037,Environment.Variables.FileName);
+			-- SET OutputRoot.DFDL.ISO8583_1987 = InputRoot.DFDL.ISO8583_1987;
+			-- SET OutputRoot.DFDL.ISO8583_1987 = getPayLoad(FIELDNAME(inDomainDataRef.ISO8583_1987),inDomainDataRef.ISO8583_1987,encodeRef,ccidRef);
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987'); 
+
+			PROPAGATE TO TERMINAL 'out';     
+		ELSE
+			
+			CALL insertSalaryPayment(UUID,inDomainDataRef.ISO8583_1987.AccountIdentification1_102,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'), 
+			'','','','','FAILURE',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS GMTTIMESTAMP),inDomainDataRef.ISO8583_1987.RetrievalReferenceNumber_037,Environment.Variables.FileName);
+			SET OutputRoot.DFDL.ISO8583_1987 = InputRoot.DFDL.ISO8583_1987;
+			PROPAGATE TO TERMINAL 'out';
+		END CASE;
+
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE SalaryPaymentsFlow_ExceptionCapture 
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+	 CALL CopyEntireMessage();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE; 
+
+
+
+CREATE PROCEDURE insertSalaryPayment (IN SALARY_PAYMENTS_GUID CHARACTER,IN SALARY_PAYMENTS_STAN_NUM CHARACTER  
+,IN SALARY_PAYMENTS_STANDATE TIMESTAMP,IN SALARY_PAYMENTS_ISO_REQUEST_MSG CHARACTER
+,IN SALARY_PAYMENTS_RESPONSE_CODE CHARACTER,IN SALARY_PAYMENTS_ISO_RESPONSE_MSG CHARACTER,IN SALARY_PAYMENTS_ZSS_STATUS CHARACTER,
+IN SALARY_PAYMENTS_T24_STATUS CHARACTER,IN SALARY_PAYMENTS_DATECREATED TIMESTAMP,IN SALARY_PAYMENTS_DATEUPDATED CHARACTER,IN SALARY_PAYMENTS_ID CHARACTER,IN SALARY_PAYMENTS_CSV_FILENAME CHARACTER)
+LANGUAGE DATABASE
+EXTERNAL NAME "INSERT_SALARY_PAYMENTS";
