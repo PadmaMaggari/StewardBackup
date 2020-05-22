@@ -942,9 +942,9 @@
  END;
  /** Method for to update Bit map with Ascii**/
 
- CREATE PROCEDURE UpdateMsgWithAsciiBitMap(INOUT outPayLoadRef REFERENCE)
+ CREATE PROCEDURE UpdateMsgWithAsciiBitMap(INOUT tcpRef REFERENCE,INOUT outPayLoadRef REFERENCE)
  BEGIN
- 	DECLARE tcpBitmapRef REFERENCE TO outPayLoadRef;
+ 	DECLARE tcpBitmapRef REFERENCE TO tcpRef;
  	--CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorDebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER )) INTO rc;
  	--DECLARE data BLOB CAST(ASBITSTREAM(outPayLoadRef ENCODING 546 CCSID 437 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER );-- getPayLoad(outPayloadRef,encodeRef,propertiesRef);
  	--DECLARE tcpHeader BLOB Get2ByteHeader(data);
@@ -955,7 +955,7 @@
  	IF NOT LASTMOVE(mtiOrigin) THEN
  		THROW USER EXCEPTION SEVERITY 3 MESSAGE 0000 VALUES ('MTI Message Origin is not created. Should be before calling updateMsgWithHexBitMap method');
  	END IF;
- 	CREATE FIRSTCHILD OF outPayLoadRef AS tcpBitmapRef NAME 'TCPHeaderBitmap';
+ 	CREATE FIRSTCHILD OF tcpRef AS tcpBitmapRef NAME 'TCPHeaderBitmap';
  	CALL PopulatePackedBitmap(tcpBitmapRef,17);
  	CREATE NEXTSIBLING OF mtiOrigin AS primaryBitRef NAME 'PrimaryBitmap';
  	CALL PopulatePackedBitmap(primaryBitRef,65);
@@ -980,7 +980,7 @@
  		--CALL PopulateUnpackedBitmaps(iccDataBitRef,iccDataBitRef,0);
  	END IF;
  	--Updating the fields based on available fields
- 	CALL UpdateBitmapWithAvailableFields(outPayLoadRef, outPayLoadRef);
+ 	CALL UpdateBitmapWithAvailableFields(tcpRef,outPayLoadRef, outPayLoadRef);
  END;
 
  CREATE PROCEDURE PopulateUnPackedBitmaps(IN DFDLPointerUnpack REFERENCE,IN DFDLPointer REFERENCE, IN SecondDigit INTEGER)
@@ -1167,11 +1167,11 @@
  END;
 
 
- CREATE PROCEDURE UpdateBitmapWithAvailableFields(IN outPayLoadRef REFERENCE, INOUT DFDLPointer REFERENCE)
+ CREATE PROCEDURE UpdateBitmapWithAvailableFields(IN tcpHeaderRef REFERENCE,IN outPayLoadRef REFERENCE, INOUT DFDLPointer REFERENCE)
  BEGIN
  	-- Loop over the fields which are present to update the Bitmaps ...
  	-- Moving outRef from bit map segments
- 	DECLARE tcpBitmapRef REFERENCE TO outPayLoadRef.TCPHeaderBitmap;
+ 	DECLARE tcpBitmapRef REFERENCE TO tcpHeaderRef.TCPHeaderBitmap;
  	DECLARE data BLOB ASBITSTREAM(outPayLoadRef ENCODING 546 CCSID 437 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987'); -- getPayLoad(outPayloadRef,encodeRef,propertiesRef);
  	DECLARE tcpHeader BLOB ;
  	--JAVA procedure call to get 2 byte header
@@ -1299,7 +1299,7 @@
 
 
 
- CREATE PROCEDURE JSONToISOMapping(IN inputRef REFERENCE,IN outRef REFERENCE)
+ CREATE PROCEDURE JSONToISOMapping(IN inputRef REFERENCE,IN tcpRef REFERENCE,IN outRef REFERENCE)
  BEGIN
  	DECLARE fieldRef REFERENCE TO inputRef.field.Item[1];
  	DECLARE fieldId CHARACTER;
@@ -1343,7 +1343,7 @@
  		END IF;
  		MOVE fieldRef NEXTSIBLING;
  	END WHILE;
- 	CALL UpdateMsgWithAsciiBitMap(outRef);
+ 	CALL UpdateMsgWithAsciiBitMap(tcpRef,outRef);
  END;
 
 
