@@ -145,7 +145,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Occured') INTO rc;
 					SET OutputRoot = null;
 					CALL CopyMessageHeaders();
-					IF domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) THEN
+					IF domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) AND  CONTAINS(flowName,'OutgoingRouterFlow')= FALSE  THEN 
 						CALL revertBackToSystem(ccidRef,encodeRef);
 					END IF;
 					CALL LogException(encodeRef,ccidRef);
@@ -245,6 +245,7 @@ CREATE COMPUTE MODULE ExceptionHandling
  					SET isoData = SUBSTRING(isoData FROM 1 FOR 2) || SUBSTRING(isoData FROM 7);
 			 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','iso data after removing header:'||isoData) INTO rc;
 			 		SET OutputRoot = null;
+			 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 			 		SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
 			 		SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
 			 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
