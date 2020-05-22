@@ -25,10 +25,10 @@
       <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="522,31">
         <translation xmi:type="utility:TranslatableString" key="OutTerminal.Output" bundleName="com/stewardbank/co/zw/common/t24call/StewardBankT24SubFlow" pluginId="StewardBankT24Call"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="141,28" connectionDetails="{ESBPolicies}:T24Client" closeOutputStream="true" modifyInputStream="reserve">
+      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="141,28" connectionDetails="{ESBPolicies}:T24Client" closeOutputStream="true" modifyOutputStream="reserve">
         <translation xmi:type="utility:ConstantString" string="T24ClientOut"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="250,28" connectionDetails="{ESBPolicies}:T24Client" timeoutWaitingForData="90" closeInputStream="true" modifyOutputStream="release" idLocation="$LocalEnvironment/WrittenDestination/TCPIP/Output/ConnectionDetails[1]/Id" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583WithHeader">
+      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="250,28" connectionDetails="{ESBPolicies}:T24Client" timeoutWaitingForData="90" closeInputStream="true" modifyInputStream="release" modifyOutputStream="release" idLocation="$LocalEnvironment/WrittenDestination/TCPIP/Output/ConnectionDetails[1]/Id" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583WithHeader" validateTiming="immediate" recordDetection="parsedRecordSequence">
         <translation xmi:type="utility:ConstantString" string="T24ClientReceiveData"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="290,156" computeExpression="esql://routine/com.stewardbank.co.zw.common.t24call#StewardBankT24SubFlow.Main" computeMode="destinationAndMessage">

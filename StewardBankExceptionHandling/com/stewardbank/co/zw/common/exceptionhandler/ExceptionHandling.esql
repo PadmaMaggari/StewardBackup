@@ -212,7 +212,6 @@ CREATE COMPUTE MODULE ExceptionHandling
 	*/
 	CREATE PROCEDURE revertBackToSystem(IN ccidRef INTEGER,IN encodeRef INTEGER)
 	BEGIN 
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end') INTO rc;
 		/* details like tcpip id and systemTraceNumber and dateLocalTransaction and retrievalRefarenceNumber */
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
@@ -220,10 +219,10 @@ CREATE COMPUTE MODULE ExceptionHandling
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end') INTO rc;
 		DECLARE inputRef REFERENCE TO InputRoot.DFDL;
 		DECLARE isoData,mtiRes CHARACTER '';
 		DECLARE tcpHeader,data BLOB;
-		
 		CASE
 			WHEN FIELDNAME(inputRef.ISO8583TCPHeader) IS NOT NULL AND EXISTS(InputRoot.DFDL.*[]) THEN
 					SET isoData = getPayLoad(FIELDNAME(inputRef.ISO8583TCPHeader),inputRef,encodeRef,ccidRef);
@@ -240,8 +239,10 @@ CREATE COMPUTE MODULE ExceptionHandling
 			 		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583WithHeader;
 			 		SET outRef.TCPHeaderBitmap[] = inRef.TCPHeaderBitmap[];
 			 		CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED);
-					SET data = ASBITSTREAM(OutputRoot.DFDL ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader'); 
- 					DECLARE isoData CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || SUBSTRING(CAST(data AS CHARACTER) FROM 7);
+			 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+					DECLARE isoData CHARACTER getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainDataRef,encodeRef,ccidRef);--ASBITSTREAM(OutputRoot.DFDL ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader'); 
+ 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','iso data with header:'||isoData) INTO rc;
+ 					SET isoData = SUBSTRING(isoData FROM 1 FOR 2) || SUBSTRING(isoData FROM 7);
 			 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','iso data after removing header:'||isoData) INTO rc;
 			 		SET OutputRoot = null;
 			 		SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
