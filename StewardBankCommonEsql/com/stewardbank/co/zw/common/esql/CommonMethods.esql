@@ -171,8 +171,8 @@
  	IF FIELDNAME(inputRef.ResponseCode_039) is NOT NULL THEN
  		SET outRef.ResponseCode_039= inputRef.ResponseCode_039;
  	END IF;
- 	--start of editing (Added for error response to postilion or zss)
- 	IF err = 'Y' THEN SET outRef.ResponseCode_039='06';
+ 	--start of editing (Added error response code 91 which is (issuer or switch inoperative)to postilion )
+ 	IF err = 'Y' THEN SET outRef.ResponseCode_039='91';
  	END IF;
  	--end of editing
  	IF FIELDNAME(inputRef.ServiceRestrictionCode_040) is NOT NULL THEN
