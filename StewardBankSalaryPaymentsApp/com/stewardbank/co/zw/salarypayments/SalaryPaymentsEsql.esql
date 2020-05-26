@@ -1,3 +1,5 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.salarypayments
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -14,9 +16,7 @@ CREATE COMPUTE MODULE csv_Compute
 			-- SET InputRoot.Properties.MessageSet= '{SB_CSV_Lib}';
 			-- SET InputRoot.Properties.MessageType= '{}:stewardBank_CSV';
 			SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
-			SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';
-			CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
-			CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+			SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987'; 
 			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 			DECLARE inRef REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
 			-- SET outRef. = InputRoot
@@ -52,11 +52,13 @@ CREATE COMPUTE MODULE csv_Compute
 		getPayLoad(FIELDNAME(inDomainDataRef.stewardBank_CSV),inDomainDataRef.stewardBank_CSV,encodeRef,ccidRef),'','','','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
 		--mapping CSV to ISO8583
 		SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
-		SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';
-		--SET outRef.TCPHeaderBitmap[]=inRef.TCPHeaderBitmap[]; 
+		SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';   
+		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987'; 
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		--SET outRef.TCPHeaderBitmap[]=inRef.TCPHeaderBitmap[];
 		DECLARE debitDate CHARACTER '  ';
 		DECLARE narration CHARACTER '                        ';
-		SET outRef.MTI_Version='0'; 
+		SET outRef.MTI_Version='0';
 		SET outRef.MTI_MessageClass='2';
 		SET outRef.MTI_MessageFunction='0';
 		SET outRef.MTI_MessageOrigin='0';
@@ -81,22 +83,22 @@ CREATE COMPUTE MODULE csv_Compute
 		SET outRef.AccountIdentification1_102 = inRef.CREDIT_ACCOUNT; -- CSV Field 5
 		SET outRef.AccountIdentification2_103 = inRef.DEBIT_ACCOUNT; -- CSV Field 2
 		SET outRef.TransactionDescription_104 = inRef.TRANSACTION_TYPE; -- CSV Field 1
-		CALL UpdateMsgWithAsciiBitMap(outRef);
+		
+		CALL UpdateMsgWithAsciiBitMap(outRef);    
+		
 		--get account details from db lookup
-		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?'; 
-		DECLARE DebitAccount CHARACTER outRef.AccountIdentification2_103;   
+		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
+		DECLARE DebitAccount CHARACTER outRef.AccountIdentification2_103;
 		CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',DebitAccount) INTO rc;
-		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(DebitAccount)); 
+		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(DebitAccount));
 		SET Environment.Variables.dfdlData = OutputRoot.DFDL.ISO8583_1987;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SALARY_PAYMENTS_SB_Q;
 		IF EXISTS (Response.accountEnquiry.*[]) THEN
-			
 			--T24 Call
 			SET OutputRoot.DFDL.ISO8583_1987 = Environment.Variables.dfdlData;
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToT24 logging...........') INTO rc;
 			PROPAGATE TO TERMINAL 'out';
 		ELSE
-			 
 			--ZSS Call
 			SET OutputRoot.DFDL.ISO8583_1987 = Environment.Variables.dfdlData;
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToZSS logging...........') INTO rc;
@@ -105,7 +107,7 @@ CREATE COMPUTE MODULE csv_Compute
 	END;
 END MODULE;
 
-CREATE COMPUTE MODULE T24_ZssStatusUpdate_Compute      
+CREATE COMPUTE MODULE T24StatusUpdate_Compute 
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 
@@ -116,36 +118,73 @@ CREATE COMPUTE MODULE T24_ZssStatusUpdate_Compute
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 		SET UUID = UUIDASCHAR;
 		DECLARE currenttimestamp TIMESTAMP cast(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');
 
 		CASE
 
-		WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN 
-			CALL insertSalaryPayment(UUID,inDomainDataRef.ISO8583_1987.AccountIdentification1_102,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
-			'','00',getPayLoad(FIELDNAME(inDomainDataRef.ISO8583_1987),inDomainDataRef.ISO8583_1987,encodeRef,ccidRef),'','SUCCESS',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),inDomainDataRef.ISO8583_1987.RetrievalReferenceNumber_037,Environment.Variables.FileName);
+		WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN    
+			CALL insertSalaryPayment(UUID,inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
+		'','00',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','SUCCESS',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
 			-- SET OutputRoot.DFDL.ISO8583_1987 = InputRoot.DFDL.ISO8583_1987;
 			-- SET OutputRoot.DFDL.ISO8583_1987 = getPayLoad(FIELDNAME(inDomainDataRef.ISO8583_1987),inDomainDataRef.ISO8583_1987,encodeRef,ccidRef);
-			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987'); 
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 
-			PROPAGATE TO TERMINAL 'out';     
+			PROPAGATE TO TERMINAL 'out';  
 		ELSE
-			
-			CALL insertSalaryPayment(UUID,inDomainDataRef.ISO8583_1987.AccountIdentification1_102,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'), 
-			'','','','','FAILURE',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS GMTTIMESTAMP),inDomainDataRef.ISO8583_1987.RetrievalReferenceNumber_037,Environment.Variables.FileName);
-			SET OutputRoot.DFDL.ISO8583_1987 = InputRoot.DFDL.ISO8583_1987;
-			PROPAGATE TO TERMINAL 'out';
+
+			CALL insertSalaryPayment(UUID,inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'), 
+		getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','','','FAILURE',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+			PROPAGATE TO TERMINAL 'out'; 
+		END CASE;
+
+	END;
+END MODULE;
+CREATE COMPUTE MODULE ZSS_StatusUpdate_Compute  
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+
+		CALL CopyEntireMessage();
+		RETURN FALSE;
+	END;
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL; 
+		SET UUID = UUIDASCHAR;
+		DECLARE currenttimestamp TIMESTAMP cast(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');   
+
+		CASE
+
+		WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN 
+			CALL insertSalaryPayment(UUID,inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
+		'','00',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'SUCCESS','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
+			-- SET OutputRoot.DFDL.ISO8583_1987 = InputRoot.DFDL.ISO8583_1987;
+			-- SET OutputRoot.DFDL.ISO8583_1987 = getPayLoad(FIELDNAME(inDomainDataRef.ISO8583_1987),inDomainDataRef.ISO8583_1987,encodeRef,ccidRef);
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+
+			PROPAGATE TO TERMINAL 'out';  
+		ELSE
+
+			CALL insertSalaryPayment(UUID,inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'), 
+		getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','','FAILURE','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+			PROPAGATE TO TERMINAL 'out'; 
 		END CASE;
 
 	END;
 END MODULE;
 
-
 CREATE COMPUTE MODULE SalaryPaymentsFlow_ExceptionCapture 
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		-- CALL CopyMessageHeaders();
-	 CALL CopyEntireMessage();
+		CALL CopyEntireMessage();
 		RETURN TRUE;
 	END;
 
@@ -162,11 +201,11 @@ CREATE COMPUTE MODULE SalaryPaymentsFlow_ExceptionCapture
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		SET OutputRoot = InputRoot;
 	END;
-END MODULE; 
+END MODULE;
 
 
 
-CREATE PROCEDURE insertSalaryPayment (IN SALARY_PAYMENTS_GUID CHARACTER,IN SALARY_PAYMENTS_STAN_NUM CHARACTER  
+CREATE PROCEDURE insertSalaryPayment (IN SALARY_PAYMENTS_GUID CHARACTER,IN SALARY_PAYMENTS_STAN_NUM CHARACTER
 ,IN SALARY_PAYMENTS_STANDATE TIMESTAMP,IN SALARY_PAYMENTS_ISO_REQUEST_MSG CHARACTER
 ,IN SALARY_PAYMENTS_RESPONSE_CODE CHARACTER,IN SALARY_PAYMENTS_ISO_RESPONSE_MSG CHARACTER,IN SALARY_PAYMENTS_ZSS_STATUS CHARACTER,
 IN SALARY_PAYMENTS_T24_STATUS CHARACTER,IN SALARY_PAYMENTS_DATECREATED TIMESTAMP,IN SALARY_PAYMENTS_DATEUPDATED CHARACTER,IN SALARY_PAYMENTS_ID CHARACTER,IN SALARY_PAYMENTS_CSV_FILENAME CHARACTER)
