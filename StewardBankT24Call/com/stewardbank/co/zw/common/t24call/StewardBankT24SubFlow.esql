@@ -87,7 +87,7 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow_addHeaderData
 	 		--JAVA procedure call to get 2 byte header
 	 		SET tcpHeader = Get2ByteHeader(data);
 	 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','Data with header') INTO rc;
-	 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG',tcpHeader) INTO rc;
+	 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG',CAST(tcpHeader AS CHARACTER)) INTO rc; 
 	 		DECLARE hexBits CHARACTER SUBSTRING(CAST(tcpHeader AS CHARACTER) FROM 3 FOR 4);
 	 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','Hex Data of Header:'||hexBits) INTO rc;
 	 		DECLARE dataWithHeader CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || hexBits || SUBSTRING(CAST(data AS CHARACTER) FROM 3);
