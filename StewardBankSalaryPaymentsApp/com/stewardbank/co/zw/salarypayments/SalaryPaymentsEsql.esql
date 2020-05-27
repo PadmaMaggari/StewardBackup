@@ -1,3 +1,5 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.salarypayments
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR_MSG,T24,ZSS EXTERNAL CHARACTER '';
@@ -100,11 +102,11 @@ CREATE COMPUTE MODULE csv_Compute
 		DECLARE DebitAccount CHARACTER outRef.AccountIdentification2_103;
 		CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',DebitAccount) INTO rc;
 		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(DebitAccount));
-		SET Environment.Variables.t24dfdlData  = OutputRoot.DFDL; 
-		--IF EXISTS (Response.accountEnquiry.*[]) THEN 
-		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(DebitAccount,'2') THEN    
+		SET Environment.Variables.t24dfdlData = OutputRoot.DFDL;
+		--IF EXISTS (Response.accountEnquiry.*[]) THEN
+		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(DebitAccount,'2') THEN
 			--ZSS Call
-			SET OutputRoot.DFDL = Environment.Variables.t24dfdlData;   
+			SET OutputRoot.DFDL = Environment.Variables.t24dfdlData;
 			----- Database Logging ------------
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
@@ -113,14 +115,15 @@ CREATE COMPUTE MODULE csv_Compute
 			SET OutputRoot.DFDL = NULL;
 			PROPAGATE TO TERMINAL 'out2';
 			----------------------
-			--SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
-		--	SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987'; 
-		SET OutputRoot.Properties=InputRoot.Properties;
+
+			SET OutputRoot.Properties=InputRoot.Properties;
+			SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
+			SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-			SET OutputRoot.DFDL = Environment.Variables.t24dfdlData;
+			SET OutputRoot.DFDL = Environment.Variables.t24dfdlData; 
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToZSS logging...........') INTO rc;  
-				--CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToZSS logging...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
 			END IF;
 			PROPAGATE TO TERMINAL 'out';
 		ELSE
@@ -134,15 +137,15 @@ CREATE COMPUTE MODULE csv_Compute
 			SET OutputRoot.DFDL = NULL;
 			PROPAGATE TO TERMINAL 'out2';
 			----------------------
-			--SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
-			--SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987'; 
 			SET OutputRoot.Properties=InputRoot.Properties;
-			SET OutputRoot.MQRFH2 = Environment.MQRFH2; 
-			SET OutputRoot.DFDL = Environment.Variables.zssdfdlData;   
+			SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
+			SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987'; 
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputRoot.DFDL = Environment.Variables.zssdfdlData;
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToT24 logging...........') INTO rc;
-				--CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
-			END IF; 
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+			END IF;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 	END;
