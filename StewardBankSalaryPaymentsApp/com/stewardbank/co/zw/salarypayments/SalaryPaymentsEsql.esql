@@ -1,22 +1,22 @@
-
-
 BROKER SCHEMA com.stewardbank.co.zw.salarypayments
-
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,SALARY_PAYMENTS_SB_Q,T24,ZSS EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR_MSG,T24,ZSS EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE UUID SHARED CHARACTER '';
 CREATE COMPUTE MODULE csv_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		CASE
-
 		WHEN domainName LIKE 'DFDL' THEN
 			SET OutputRoot.Properties = InputRoot.Properties;
 			-- SET InputRoot.Properties.MessageSet= '{SB_CSV_Lib}';
 			-- SET InputRoot.Properties.MessageType= '{}:stewardBank_CSV';
 			SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
-			SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987'; 
+			SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';
 			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 			DECLARE inRef REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
 			-- SET outRef. = InputRoot
@@ -28,32 +28,50 @@ CREATE COMPUTE MODULE csv_Compute
 	END;
 	CREATE PROCEDURE CSVToISOMapping (IN inRef REFERENCE, INOUT outRef REFERENCE)
 	BEGIN
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
 		SET Environment.Variables.FileName = InputLocalEnvironment.File.Name;
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
+		DECLARE outRefer REFERENCE TO OutputRoot;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF (rc = FALSE) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............Start SalaryPayments  ReqToPostilion logging...........') INTO rc;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............Start SalaryPayments  ReqToPostilion logging...........') INTO rc;
+		END IF;
+		--------------DBLogging-------------------
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,
+			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out2';
+		-----------------------------
+		DECLARE env REFERENCE TO Environment.Variables;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+		--set response queue and tcpip connection id in environment
+		DECLARE resQ CHARACTER Environment.MQRFH2.usr.resQueueName;
+		DECLARE connId CHARACTER Environment.MQRFH2.usr.Id;
+		SET Environment.Variables.ResponseQ = resQ;
+		SET Environment.Variables.TcpIp.ConnectionId = connId;
 		DECLARE Response ROW;
 		DECLARE sql CHARACTER '';
 		SET UUID = UUIDASCHAR;
 		DECLARE currenttimestamp TIMESTAMP cast(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');
-
-		DECLARE currenttimestamp1 GMTTIMESTAMP;
-		-- SET sql='INSERT INTO SALARY_PAYMENTS VALUES(?,?,?,?,?,?,?,?,?,?,ID_SEQ.NEXTVAL,?)';
-		-- SET Response.insert[]=PASSTHRU(sql VALUES(UUID,inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CURRENT_TIMESTAMP,
-		-- getPayLoad(FIELDNAME(inDomainDataRef.stewardBank_CSV),inDomainDataRef.stewardBank_CSV,encodeRef,ccidRef),'','','','',OutputRoot.Properties.CreationTime,CURRENT_TIMESTAMP,'',Environment.Variables.FileName));
-
 		CALL insertSalaryPayment(UUID,inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
 		getPayLoad(FIELDNAME(inDomainDataRef.stewardBank_CSV),inDomainDataRef.stewardBank_CSV,encodeRef,ccidRef),'','','','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
-		--mapping CSV to ISO8583
+		--mapping field to field CSV to ISO8583
 		SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
-		SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';   
-		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987'; 
+		SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';
+		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		--SET outRef.TCPHeaderBitmap[]=inRef.TCPHeaderBitmap[];
 		DECLARE debitDate CHARACTER '  ';
@@ -65,13 +83,6 @@ CREATE COMPUTE MODULE csv_Compute
 		-- SET outRef.PrimaryAccountNumber_002 = '';
 		-- SET outRef.ProcessingCode_003 = '';
 		SET outRef.AmountTransaction_004 = inRef.AMOUNT; --4
-		--DECLARE a,b INTEGER;
-		-- SET a=10;
-		-- SET b=LENGTH(inRef.DEBIT_DATE);
-		-- While a<=b do
-		-- SET inRef.DEBIT_DATE = inRef.DEBIT_DATE ||' ';
-		-- SET b=b+1;
-		-- END WHILE;
 		SET outRef.TransmissionDatetime_007 = inRef.DEBIT_DATE||debitDate; -- CSV Field 7
 		--SET outRef.TimeLocalTransaction_012 = SUBSTRING(inRef.CREDIT_DATE FROM 3 FOR 6); -- CSV Field 8
 		SET outRef.DateLocalTransaction_013 = SUBSTRING(inRef.CREDIT_DATE FROM 5 FOR 4); -- CSV Field 8
@@ -83,31 +94,60 @@ CREATE COMPUTE MODULE csv_Compute
 		SET outRef.AccountIdentification1_102 = inRef.CREDIT_ACCOUNT; -- CSV Field 5
 		SET outRef.AccountIdentification2_103 = inRef.DEBIT_ACCOUNT; -- CSV Field 2
 		SET outRef.TransactionDescription_104 = inRef.TRANSACTION_TYPE; -- CSV Field 1
-		
-		CALL UpdateMsgWithAsciiBitMap(outRef);    
-		
+		CALL UpdateMsgWithAsciiBitMap(outRef);
 		--get account details from db lookup
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
 		DECLARE DebitAccount CHARACTER outRef.AccountIdentification2_103;
 		CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',DebitAccount) INTO rc;
 		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(DebitAccount));
-		SET Environment.Variables.dfdlData = OutputRoot.DFDL.ISO8583_1987;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SALARY_PAYMENTS_SB_Q;
-		IF EXISTS (Response.accountEnquiry.*[]) THEN
-			--T24 Call
-			SET OutputRoot.DFDL.ISO8583_1987 = Environment.Variables.dfdlData;
-			CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToT24 logging...........') INTO rc;
+		SET Environment.Variables.t24dfdlData  = OutputRoot.DFDL; 
+		--IF EXISTS (Response.accountEnquiry.*[]) THEN 
+		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(DebitAccount,'2') THEN    
+			--ZSS Call
+			SET OutputRoot.DFDL = Environment.Variables.t24dfdlData;   
+			----- Database Logging ------------
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+			END IF;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			SET OutputRoot.DFDL = NULL;
+			PROPAGATE TO TERMINAL 'out2';
+			----------------------
+			--SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
+		--	SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987'; 
+		SET OutputRoot.Properties=InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputRoot.DFDL = Environment.Variables.t24dfdlData;
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToZSS logging...........') INTO rc;  
+				--CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+			END IF;
 			PROPAGATE TO TERMINAL 'out';
 		ELSE
-			--ZSS Call
-			SET OutputRoot.DFDL.ISO8583_1987 = Environment.Variables.dfdlData;
-			CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToZSS logging...........') INTO rc;
+			--T24 Call
+			SET Environment.Variables.zssdfdlData = OutputRoot.DFDL;
+			----- Database Logging ------------
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+			END IF;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			SET OutputRoot.DFDL = NULL;
+			PROPAGATE TO TERMINAL 'out2';
+			----------------------
+			--SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
+			--SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987'; 
+			SET OutputRoot.Properties=InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2; 
+			SET OutputRoot.DFDL = Environment.Variables.zssdfdlData;   
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToT24 logging...........') INTO rc;
+				--CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+			END IF; 
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 	END;
 END MODULE;
-
-CREATE COMPUTE MODULE T24StatusUpdate_Compute 
+CREATE COMPUTE MODULE T24StatusUpdate_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 
@@ -125,25 +165,25 @@ CREATE COMPUTE MODULE T24StatusUpdate_Compute
 
 		CASE
 
-		WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN    
-			CALL insertSalaryPayment(UUID,inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
-		'','00',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','SUCCESS',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
+		WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN
+			CALL insertSalaryPayment(UUID,inDomainDataRef.ISO8583_1987.AccountIdentification2_103,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
+			'','00',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','SUCCESS',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
 			-- SET OutputRoot.DFDL.ISO8583_1987 = InputRoot.DFDL.ISO8583_1987;
 			-- SET OutputRoot.DFDL.ISO8583_1987 = getPayLoad(FIELDNAME(inDomainDataRef.ISO8583_1987),inDomainDataRef.ISO8583_1987,encodeRef,ccidRef);
 			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 
-			PROPAGATE TO TERMINAL 'out';  
+			PROPAGATE TO TERMINAL 'out';
 		ELSE
 
-			CALL insertSalaryPayment(UUID,inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'), 
-		getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','','','FAILURE',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
+			CALL insertSalaryPayment(UUID,inDomainDataRef.ISO8583_1987.AccountIdentification2_103,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
+			getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','','','FAILURE',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
 			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
-			PROPAGATE TO TERMINAL 'out'; 
+			PROPAGATE TO TERMINAL 'out';
 		END CASE;
 
 	END;
 END MODULE;
-CREATE COMPUTE MODULE ZSS_StatusUpdate_Compute  
+CREATE COMPUTE MODULE ZSS_StatusUpdate_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 
@@ -155,32 +195,32 @@ CREATE COMPUTE MODULE ZSS_StatusUpdate_Compute
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL; 
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 		SET UUID = UUIDASCHAR;
-		DECLARE currenttimestamp TIMESTAMP cast(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');   
+		DECLARE currenttimestamp TIMESTAMP cast(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');
 
 		CASE
 
-		WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN 
-			CALL insertSalaryPayment(UUID,inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
-		'','00',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'SUCCESS','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
+		WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN
+			CALL insertSalaryPayment(UUID,inDomainDataRef.ISO8583_1987.AccountIdentification2_103,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
+			'','00',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'SUCCESS','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
 			-- SET OutputRoot.DFDL.ISO8583_1987 = InputRoot.DFDL.ISO8583_1987;
 			-- SET OutputRoot.DFDL.ISO8583_1987 = getPayLoad(FIELDNAME(inDomainDataRef.ISO8583_1987),inDomainDataRef.ISO8583_1987,encodeRef,ccidRef);
 			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 
-			PROPAGATE TO TERMINAL 'out';  
+			PROPAGATE TO TERMINAL 'out';
 		ELSE
 
-			CALL insertSalaryPayment(UUID,inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'), 
-		getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','','FAILURE','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
+			CALL insertSalaryPayment(UUID,inDomainDataRef.ISO8583_1987.AccountIdentification2_103,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
+			getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','','FAILURE','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
 			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
-			PROPAGATE TO TERMINAL 'out'; 
+			PROPAGATE TO TERMINAL 'out';
 		END CASE;
 
 	END;
 END MODULE;
 
-CREATE COMPUTE MODULE SalaryPaymentsFlow_ExceptionCapture 
+CREATE COMPUTE MODULE SalaryPaymentsFlow_ExceptionCapture
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		-- CALL CopyMessageHeaders();
