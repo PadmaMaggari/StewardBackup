@@ -83,10 +83,10 @@ END MODULE;
 CREATE COMPUTE MODULE CashAdvanceFlow_GenerationResToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL MiniStmtGenerateResToPostilion();
+		CALL CashAdvanceGenerateResToPostilion();
 		RETURN FALSE;
 	END;
-	CREATE PROCEDURE MiniStmtGenerateResToPostilion() BEGIN
+	CREATE PROCEDURE CashAdvanceGenerateResToPostilion() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
