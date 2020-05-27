@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmTCPIPClientOutput.msgnode="ComIbmTCPIPClientOutput.msgnode" xmlns:ComIbmTCPIPClientReceive.msgnode="ComIbmTCPIPClientReceive.msgnode" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow.subflow" nsPrefix="com_stewardbank_co_zw_common_zsscall_StewardBankZssCallSubFlow.subflow">
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmTCPIPClientOutput.msgnode="ComIbmTCPIPClientOutput.msgnode" xmlns:ComIbmTCPIPClientReceive.msgnode="ComIbmTCPIPClientReceive.msgnode" xmlns:com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow="com/stewardbank/co/zw/common/exceptionhandling/exceptionHandlingSubFlow.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow"
+    xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow.subflow" nsPrefix="com_stewardbank_co_zw_common_zsscall_StewardBankZssCallSubFlow.subflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1" useDefaults="true" udpSupport="true">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log\Log4jConfig.xml">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.MAX_RETRY_COUNT" name="MAX_RETRY_COUNT" defaultValueLiteral="3">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.INIT_LOG4J_ERROR" name="INIT_LOG4J_ERROR" defaultValueLiteral="[log4j]Initializing the path error">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RETRY_INTERVAL" name="RETRY_INTERVAL" defaultValueLiteral="5000">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="StewardBankZssCallSubFlow" bundleName="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow" pluginId="StewardBankZssCall"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankZssCall/icons/full/obj16/StewardBankZssCallSubFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankZssCall/icons/full/obj30/StewardBankZssCallSubFlow.gif"/>
@@ -9,20 +22,67 @@
       <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="20,20">
         <translation xmi:type="utility:TranslatableString" key="InTerminal.Input" bundleName="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow" pluginId="StewardBankZssCall"/>
       </nodes>
-      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="320,20">
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="617,23">
         <translation xmi:type="utility:TranslatableString" key="OutTerminal.Output" bundleName="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow" pluginId="StewardBankZssCall"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="101,23" connectionDetails="{ESBPolicies}:EsbZssClient" closeOutputStream="true" modifyInputStream="reserveThenRelease">
-        <translation xmi:type="utility:ConstantString" string="ZssClient"/>
+      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="236,25" connectionDetails="{ESBPolicies}:EsbZssClient" timeoutSendingData="90" modifyOutputStream="reserve">
+        <translation xmi:type="utility:ConstantString" string="ZssClientOut"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="183,23" connectionDetails="{ESBPolicies}:EsbZssClient" closeConnection="afterData" idLocation="$LocalEnvironment/WrittenDestination/TCPIP/Output/ConnectionDetails[1]/Id" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
+      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="347,25" connectionDetails="{ESBPolicies}:EsbZssClient" timeoutWaitingForData="90" modifyInputStream="release" modifyOutputStream="release" idLocation="$LocalEnvironment/WrittenDestination/TCPIP/Output/ConnectionDetails[1]/Id" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583WithHeader" recordDetection="parsedRecordSequence">
         <translation xmi:type="utility:ConstantString" string="ZssClientReveiceData"/>
       </nodes>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_1" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="115,110" computeExpression="esql://routine/com.stewardbank.co.zw.common.zsscall#StewardBankZssSubFlow_addHeaderData.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="addHeaderData"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="465,25" computeExpression="esql://routine/com.stewardbank.co.zw.common.zsscall#StewardBankZssSubFlow_removeHeaderData.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="removeHeaderData"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="486,101">
+        <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="420,181" computeExpression="esql://routine/com.stewardbank.co.zw.common.zsscall#StewardBankZssSubFlow.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="Retry"/>
+      </nodes>
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.out" location="600,183">
+        <translation xmi:type="utility:TranslatableString" key="OutTerminal.out1" bundleName="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow" pluginId="StewardBankZssCall"/>
+      </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="OutTerminal.Output" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_3" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="OutTerminal.Output" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.timeout" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="OutTerminal.out" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in">
+        <bendPoints>25,32,136,-48</bendPoints>
+        <bendPoints>-136,28,-25,-52</bendPoints>
+      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in">
+        <bendPoints>84,9,261,165</bendPoints>
+        <bendPoints>82,40,259,196</bendPoints>
+        <bendPoints>24,39,201,195</bendPoints>
+        <bendPoints>-41,37,136,193</bendPoints>
+        <bendPoints>-168,36,9,192</bendPoints>
+        <bendPoints>-229,37,-52,193</bendPoints>
+        <bendPoints>-237,-170,-60,-14</bendPoints>
+      </connections>
     </composition>
-    <propertyOrganizer/>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow" pluginId="StewardBankZssCall"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.MAX_RETRY_COUNT">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.MAX_RETRY_COUNT" bundleName="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow" pluginId="StewardBankZssCall"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.INIT_LOG4J_ERROR">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.INIT_LOG4J_ERROR" bundleName="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow" pluginId="StewardBankZssCall"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RETRY_INTERVAL">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.RETRY_INTERVAL" bundleName="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow" pluginId="StewardBankZssCall"/>
+            </propertyDescriptor>
+          </propertyDescriptor>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
     <stickyBoard/>
   </eClassifiers>
 </ecore:EPackage>
