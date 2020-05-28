@@ -83,24 +83,21 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 		DECLARE Response ROW;
 		DECLARE sql CHARACTER '';
 		SET UUID = UUIDASCHAR;
+		SET Environment.Guid = UUID;
 		SET sql='INSERT INTO RTGS_INCOMING VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,ID_SEQ.NEXTVAL)';
 		SET Response.insert[]=PASSTHRU(sql VALUES(UUID,inDomainDataRef.MT103.header.Block1.SessionNumber,CURRENT_TIMESTAMP,
 		inDomainDataRef.MT103.header.Block1.SequenceNum,
 		getPayLoad(FIELDNAME(inDomainDataRef.MT103),inDomainDataRef.MT103,encodeRef,ccidRef),'','','',inDomainDataRef.MT103.body.MT20,
 		inDomainDataRef.MT103.body.MT32A,inDomainDataRef.MT103.body.MT59Data.MT59DataField,'','','','','',CURRENT_TIMESTAMP,''));
 		--get account details from db lookup
-		SET sql='SELECT * FROM ACCOUNTENQUIRY WHERE ACCOUNTNUMBER=?';
+		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
 		DECLARE CR CHARACTER CAST(CAST('X''0A''' AS BLOB) AS CHARACTER CCSID ccidRef);
 		DECLARE LF CHARACTER CAST(CAST('X''0D''' AS BLOB) AS CHARACTER CCSID ccidRef);
 		DECLARE MT50Data CHARACTER SUBSTRING(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField BEFORE CR) BEFORE LF) FROM 2);
 		DECLARE MT59Data CHARACTER SUBSTRING(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField BEFORE CR) BEFORE LF) FROM 2);
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',MT59Data) INTO rc;
 		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(MT59Data));
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RTGS_INCOMING_SB_Q ;
-		IF EXISTS(Response.accountEnquiry.*[])THEN
-			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{MT103}' TYPE '{}:MT103')  ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
-			PROPAGATE TO TERMINAL 'out1';
-		ELSE
+		IF EXISTS(Response.accountEnquiry.*[]) OR STARTSWITH(MT59Data,'2') THEN
 			--get sample 0200 template from db
 			--SET sql= 'SELECT REQUEST FROM T24RESPONSE WHERE MTIREQ=0200 AND PCODE=40'; 
 			--SET Response.ROW[]=PASSTHRU(sql);
@@ -112,33 +109,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 			CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
 			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 			
---			SET outRef.TCPHeaderBitmap.Bit001 = 0;
---			SET outRef.TCPHeaderBitmap.Bit002 = 0;
---			SET outRef.TCPHeaderBitmap.Bit003 = 0;
---			SET outRef.TCPHeaderBitmap.Bit004 = 0;
---			SET outRef.TCPHeaderBitmap.Bit005 = 0;
---			SET outRef.TCPHeaderBitmap.Bit006 = 0;
---			SET outRef.TCPHeaderBitmap.Bit007 = 1;
---			SET outRef.TCPHeaderBitmap.Bit008 = 0;
---			SET outRef.TCPHeaderBitmap.Bit009 = 0;
---			SET outRef.TCPHeaderBitmap.Bit010 = 0;
---			SET outRef.TCPHeaderBitmap.Bit011 = 0;
---			SET outRef.TCPHeaderBitmap.Bit012 = 0;
---			SET outRef.TCPHeaderBitmap.Bit013 = 0;
---			SET outRef.TCPHeaderBitmap.Bit014 = 0;
---			SET outRef.TCPHeaderBitmap.Bit015 = 1;
---			SET outRef.TCPHeaderBitmap.Bit016 = 1;
---			SET outRef.MTI_Version = 0;
---			SET outRef.MTI_MessageClass = 2;
---			SET outRef.MTI_MessageFunction = 0;
---			SET outRef.MTI_MessageOrigin = 0;
-----			CALL UpdateMsgWithAsciiBitMap(outRef);
---			SET outRef.PrimaryBitmap.Bit001 = 1;
---			SET outRef.PrimaryBitmap.Bit004 = 1;
---			SET outRef.PrimaryBitmap.Bit049 = 1;
---			SET outRef.SecondaryBitmap.Bit102 = 1;
---			SET outRef.SecondaryBitmap.Bit103 = 1;
-			SET outRef.MTI_Version = 0;
+--						SET outRef.MTI_Version = 0;
 			SET outRef.MTI_MessageClass = 2;
 			SET outRef.MTI_MessageFunction = 0;
 			SET outRef.MTI_MessageOrigin = 0;
@@ -150,12 +121,30 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 			--DECLARE envDataRef REFERENCE TO Environment.DFDL;
 			--CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
 			--PARSE(ASBITSTREAM(Environment.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
-			PROPAGATE TO TERMINAL 'out';
+			  PROPAGATE TO TERMINAL 'out';
+		ELSE
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{MT103}' TYPE '{}:MT103')  ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming  ReqToPostilion logging...........') INTO rc;
 	
 	END;
 END MODULE;
+
+CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		 CALL UpdateDatabaseStatus();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
+
 CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
