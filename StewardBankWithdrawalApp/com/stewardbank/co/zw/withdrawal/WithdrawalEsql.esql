@@ -121,7 +121,7 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateResToPostilion
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		SET OutputRoot.DFDL = Environment.dfdlData;
-		CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','Balance Enquiry Response To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','Response To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 		PROPAGATE TO TERMINAL 'out';
