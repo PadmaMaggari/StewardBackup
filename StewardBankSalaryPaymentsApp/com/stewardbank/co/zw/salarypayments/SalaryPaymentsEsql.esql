@@ -1,9 +1,13 @@
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.salarypayments
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
-DECLARE EXCEPTION_Q EXTERNAL CHARACTER ''; 
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE UUID SHARED CHARACTER '';
 CREATE COMPUTE MODULE csv_Compute
@@ -13,13 +17,10 @@ CREATE COMPUTE MODULE csv_Compute
 		CASE
 		WHEN domainName LIKE 'DFDL' THEN
 			SET OutputRoot.Properties = InputRoot.Properties;
-			-- SET InputRoot.Properties.MessageSet= '{SB_CSV_Lib}';
-			-- SET InputRoot.Properties.MessageType= '{}:stewardBank_CSV';
 			SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
 			SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';
 			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 			DECLARE inRef REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
-			-- SET outRef. = InputRoot
 			CALL CSVToISOMapping(inRef,outRef);
 			RETURN FALSE;
 		ELSE
@@ -33,14 +34,12 @@ CREATE COMPUTE MODULE csv_Compute
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
-		SET Environment.Variables.FileName = InputLocalEnvironment.File.Name;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		SET UUID = UUIDASCHAR; 
-		SET Environment.Variables.UID = UUID; 
+		SET UUID = UUIDASCHAR;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
@@ -49,9 +48,9 @@ CREATE COMPUTE MODULE csv_Compute
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............Start SalaryPayments  ReqToPostilion logging...........') INTO rc;
 		END IF;
 		--------------DBLogging-------------------
-		IF IsLogRequired LIKE 'Y' THEN 
-			CALL DBLogging(UUID,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,inRef.CREDIT_DATE,inRef.DEBIT_DATE, 
-			inRef.CREDIT_THEIR_REFERENCE,outRefer);  
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(UUID,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,inRef.CREDIT_DATE,inRef.DEBIT_DATE,
+			inRef.CREDIT_THEIR_REFERENCE,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out2';
@@ -59,25 +58,40 @@ CREATE COMPUTE MODULE csv_Compute
 		DECLARE env REFERENCE TO Environment.Variables;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
-		--set response queue and tcpip connection id in environment
 		DECLARE resQ CHARACTER Environment.MQRFH2.usr.resQueueName;
-		DECLARE connId CHARACTER Environment.MQRFH2.usr.Id;
 		SET Environment.Variables.ResponseQ = resQ;
-		SET Environment.Variables.TcpIp.ConnectionId = connId;
 		DECLARE Response ROW;
 		DECLARE sql CHARACTER '';
-		
-		DECLARE currenttimestamp TIMESTAMP cast(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU'); 
-		CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Environment.Variables.UID,'','',inRef.CREDIT_THEIR_REFERENCE,'','',Environment.Variables.FileName,
-		'TRANSACTION_TYPE, DEBIT_ACCOUNT, CURRENNCY, AMOUNT, CREDIT_ACCOUNT, COMPANY, DEBIT_DATE, CREDIT_DATE, CREDIT_THEIR_REFERENCE, NARRATION',inRef.AMOUNT,inRef.DEBIT_ACCOUNT,inRef.CREDIT_ACCOUNT,inRef.DEBIT_DATE,
-		'','','','','SUCCESS','','','');  
---		inDomainDataRef.stewardBank_CSV.record.DEBIT_ACCOUNT,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
---		getPayLoad(FIELDNAME(inDomainDataRef.stewardBank_CSV),inDomainDataRef.stewardBank_CSV,encodeRef,ccidRef),'','','','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',);
+		DECLARE csvDate DATE CAST(inRef.DEBIT_DATE AS DATE FORMAT 'yyyyMMdd');
+		SET Environment.Variables.UID = UUID;
+		SET Environment.Variables.FileName = InputLocalEnvironment.File.Name;
+		SET Environment.Variables.Fields = 'TRANSACTION_TYPE, DEBIT_ACCOUNT, CURRENNCY, AMOUNT, CREDIT_ACCOUNT, COMPANY, DEBIT_DATE, CREDIT_DATE, CREDIT_THEIR_REFERENCE, NARRATION';
+		SET Environment.Variables.Amount = inRef.AMOUNT;
+		SET Environment.Variables.Dbt_Acc = inRef.DEBIT_ACCOUNT;
+		SET Environment.Variables.Crt_Acc = inRef.CREDIT_ACCOUNT;
+		SET Environment.Variables.CsvDate = CAST(csvDate AS CHARACTER);
+		SET Environment.Variables.CreationDate = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
+		DECLARE Env REFERENCE TO Environment.Variables;
+		-- DECLARE currenttimestamp TIMESTAMP cast(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');
+		SET Env.FileNameCheck = SUBSTRING(InputLocalEnvironment.File.Name FROM 1 FOR 2);
+		IF Env.FileNameCheck LIKE 'PO' THEN
+			CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+			'','','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+		ELSE
+			CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+			'','','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+		END IF;
+		DECLARE tiime CHARACTER;
+		DECLARE str CHARACTER;
+		DECLARE CREDIT_DATE TIME;
+		SET tiime = CURRENT_TIME;
+		SET str = SUBSTRING(tiime FROM 7 FOR 2)||SUBSTRING(tiime FROM 10 FOR 2)||SUBSTRING(tiime FROM 13 FOR 2);
+		SET CREDIT_DATE = CAST(str AS TIME FORMAT 'HHmmss');
 		--mapping field to field CSV to ISO8583
 		SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
-		SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987'; 
+		SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';
 		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
-		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987; 
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		--SET outRef.TCPHeaderBitmap[]=inRef.TCPHeaderBitmap[];
 		DECLARE debitDate CHARACTER '  ';
 		DECLARE narration CHARACTER '                        ';
@@ -90,10 +104,12 @@ CREATE COMPUTE MODULE csv_Compute
 		SET outRef.AmountTransaction_004 = inRef.AMOUNT; --4
 		SET outRef.TransmissionDatetime_007 = inRef.DEBIT_DATE||debitDate; -- CSV Field 7
 		--SET outRef.TimeLocalTransaction_012 = SUBSTRING(inRef.CREDIT_DATE FROM 3 FOR 6); -- CSV Field 8
-		SET outRef.DateLocalTransaction_013 = SUBSTRING(inRef.CREDIT_DATE FROM 5 FOR 4); -- CSV Field 8
+		SET outRef.TimeLocalTransaction_012 = CREDIT_DATE;
+		--SET outRef.DateLocalTransaction_013 = SUBSTRING(inRef.CREDIT_DATE FROM 5 FOR 4); -- CSV Field 8
 		-- SET outRef.DateExpiration_014 = SUBSTRING(inRef.CREDIT_DATE FROM 3 FOR 4);
-		SET outRef.DateSettlement_015 = SUBSTRING(inRef.CREDIT_DATE FROM 5 FOR 4); -- CSV Field 8
+		--SET outRef.DateSettlement_015 = SUBSTRING(inRef.CREDIT_DATE FROM 5 FOR 4); -- CSV Field 8
 		SET outRef.RetrievalReferenceNumber_037 = SUBSTRING(inRef.CREDIT_THEIR_REFERENCE FROM 1 FOR 12); -- CSV Field 9
+		--SET outRef.ResponseCode_039
 		SET outRef.CardAcceptorNameLocation_043 = inRef.NARRATION||narration; -- CSV Field 10
 		SET outRef.CurrencyCodeTransaction_049 = inRef.CURRENNCY; -- CSV Field 3
 		SET outRef.AccountIdentification1_102 = inRef.CREDIT_ACCOUNT; -- CSV Field 5
@@ -102,28 +118,34 @@ CREATE COMPUTE MODULE csv_Compute
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		--get account details from db lookup
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
-		DECLARE DebitAccount CHARACTER outRef.AccountIdentification2_103;
-		CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',DebitAccount) INTO rc;
-		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(DebitAccount));
-		SET Environment.Variables.t24dfdlData = OutputRoot.DFDL;
+		DECLARE CreditAccount CHARACTER outRef.AccountIdentification1_102;
+		CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',CreditAccount) INTO rc;
+		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(CreditAccount));
+		SET Environment.Variables.zssdfdlData = OutputRoot.DFDL;
 		--IF EXISTS (Response.accountEnquiry.*[]) THEN
-		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(DebitAccount,'2') THEN
+		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
 			--ZSS Call
-			SET OutputRoot.DFDL = Environment.Variables.t24dfdlData;
+			SET OutputRoot.DFDL = Environment.Variables.zssdfdlData;
 			----- Database Logging ------------
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(UUID,getPayLoad(domainName,outRef,encodeRef,ccidRef),'ZSS Request',ApplicationLabel,BrokerName,outRef.DateSettlement_015,outRef.AccountIdentification2_103,outRef.RetrievalReferenceNumber_037,outRefer); 
+				CALL DBLogging(UUID,getPayLoad(domainName,outRef,encodeRef,ccidRef),'ZSS Request',ApplicationLabel,BrokerName,outRef.DateSettlement_015,outRef.AccountIdentification2_103,outRef.RetrievalReferenceNumber_037,outRefer);
 			END IF;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			SET OutputRoot.DFDL = NULL;
 			PROPAGATE TO TERMINAL 'out2';
 			----------------------
-
 			SET OutputRoot.Properties=InputRoot.Properties;
 			SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
 			SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-			SET OutputRoot.DFDL = Environment.Variables.t24dfdlData; 
+			SET OutputRoot.DFDL = Environment.Variables.zssdfdlData;
+			IF Env.FileNameCheck LIKE 'PO' THEN
+				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+				'','','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+			ELSE
+				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+				'','','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+			END IF;
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToZSS logging...........') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
@@ -131,10 +153,10 @@ CREATE COMPUTE MODULE csv_Compute
 			PROPAGATE TO TERMINAL 'out';
 		ELSE
 			--T24 Call
-			SET Environment.Variables.zssdfdlData = OutputRoot.DFDL;
+			SET Environment.Variables.t24dfdlData = OutputRoot.DFDL;
 			----- Database Logging ------------
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(UUID,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,outRef.DateSettlement_015,outRef.AccountIdentification2_103,outRef.RetrievalReferenceNumber_037,outRefer); 
+				CALL DBLogging(UUID,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,outRef.DateSettlement_015,outRef.AccountIdentification2_103,outRef.RetrievalReferenceNumber_037,outRefer);
 			END IF;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			SET OutputRoot.DFDL = NULL;
@@ -142,12 +164,19 @@ CREATE COMPUTE MODULE csv_Compute
 			----------------------
 			SET OutputRoot.Properties=InputRoot.Properties;
 			SET OutputRoot.Properties.MessageSet= '{ISO8583_Lib}';
-			SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987'; 
+			SET OutputRoot.Properties.MessageType= '{}:ISO8583_1987';
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-			SET OutputRoot.DFDL = Environment.Variables.zssdfdlData;
+			SET OutputRoot.DFDL = Environment.Variables.t24dfdlData;
+			IF Env.FileNameCheck LIKE 'PO' THEN
+				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+				getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+			ELSE
+				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+				getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+			END IF;
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToT24 logging...........') INTO rc; 
-				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc; 
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToT24 logging...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
 			END IF;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -156,43 +185,46 @@ END MODULE;
 CREATE COMPUTE MODULE T24StatusUpdate_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-
 		CALL CopyEntireMessage();
 		RETURN FALSE;
 	END;
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
-		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		SET OutputRoot.Properties= InputRoot.Properties; 
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
-		DECLARE inRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;   
+		DECLARE Env REFERENCE TO Environment.Variables; 
+		DECLARE evnData CHARACTER;
+		DECLARE data CHARACTER; 
+		SET OutputRoot.DFDL = Environment.Variables.t24dfdlData;
+		--SET evnData =CAST(ASBITSTREAM(OutputRoot.DFDL CCSID ccidRef ENCODING encodeRef)AS CHARACTER CCSID ccidRef);  
+		SET evnData = CAST(ASBITSTREAM(OutputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987')  AS CHARACTER CCSID ccidRef);      
 		SET UUID = UUIDASCHAR;
-		DECLARE currenttimestamp TIMESTAMP cast(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');
-
+		DECLARE currenttimestamp TIMESTAMP cast(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');  
 		CASE
-
 		WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN
-			CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Environment.Variables.UID,'','',inRef.CREDIT_THEIR_REFERENCE,'','',Environment.Variables.FileName,
-		'TRANSACTION_TYPE, DEBIT_ACCOUNT, CURRENNCY, AMOUNT, CREDIT_ACCOUNT, COMPANY, DEBIT_DATE, CREDIT_DATE, CREDIT_THEIR_REFERENCE, NARRATION',inRef.AMOUNT,inRef.DEBIT_ACCOUNT,inRef.CREDIT_ACCOUNT,inRef.DEBIT_DATE,
-		'','','','','SUCCESS','','','');
-			-- SET OutputRoot.DFDL.ISO8583_1987 = InputRoot.DFDL.ISO8583_1987;
-			-- SET OutputRoot.DFDL.ISO8583_1987 = getPayLoad(FIELDNAME(inDomainDataRef.ISO8583_1987),inDomainDataRef.ISO8583_1987,encodeRef,ccidRef);
+			IF Env.FileNameCheck LIKE 'PO' THEN
+				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','',inDomainDataRef.RetrievalReferenceNumber_037,'',inDomainDataRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+				evnData,'','','SUCCESS','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+			ELSE
+				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','',inDomainDataRef.RetrievalReferenceNumber_037,'',inDomainDataRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+				evnData,'','','SUCCESS','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE'); 
+			END IF; 
 			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
-
 			PROPAGATE TO TERMINAL 'out';
 		ELSE
-
-CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Environment.Variables.UID,'','',inRef.CREDIT_THEIR_REFERENCE,'','',Environment.Variables.FileName,
-		'TRANSACTION_TYPE, DEBIT_ACCOUNT, CURRENNCY, AMOUNT, CREDIT_ACCOUNT, COMPANY, DEBIT_DATE, CREDIT_DATE, CREDIT_THEIR_REFERENCE, NARRATION',inRef.AMOUNT,inRef.DEBIT_ACCOUNT,inRef.CREDIT_ACCOUNT,inRef.DEBIT_DATE,
-		'','','','','SUCCESS','','',''); 
-
-			--CALL insertSalaryPayment(UUID,inDomainDataRef.ISO8583_1987.AccountIdentification2_103,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
-			--getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','','','FAILURE',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
+			IF Env.FileNameCheck LIKE 'PO' THEN
+				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+				evnData,'','','FAILURE','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+			ELSE
+				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+				evnData,'','','FAILURE','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+			END IF;
 			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 			PROPAGATE TO TERMINAL 'out';
-		END CASE;
-
+		END CASE; 
 	END;
 END MODULE;
 CREATE COMPUTE MODULE ZSS_StatusUpdate_Compute
@@ -203,24 +235,33 @@ CREATE COMPUTE MODULE ZSS_StatusUpdate_Compute
 		RETURN FALSE;
 	END;
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
-		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL; 
+		SET OutputRoot.Properties=InputRoot.Properties;
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
-		DECLARE inRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;   
+		DECLARE inRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		SET UUID = UUIDASCHAR;
+		DECLARE Env REFERENCE TO Environment.Variables;
+		DECLARE evnDataDFDL CHARACTER;
+		SET evnDataDFDL =CAST(ASBITSTREAM(Env.zssdfdlData CCSID ccidRef ENCODING encodeRef)AS CHARACTER CCSID ccidRef);
 		DECLARE currenttimestamp TIMESTAMP cast(CURRENT_TIMESTAMP AS TIMESTAMP FORMAT 'IU');
 
 		CASE
- 
+
 		WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN
-			
-			
-			CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Environment.Variables.UID,'','',inRef.CREDIT_THEIR_REFERENCE,'','',Environment.Variables.FileName,
-		'TRANSACTION_TYPE, DEBIT_ACCOUNT, CURRENNCY, AMOUNT, CREDIT_ACCOUNT, COMPANY, DEBIT_DATE, CREDIT_DATE, CREDIT_THEIR_REFERENCE, NARRATION',inRef.AMOUNT,inRef.DEBIT_ACCOUNT,inRef.CREDIT_ACCOUNT,inRef.DEBIT_DATE,
-		'','','','','SUCCESS','','',''); 
-			
+			-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Environment.Variables.UID,'','',inDomainDataRef.RetrievalReferenceNumber_037,Environment.Variables.zssdfdlData,inDomainDataRef.ResponseCode_039,Environment.Variables.FileName,
+			-- 'TRANSACTION_TYPE, DEBIT_ACCOUNT, CURRENNCY, AMOUNT, CREDIT_ACCOUNT, COMPANY, DEBIT_DATE, CREDIT_DATE, CREDIT_THEIR_REFERENCE, NARRATION',CAST(inDomainDataRef.AmountTransaction_004 AS CHARACTER),
+			-- inDomainDataRef.AccountIdentification2_103,inDomainDataRef.AccountIdentification1_102,Environment.Variables.CsvDate,'','','SUCCESS','','SUCCESS',Environment.Variables.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'');
+
+			IF Env.FileNameCheck LIKE 'PO' THEN
+				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','',inDomainDataRef.RetrievalReferenceNumber_037,evnDataDFDL,inDomainDataRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+				'','','SUCCESS','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+			ELSE
+				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','',inDomainDataRef.RetrievalReferenceNumber_037,evnDataDFDL,inDomainDataRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+				'','','SUCCESS','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+			END IF;
 			--CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(UUID,inDomainDataRef.ISO8583_1987.AccountIdentification2_103,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
 			--'','00',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'SUCCESS','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
 			-- SET OutputRoot.DFDL.ISO8583_1987 = InputRoot.DFDL.ISO8583_1987;
@@ -229,24 +270,29 @@ CREATE COMPUTE MODULE ZSS_StatusUpdate_Compute
 
 			PROPAGATE TO TERMINAL 'out';
 		ELSE
+			-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Environment.Variables.UID,'','','',Environment.Variables.zssdfdlData,'',Environment.Variables.FileName,
+			-- 'TRANSACTION_TYPE, DEBIT_ACCOUNT, CURRENNCY, AMOUNT, CREDIT_ACCOUNT, COMPANY, DEBIT_DATE, CREDIT_DATE, CREDIT_THEIR_REFERENCE, NARRATION',CAST(inDomainDataRef.AmountTransaction_004 AS CHARACTER),
+			-- inDomainDataRef.AccountIdentification2_103,inDomainDataRef.AccountIdentification1_102,Environment.Variables.CsvDate,'','','FAILURE','','SUCCESS',Environment.Variables.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'');
 
-CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Environment.Variables.UID,'','',inRef.CREDIT_THEIR_REFERENCE,'','',Environment.Variables.FileName,
-		'TRANSACTION_TYPE, DEBIT_ACCOUNT, CURRENNCY, AMOUNT, CREDIT_ACCOUNT, COMPANY, DEBIT_DATE, CREDIT_DATE, CREDIT_THEIR_REFERENCE, NARRATION',inRef.AMOUNT,inRef.DEBIT_ACCOUNT,inRef.CREDIT_ACCOUNT,inRef.DEBIT_DATE,
-		'','','','','SUCCESS','','',''); 
+			IF Env.FileNameCheck LIKE 'PO' THEN
+				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','',evnDataDFDL,'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+				'','','FAILURE','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+			ELSE
+				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','',evnDataDFDL,'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+				'','','FAILURE','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
 
-
-
-		--	CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(UUID,inDomainDataRef.ISO8583_1987.AccountIdentification2_103,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
-		--	getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','','FAILURE','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
+			END IF;
+			-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(UUID,inDomainDataRef.ISO8583_1987.AccountIdentification2_103,CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),
+			-- getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'','','FAILURE','',CAST(currenttimestamp AS TIMESTAMP FORMAT 'yyyyMMdd HHmmssss'),CAST(InputRoot.Properties.CreationTime AS CHARACTER),'123',Environment.Variables.FileName);
 			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 			PROPAGATE TO TERMINAL 'out';
-		END CASE; 
+		END CASE;
 
 	END;
 END MODULE;
 
 CREATE COMPUTE MODULE SalaryPaymentsFlow_ExceptionCapture
-	CREATE FUNCTION Main() RETURNS BOOLEAN 
+	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		-- CALL CopyMessageHeaders();
 		CALL CopyEntireMessage();
@@ -266,13 +312,13 @@ CREATE COMPUTE MODULE SalaryPaymentsFlow_ExceptionCapture
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		SET OutputRoot = InputRoot;
 	END;
-END MODULE;  
+END MODULE;
 
 
- 
+
 CREATE PROCEDURE INSERT_SB_ISAVE_PAYNET_TRX_TRACKING (IN PAYNET_GUID CHARACTER,IN PAYNET_STAN_NUM CHARACTER, IN PAYNET_STANDATE CHARACTER
 ,IN PAYNET_RRN_REF CHARACTER,IN PAYNET_ISO_REQUEST_MSG CHARACTER,IN PAYNET_ISO_RESPONSE_CODE CHARACTER,IN PAYNET_CSV_FILENAME CHARACTER,IN PAYNET_CSV_FIELDS CHARACTER,IN PAYNET_CSV_AMOUNT CHARACTER,
-IN PAYNET_CSV_DTACCOUNT CHARACTER,IN PAYNET_CSV_CRACCOUNT CHARACTER,IN PAYNET_CSV_DTDATE CHARACTER,IN PAYNET_ISO_MSG CHARACTER, 
+IN PAYNET_CSV_DTACCOUNT CHARACTER,IN PAYNET_CSV_CRACCOUNT CHARACTER,IN PAYNET_CSV_DTDATE CHARACTER,IN PAYNET_ISO_MSG CHARACTER,
 IN PAYNET_ISO_FT CHARACTER,IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_CSV_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP,IN PAYNET_TAXABLE CHARACTER)
 LANGUAGE DATABASE
-EXTERNAL NAME "INSERT_SB_ISAVE_PAYNET_TRX_TRACKING";   
+EXTERNAL NAME "INSERT_SB_ISAVE_PAYNET_TRX_TRACKING";
