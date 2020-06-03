@@ -37,16 +37,16 @@
       <nodes xmi:type="ComIbmWSInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="54,22" URLSpecifier="/stewardbank/*" messageDomainProperty="JSON" timeoutForClient="120">
         <translation xmi:type="utility:ConstantString" string="HTTP Input"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="606,23" queueName="ALL_SB_HTTP_RES" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="628,20" queueName="ALL_SB_HTTP_RES" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="HTTP_OUTQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="384,22" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.httprouters#HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCode.Main" computeMode="destinationAndMessage">
-        <translation xmi:type="utility:ConstantString" string="RouteReqToBusinessFlow"/>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="213,18" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.httprouters#HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCode.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="RouteToInterfaceBasedOnProcessingCode"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="442,143" computeExpression="esql://routine/com.stewardbank.co.zw.httprouters#HttpRequestRouterFlow_BuildExceptionDetails.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="367,150" computeExpression="esql://routine/com.stewardbank.co.zw.httprouters#HttpRequestRouterFlow_BuildExceptionDetails.Main">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionRequest"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="228,144">
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="155,150">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="546,79" queueName="RAW_LOG_SB_REQ">

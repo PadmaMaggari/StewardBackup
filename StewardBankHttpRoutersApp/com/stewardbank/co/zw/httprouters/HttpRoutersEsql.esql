@@ -47,7 +47,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		SET Environment.MQRFH2.RequestIdentifier = InputLocalEnvironment.Destination.HTTP.RequestIdentifier;
 		-- SET DBLogging Properties ==============
 		--SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
-		SET Environment.Variables.msgID= CAST(Environment.usr.Id AS CHARACTER );   
+		SET Environment.Variables.msgID = CAST(Environment.MQRFH2.usr.Id AS CHARACTER );   
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
@@ -55,8 +55,6 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);     
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
-		--CALL DBLogging(Environment.msgID,Environment.reqMsg ,'Application Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
-		--CALL DBLogging(Environment.usr.Id,CAST(ASBITSTREAM(InputRoot.JSON.Data ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER),'Application Response',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
 		CALL DBLogging(Environment.Variables.msgID,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
@@ -130,27 +128,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 	END;
 
 	CREATE PROCEDURE GenerateResToFrontEnd() BEGIN
-
-		DECLARE inRef REFERENCE TO InputRoot;
-		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
-		DECLARE DBDetails ROW;
-		--SET reqMsg = CAST(ASBITSTREAM(InputRoot.JSON.Data CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
-		-- SET DBLogging Properties ==============
-	--	SET Environment.reqMsg = reqMsg;
-		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
-		DECLARE outRefer REFERENCE TO OutputRoot;
-		-- =================== CALLING DB RAW AUDIT LOGGING ==============			
-		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
-		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;  
-		SET Environment.usr.Id = InputRoot.MQRFH2.usr.RequestIdentifier;  
-		--SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
-		SET Environment.msgID= CAST(Environment.usr.Id AS CHARACTER );
-		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef); 
-		CALL DBLogging(Environment.msgID,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
-		SET Environment.dbLog = OutputRoot.XMLNSC;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
+		DECLARE rc BOOLEAN;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
@@ -159,6 +137,22 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel,'InfoLogger','INFO','JSON Response: '||Environment.reqMsg) INTO rc ; 
 		END IF;
+		DECLARE inRef REFERENCE TO InputRoot;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
+		DECLARE DBDetails ROW;
+		------- DBLogging Properties ==============
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		-- =================== CALLING DB RAW AUDIT LOGGING ==============			
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;  
+		SET Environment.Variables.msgID = CAST(Environment.MQRFH2.usr.Id AS CHARACTER );
+		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef); 
+		CALL DBLogging(Environment.Variables.msgID,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET Environment.dbLog = OutputRoot.XMLNSC;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
 		--DECLARE httpReqIdentifier ROW;
 		--SET httpReqIdentifier.val[] = PASSTHRU('SELECT * FROM HTTP_FLOW_DETAILS  WHERE TRANSACTION_STATUS = ? AND ID = (SELECT MAX(ID) FROM HTTP_FLOW_DETAILS)' TO Database.{DSN} VALUES('Success'));
 		--CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','INFO','httpRequestIdentifier:') INTO rc ;
@@ -167,9 +161,8 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 		/*
 		httpReqIdentifier is shared variable for request identifier
 		*/
-		Set OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = InputRoot.MQRFH2.usr.RequestIdentifier;
+		Set OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = Environment.MQRFH2.usr.RequestIdentifier;
 		SET OutputRoot.JSON.Data[] = InputRoot.JSON.Data[];
-
 	END;
 END MODULE;
 
