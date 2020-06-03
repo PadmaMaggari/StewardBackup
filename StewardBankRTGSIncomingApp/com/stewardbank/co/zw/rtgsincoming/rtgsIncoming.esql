@@ -9,7 +9,7 @@ Description:Pick file from remote location and based on the account send request
 */
 BROKER SCHEMA com.stewardbank.co.zw.rtgsincoming
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,RTGS_INCOMING_SB_Q EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,RTGS_INCOMING_SB_Q,DSN EXTERNAL CHARACTER '';
 DECLARE UUID SHARED CHARACTER '';
 
 
@@ -73,6 +73,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 	*/
 	CREATE PROCEDURE LogRequestAndBuildISO8583OrMT103Req() BEGIN
 		DECLARE rc BOOLEAN FALSE;
+		DECLARE reqMsg CHARACTER ;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
@@ -100,11 +101,8 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 		--get account details from db to check weather Account belongs to Zss or T24
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
 		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(MT59Data));
+		--*************If Account Exist in Isave table or it starts with 2 then it is ZSS Account**********
 		IF EXISTS(Response.accountEnquiry.*[]) OR STARTSWITH(MT59Data,'2') THEN
-			--get sample 0200 template from db
-			--SET sql= 'SELECT REQUEST FROM T24RESPONSE WHERE MTIREQ=0200 AND PCODE=40'; 
-			--SET Response.ROW[]=PASSTHRU(sql);
-		--	CREATE LASTCHILD OF Environment DOMAIN('DFDL') PARSE(Response.ROW[1].REQUEST  ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 			--mapping mt103 to iso8583
 			SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
 			SET OutputRoot.Properties.MessageType = '{}: ISO8583_1987';
@@ -120,12 +118,16 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 			SET outRef.AccountIdentification1_102 = MT50Data;
 			SET outRef.AccountIdentification2_103 = MT59Data;
 			CALL UpdateMsgWithAsciiBitMap(outRef);
-			--DECLARE envDataRef REFERENCE TO Environment.DFDL;
-			--CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
-			--PARSE(ASBITSTREAM(Environment.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+			
+			 --******************Updating ISAVE table with ZSS Request Message ************
+			
+			 SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef);
+			 UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_ISO_REQUEST_MSG = reqMsg WHERE I.PAYNET_GUID = Environment.Guid ;
 			  PROPAGATE TO TERMINAL 'out';
 		ELSE
 			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{MT103}' TYPE '{}:MT103')  ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+			SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),inDomainDataRef,encodeRef,ccidRef);
+			UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_MT103_T24_MSG = reqMsg WHERE I.PAYNET_GUID = Environment.Guid ;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming  ReqToPostilion logging...........') INTO rc;
