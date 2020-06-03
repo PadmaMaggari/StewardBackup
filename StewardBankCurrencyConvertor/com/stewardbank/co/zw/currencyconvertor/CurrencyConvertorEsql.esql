@@ -10,7 +10,7 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GenerateReqToT24();
-		RETURN FALSE;
+		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
@@ -42,13 +42,13 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateReqToT24
 		/* ==================== Database Logging End ==================== */
 		/* ==================== Framming Request to T24 ==================== */
 		DECLARE env REFERENCE TO Environment.Variables;
-		DECLARE inRef REFERENCE TO InputRoot.JSON.Data.channel;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		DECLARE outRef REFERENCE TO OutputRoot.JSON;
 		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
-		CREATE LASTCHILD OF outRef AS outRef NAME 'channel';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data  NAME 'channel';
 		--set response queue and tcpip connection id in environment
 		DECLARE resQ CHARACTER Environment.MQRFH2.usr.resQueueName;
 		DECLARE connId CHARACTER Environment.MQRFH2.usr.Id;
@@ -61,24 +61,20 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateReqToT24
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','HTTP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		----------------------------------------------------------------
-		DECLARE OutRefer1 REFERENCE TO OutputRoot.JSON.Data;
-		CREATE LASTCHILD OF OutputRoot AS OutRefer1 DOMAIN 'JSON';
-		CREATE LASTCHILD OF OutRefer1 AS OutRefer1 NAME 'Data';
-		SET OutRefer1.channel = InputRoot.JSON.Data.channel;
-		SET Environment.jsonData=OutRefer1;
-		SET OutputRoot=NULL;
+		SET outRef.channel = inRef.channel;
+		SET Environment.Variables.jsonData = outRef;
+		SET OutputRoot = NULL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,
 			Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		SET OutputRoot.DFDL = NULL;
 		PROPAGATE TO TERMINAL 'out1';
 		----------------------
-		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON.Data= Environment.jsonData;
+		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','Request To T24::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
