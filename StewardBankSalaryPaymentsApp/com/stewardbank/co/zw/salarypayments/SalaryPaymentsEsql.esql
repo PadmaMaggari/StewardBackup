@@ -1,10 +1,12 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.salarypayments
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
-DECLARE IsLogRequired EXTERNAL CHARACTER ''; 
+DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE TBNAME EXTERNAL CHARACTER '';
 DECLARE UUID SHARED CHARACTER '';
 CREATE COMPUTE MODULE csv_Compute
@@ -65,6 +67,7 @@ CREATE COMPUTE MODULE csv_Compute
 		SET Environment.Variables.CsvDate = CAST(csvDate AS CHARACTER);
 		SET Environment.Variables.CreationDate = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
 		SET Environment.Variables.RRN = inRef.CREDIT_THEIR_REFERENCE;
+		SET Environment.Variables.usr.resQueueName = 'ALL_SB_TCP_RES';
 		DECLARE Env REFERENCE TO Environment.Variables;
 		SET Env.FileNameCheck = SUBSTRING(InputLocalEnvironment.File.Name FROM 1 FOR 2);
 		DECLARE tiime CHARACTER;
@@ -226,7 +229,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','ZSS Response::') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 				END IF;
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Env.resQueueName;
 				PROPAGATE TO TERMINAL 'out';
 			ELSE
 				---Failure Case---
@@ -249,11 +252,11 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 				END IF;
 				---------------------------------------
---				IF IsLogRequired LIKE 'Y' THEN
---					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','ZSS Response:: FAILURE') INTO rc;
---				END IF;
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
-				PROPAGATE TO TERMINAL 'out';  
+				-- IF IsLogRequired LIKE 'Y' THEN
+				-- CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','ZSS Response:: FAILURE') INTO rc;
+				-- END IF;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Env.resQueueName;
+				PROPAGATE TO TERMINAL 'out';
 			END CASE;
 		ELSE
 			---T24 Response to Postilion---
@@ -261,10 +264,10 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 			WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN
 				---Success Case---
 				IF Env.FileNameCheck LIKE 'PO' THEN
-					CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,inDomainDataRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),inDomainDataRef.RetrievalReferenceNumber_037,'',inDomainDataRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+					CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,'',outRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
 					Env.msg,'','','SUCCESS','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
 				ELSE
-					CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,inDomainDataRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),inDomainDataRef.RetrievalReferenceNumber_037,'',inDomainDataRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+					CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,'',outRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
 					Env.msg,'','','SUCCESS','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
 				END IF;
 				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
@@ -280,7 +283,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','T24 Response::') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 				END IF;
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Env.resQueueName;
 				PROPAGATE TO TERMINAL 'out';
 			ELSE
 				---Failure Case---
@@ -303,12 +306,12 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 				END IF;
 				---------------------------------------
---				IF IsLogRequired LIKE 'Y' THEN
---					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','T24 Response:: FAILURE') INTO rc;
---				END IF;
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
+				-- IF IsLogRequired LIKE 'Y' THEN
+				-- CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','T24 Response:: FAILURE') INTO rc;
+				-- END IF;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Env.resQueueName;
 				PROPAGATE TO TERMINAL 'out';
-			END CASE; 
+			END CASE;
 		END IF;
 	END;
 END MODULE;
