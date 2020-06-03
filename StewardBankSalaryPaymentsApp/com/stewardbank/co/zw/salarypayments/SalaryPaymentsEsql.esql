@@ -1,3 +1,7 @@
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.salarypayments
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
@@ -102,6 +106,7 @@ CREATE COMPUTE MODULE csv_Compute
 		DECLARE CreditAccount CHARACTER outRef.AccountIdentification1_102;
 		CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',CreditAccount) INTO rc;
 		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(CreditAccount));
+		SET Environment.Variables.zssdfdlData = OutputRoot.DFDL;
 		SET Environment.Variables.msg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
 			--ZSS Call
@@ -197,22 +202,21 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 			---ZSS_Response to Postilion---
 			CASE
 			WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN
-				-- UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING
-				--SET PAYNET_STAN_NUM = inDomainDataRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),PAYNET_T24_STATUS = 'SUCCESS',
-				--PAYNET_RRN_REF = inDomainDataRef.RetrievalReferenceNumber_037,PAYNET_ISO_RESPONSE_CODE = inDomainDataRef.ResponseCode_039, PAYNET_TAXABLE = 'TRUE'
-				--WHERE PAYNET_GUID = Env.UID;
 				---Success Case---
 				IF Env.FileNameCheck LIKE 'PO' THEN
-					CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,Env.msg,
-					inDomainDataRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					'','','SUCCESS','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,Env.msg,
+					-- inDomainDataRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+					-- '','','SUCCESS','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+
+					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM = inRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),
+					PAYNET_RRN_REF = inRef.RetrievalReferenceNumber_037, PAYNET_ISO_RESPONSE_CODE = inRef.ResponseCode_039, PAYNET_ZSS_STATUS = 'SUCCESS', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;
 				ELSE
-					CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,Env.msg,
-					inDomainDataRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					'','','SUCCESS','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,Env.msg,
+					-- inDomainDataRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+					-- '','','SUCCESS','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM = inRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),
+					PAYNET_RRN_REF = inRef.RetrievalReferenceNumber_037, PAYNET_ISO_RESPONSE_CODE = inRef.ResponseCode_039, PAYNET_ZSS_STATUS = 'SUCCESS', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID;
 				END IF;
-				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
-				DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 				---DB Logging---
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL DBLogging(Env.UID,Env.msg,'ZSS Success Response',ApplicationLabel,BrokerName,outRef.DateSettlement_015,outRef.AccountIdentification2_103,outRef.RetrievalReferenceNumber_037,outRefer);
@@ -220,6 +224,8 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 				PROPAGATE TO TERMINAL 'out';
 				----------------------
+				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+				DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..........Logging generated Response...............') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','ZSS Response::') INTO rc;
@@ -230,27 +236,35 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 			ELSE
 				---Failure Case---
 				IF Env.FileNameCheck LIKE 'PO' THEN
-					CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','',Env.msg,'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					'','','FAILURE','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','',Env.msg,'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+					-- '','','FAILURE','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET
+					PAYNET_ZSS_STATUS = 'FAILURE', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;
 				ELSE
-					CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','',Env.msg,'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					'','','FAILURE','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','',Env.msg,'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+					-- '','','FAILURE','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET
+					PAYNET_ZSS_STATUS = 'FAILURE', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID;
 				END IF;
 				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
-				---Error DB Logging---
-				DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
-				SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
-				DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-				DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-				IF IsLogRequired LIKE 'Y' THEN
-					CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Env.Timelocaltransaction,
-					CAST(CURRENT_TIMESTAMP AS TIMESTAMP),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
-					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+				 ---Error DB Logging---
+				 DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+				 SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+				 DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+				 DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+				 SET Environment.Variables.Timelocaltransaction = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
+				 DECLARE Env REFERENCE TO Environment.Variables;
+				 IF IsLogRequired LIKE 'Y' THEN
+				 CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Env.Timelocaltransaction,
+				 CAST(CURRENT_TIMESTAMP AS TIMESTAMP),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
+				 CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+				 END IF;
+				 SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
+				 PROPAGATE TO TERMINAL 'out';
+				 -------------------------------------
+				IF IsLogRequired LIKE 'Y' THEN 
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','ZSS Response:: FAILURE') INTO rc;
 				END IF;
-				---------------------------------------
-				-- IF IsLogRequired LIKE 'Y' THEN
-				-- CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','ZSS Response:: FAILURE') INTO rc;
-				-- END IF;
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 				PROPAGATE TO TERMINAL 'out';
 			END CASE;
@@ -260,13 +274,16 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 			WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN
 				---Success Case---
 				IF Env.FileNameCheck LIKE 'PO' THEN
-					CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,'',outRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					Env.msg,'','','SUCCESS','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,'',outRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+					-- Env.msg,'','','SUCCESS','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM = inRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),
+					PAYNET_RRN_REF = inRef.RetrievalReferenceNumber_037, PAYNET_ISO_RESPONSE_CODE = inRef.ResponseCode_039, PAYNET_T24_STATUS = 'SUCCESS', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;
 				ELSE
-					CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,'',outRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					Env.msg,'','','SUCCESS','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,'',outRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+					-- Env.msg,'','','SUCCESS','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM = inRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),
+					PAYNET_RRN_REF = inRef.RetrievalReferenceNumber_037, PAYNET_ISO_RESPONSE_CODE = inRef.ResponseCode_039, PAYNET_T24_STATUS = 'SUCCESS', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID;
 				END IF;
-				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 				---DB Logging---
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL DBLogging(Env.UID,Env.msg,'T24 Success Response',ApplicationLabel,BrokerName,outRef.DateSettlement_015,outRef.AccountIdentification2_103,outRef.RetrievalReferenceNumber_037,outRefer);
@@ -274,6 +291,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 				PROPAGATE TO TERMINAL 'out';
 				----------------------
+				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..........Logging generated Response...............') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','T24 Response::') INTO rc;
@@ -284,27 +302,39 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 			ELSE
 				---Failure Case---
 				IF Env.FileNameCheck LIKE 'PO' THEN
-					CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					Env.msg,'','','FAILURE','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+					-- Env.msg,'','','FAILURE','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+					--
+					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET
+					PAYNET_T24_STATUS = 'FAILURE', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;  
+
 				ELSE
-					CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					Env.msg,'','','FAILURE','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+					-- Env.msg,'','','FAILURE','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+					--
+					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET
+					PAYNET_T24_STATUS = 'FAILURE', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID;
+
 				END IF;
 				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
-				---Error DB Logging---
-				DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
-				SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
-				DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-				DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+				 ---Error DB Logging---
+				 DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+				 SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+				 DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+				 DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+				 SET Environment.Variables.Timelocaltransaction = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
+				 DECLARE Env REFERENCE TO Environment.Variables;
+				 IF IsLogRequired LIKE 'Y' THEN
+				 CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Env.Timelocaltransaction,
+				 CAST(CURRENT_TIMESTAMP AS TIMESTAMP),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
+				 CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+				 END IF;
+				 SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
+				 PROPAGATE TO TERMINAL 'out';
+				 --------------------------- ----------
 				IF IsLogRequired LIKE 'Y' THEN
-					CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Env.Timelocaltransaction,
-					CAST(CURRENT_TIMESTAMP AS TIMESTAMP),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
-					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','T24 Response:: FAILURE') INTO rc;
 				END IF;
-				---------------------------------------
-				-- IF IsLogRequired LIKE 'Y' THEN
-				-- CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','T24 Response:: FAILURE') INTO rc;
-				-- END IF;
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 				PROPAGATE TO TERMINAL 'out';
 			END CASE;
