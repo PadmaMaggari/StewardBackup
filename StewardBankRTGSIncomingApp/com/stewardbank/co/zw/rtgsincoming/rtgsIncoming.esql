@@ -38,6 +38,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateReqToPostilion
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.BLOB;
+		SET Environment.File.Name = InputLocalEnvironment.File.Name;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
@@ -84,18 +85,20 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 		DECLARE sql CHARACTER '';
 		SET UUID = UUIDASCHAR;
 		SET Environment.Guid = UUID;
-		SET sql='INSERT INTO RTGS_INCOMING VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,ID_SEQ.NEXTVAL)';
-		SET Response.insert[]=PASSTHRU(sql VALUES(UUID,inDomainDataRef.MT103.header.Block1.SessionNumber,CURRENT_TIMESTAMP,
-		inDomainDataRef.MT103.header.Block1.SequenceNum,
-		getPayLoad(FIELDNAME(inDomainDataRef.MT103),inDomainDataRef.MT103,encodeRef,ccidRef),'','','',inDomainDataRef.MT103.body.MT20,
-		inDomainDataRef.MT103.body.MT32A,inDomainDataRef.MT103.body.MT59Data.MT59DataField,'','','','','',CURRENT_TIMESTAMP,''));
-		--get account details from db lookup
-		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
+		DECLARE SettlementAmt CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 10); 
+		DECLARE Amt CHARACTER LTRIM(SettlementAmt); 
 		DECLARE CR CHARACTER CAST(CAST('X''0A''' AS BLOB) AS CHARACTER CCSID ccidRef);
 		DECLARE LF CHARACTER CAST(CAST('X''0D''' AS BLOB) AS CHARACTER CCSID ccidRef);
 		DECLARE MT50Data CHARACTER SUBSTRING(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField BEFORE CR) BEFORE LF) FROM 2);
 		DECLARE MT59Data CHARACTER SUBSTRING(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField BEFORE CR) BEFORE LF) FROM 2);
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',MT59Data) INTO rc;
+		--***************Inserting values in RTGSIncoming ISAVE table ***************************
+		SET sql='INSERT INTO SB_ISAVE_PAYNET_TRX_TRACKING VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,ID_SEQ.NEXTVAL)';
+		SET Response.insert[]=PASSTHRU(sql VALUES(UUID,inDomainDataRef.MT103.header.Block1.SessionNumber,CURRENT_TIMESTAMP,
+		inDomainDataRef.MT103.header.Block1.SequenceNum,
+		'','',Environment.File.Name,'',Amt,MT50Data,MT59Data,'','','','','',CURRENT_TIMESTAMP,''));
+		--get account details from db to check weather Account belongs to Zss or T24
+		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
 		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(MT59Data));
 		IF EXISTS(Response.accountEnquiry.*[]) OR STARTSWITH(MT59Data,'2') THEN
 			--get sample 0200 template from db
@@ -108,8 +111,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 			CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
 			CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
 			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
-			
---						SET outRef.MTI_Version = 0;
+			SET outRef.MTI_Version = 0;
 			SET outRef.MTI_MessageClass = 2;
 			SET outRef.MTI_MessageFunction = 0;
 			SET outRef.MTI_MessageOrigin = 0;
@@ -141,7 +143,23 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
 
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
+		DECLARE inDomain REFERENCE TO InputRoot.DFDL;
+		DECLARE sql CHARACTER;
+--		DECLARE status CHARACTER 'SUCCESS';
+		DECLARE id CHARACTER Environment.Guid;
+		CASE
+		WHEN FIELDNAME(inDomain.MT103) IS NOT NULL THEN
+			UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_T24_STATUS = 'SUCCESS' WHERE I.PAYNET_GUID =id;
+--			SET sql = 'UPDATE SB_ISAVE_PAYNET_TRX_TRACKING SET PAYNET_T24_STATUS ='||status||' WHERE PAYNET_GUID ='||Environment.Guid;
+--		PASSTHRU(sql);
+		WHEN FIELDNAME(inDomain.ISO8583_1987) IS NOT NULL THEN
+			
+			UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_ZSS_STATUS = 'SUCCESS' WHERE I.PAYNET_GUID =id;
+			--SET sql = 'UPDATE SB_ISAVE_PAYNET_TRX_TRACKING SET PAYNET_ZSS_STATUS ='||status||' WHERE PAYNET_GUID ='||Environment.Guid;
+--		PASSTHRU(sql);
+		END CASE;
 		SET OutputRoot = InputRoot;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RTGS_INCOMING_SB_Q';
 	END;
 END MODULE;
 
