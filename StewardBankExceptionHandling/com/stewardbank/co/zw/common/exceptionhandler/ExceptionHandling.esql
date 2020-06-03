@@ -102,9 +102,10 @@ CREATE COMPUTE MODULE ExceptionHandling
 			END CASE;
 		END IF;
 		--set systemsTraceAuditNumber,dateLocalTransaction,retrievalReferenceNumber to environment
-		SET Environment.systemsTraceAuditNumber=systemsTraceAuditNumber;            
-		SET Environment.dateLocalTransaction=dateLocalTransaction;
-		SET Environment.retrievalReferenceNumber=retrievalReferenceNumber;
+		SET Environment.Variables.systemsTraceAuditNumber=systemsTraceAuditNumber;            
+		SET Environment.Variables.dateLocalTransaction=dateLocalTransaction;
+		SET Environment.Variables.retrievalReferenceNumber=retrievalReferenceNumber;
+		SET Environment.OutgoingRouterErrorCodes.OutGoingRouter.ErrorCode = CAST(Environment.Variables.excpNumber AS CHARACTER);
 					
 		IF inputChar is not null THEN
 		ELSE      
