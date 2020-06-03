@@ -1,5 +1,3 @@
-
-
 BROKER SCHEMA com.stewardbank.co.zw.salarypayments
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
@@ -7,7 +5,7 @@ DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
-DECLARE TBNAME EXTERNAL CHARACTER '';
+DECLARE resQueueName EXTERNAL CHARACTER '';
 DECLARE UUID SHARED CHARACTER '';
 CREATE COMPUTE MODULE csv_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -67,7 +65,6 @@ CREATE COMPUTE MODULE csv_Compute
 		SET Environment.Variables.CsvDate = CAST(csvDate AS CHARACTER);
 		SET Environment.Variables.CreationDate = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
 		SET Environment.Variables.RRN = inRef.CREDIT_THEIR_REFERENCE;
-		SET Environment.Variables.usr.resQueueName = 'ALL_SB_TCP_RES';
 		DECLARE Env REFERENCE TO Environment.Variables;
 		SET Env.FileNameCheck = SUBSTRING(InputLocalEnvironment.File.Name FROM 1 FOR 2);
 		DECLARE tiime CHARACTER;
@@ -105,7 +102,6 @@ CREATE COMPUTE MODULE csv_Compute
 		DECLARE CreditAccount CHARACTER outRef.AccountIdentification1_102;
 		CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',CreditAccount) INTO rc;
 		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(CreditAccount));
-		SET Environment.Variables.zssdfdlData = OutputRoot.DFDL;
 		SET Environment.Variables.msg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
 			--ZSS Call
@@ -229,7 +225,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','ZSS Response::') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 				END IF;
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Env.resQueueName;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 				PROPAGATE TO TERMINAL 'out';
 			ELSE
 				---Failure Case---
@@ -255,7 +251,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 				-- IF IsLogRequired LIKE 'Y' THEN
 				-- CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','ZSS Response:: FAILURE') INTO rc;
 				-- END IF;
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Env.resQueueName;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 				PROPAGATE TO TERMINAL 'out';
 			END CASE;
 		ELSE
@@ -283,7 +279,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','T24 Response::') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 				END IF;
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Env.resQueueName;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 				PROPAGATE TO TERMINAL 'out';
 			ELSE
 				---Failure Case---
@@ -309,7 +305,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 				-- IF IsLogRequired LIKE 'Y' THEN
 				-- CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','T24 Response:: FAILURE') INTO rc;
 				-- END IF;
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Env.resQueueName;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 				PROPAGATE TO TERMINAL 'out';
 			END CASE;
 		END IF;
