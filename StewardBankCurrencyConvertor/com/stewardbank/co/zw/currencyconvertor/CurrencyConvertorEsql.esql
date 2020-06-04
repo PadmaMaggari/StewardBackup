@@ -144,13 +144,14 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateResToPostilion
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
 		CREATE LASTCHILD OF envref AS envref NAME 'Data';
 		SET envref = OutRefer;
+		SET OutputRoot = NULL; 
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,
 			Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		SET OutputRoot.DFDL = NULL;
+		
 		PROPAGATE TO TERMINAL 'out';
 		----------------------
 		SET OutputRoot.Properties=InputRoot.Properties;
@@ -165,6 +166,8 @@ CREATE COMPUTE MODULE CurrencyConvertor_GenerateResToPostilion
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
+		PROPAGATE TO TERMINAL 'out'; 
 	END;
 END MODULE;
 
