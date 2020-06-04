@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "C:\Documents\Steward\Log\log4j.dtd">
+
+<log4j:configuration xmlns:log4j='http://jakarta.apache.org/log4j/'>
+
+   <appender name="ZipitSendLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Documents/Steward/Log/ZIPITSend.log"/>         
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+	
+	<appender name="ZipitReceiveLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Documents/Steward/Log/ZIPITReceive.log"/>         
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+	
+	<appender name="CurrencyExchangeLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Documents/Steward/Log/CurrencyExchange.log"/>         
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>  
+        </layout>
+    </appender>
+	
+	<appender name="ErrorLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Documents/Steward/Log/ERROR.log"/>           
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+    
+	 <appender name="MINI_STMT" class="org.apache.log4j.FileAppender">
+        <param name="Threshold" value="INFO"/>
+        <param name="File" value="C:/Documents/Steward/Log/MINI_STMTInfo.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    </appender>
+	
+	 <logger name="miniinfo">
+	<level value="INFO"/>
+	<appender-ref ref="MINI_STMT"/>
+    </logger>
+	
+	<appender name="MINI_STMT_DEBUG" class="org.apache.log4j.FileAppender">
+        <param name="Threshold" value="DEBUG"/>
+        <param name="File" value="C:/Documents/Steward/Log/MINI_STMTDebug.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    </appender>
+	
+	 <logger name="minidebug">
+	<level value="DEBUG"/>
+	<appender-ref ref="MINI_STMT_DEBUG"/>
+    </logger>
+	
+	
+	 <appender name="BILL_PAYMENTS_INFO" class="org.apache.log4j.FileAppender">
+        <param name="Threshold" value="INFO"/>
+        <param name="File" value="C:/Documents/Steward/Log/BILL_PAYMENTSInfo.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    </appender>
+	
+	 <logger name="bill_PaymentsInfo">
+	<level value="INFO"/>
+	<appender-ref ref="BILL_PAYMENTS_INFO"/>
+    </logger>
+	
+	<appender name="BILL_PAYMENTS_DEBUG" class="org.apache.log4j.FileAppender">
+        <param name="Threshold" value="DEBUG"/>
+        <param name="File" value="C:/Documents/Steward/Log/BILL_PAYMENTSDebug.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    </appender>
+	
+	 <logger name="billPaymentsDebug">
+	<level value="DEBUG"/>
+	<appender-ref ref="BILL_PAYMENTS_DEBUG"/>
+    </logger>
+	
+	 <appender name="AIRTIME_OURCHASES_INFO" class="org.apache.log4j.FileAppender">
+        <param name="Threshold" value="INFO"/>
+        <param name="File" value="C:/Documents/Steward/Log/AIRTIME_OURCHASESInfo.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    </appender>
+	
+	 <logger name="airtimePurchasesInfo">
+	<level value="INFO"/>
+	<appender-ref ref="AIRTIME_OURCHASES_INFO"/>
+    </logger>
+	
+	<appender name="AIRTIME_OURCHASES_DEBUG" class="org.apache.log4j.FileAppender">
+        <param name="Threshold" value="DEBUG"/>
+        <param name="File" value="C:/Documents/Steward/Log/AIRTIME_OURCHASESDebug.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    </appender>
+	
+	 <logger name="airtimePurchasesDebug">
+	<level value="DEBUG"/>
+	<appender-ref ref="AIRTIME_OURCHASES_DEBUG"/>
+    </logger>
+
+	
+	<logger name="ZipitSendLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="ZipitSendLogger"/> 
+    </logger> 
+	
+	<logger name="ZipitReceiveLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="ZipitReceiveLogger"/> 
+    </logger>
+	
+	<logger name="CurrencyExchangeLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="CurrencyExchangeLogger"/>  
+    </logger>
+	
+	<appender name="BalEnqLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Documents/Steward/Log/BalEnq.log"/>           
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+	
+	<logger name="BalEnqLogger">
+		<level value="DEBUG"/> 
+		<appender-ref ref="BalEnqLogger"/> 
+    </logger>
+	
+	<appender name="HTTPLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Documents/Steward/Log/HTTP_Router.log"/>           
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+	
+	<logger name="HTTPLogger">
+		<level value="DEBUG"/> 
+		<appender-ref ref="HTTPLogger"/> 
+    </logger>
+	
+	<appender name="WToBLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Documents/Steward/Log/WalletToBank.log"/>           
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+	
+	<logger name="WToBLogger">
+		<level value="DEBUG"/> 
+		<appender-ref ref="WToBLogger"/> 
+    </logger>
+	
+	<appender name="Log" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Documents/Steward/Log/Router.log"/>           
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+	
+	<logger name="Log">
+		<level value="DEBUG"/> 
+		<appender-ref ref="Log"/> 
+    </logger>
+	<appender name="WithdrawLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Documents/Steward/Log/Withdraw.log"/>           
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+	
+	<logger name="WithdrawLogger">
+		<level value="DEBUG"/> 
+		<appender-ref ref="WithdrawLogger"/> 
+    </logger>
+
+	
+	<appender name="ErrorLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="C:/Documents/Steward/Log/ERROR.log"/>           
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+	
+	<logger name="ErrorLogger">
+		<level value="ERROR"/> 
+		<appender-ref ref="ErrorLogger"/> 
+    </logger>
+</log4j:configuration>
