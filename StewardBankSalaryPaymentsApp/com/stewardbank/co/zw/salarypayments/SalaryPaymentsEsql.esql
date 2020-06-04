@@ -367,14 +367,15 @@ CREATE COMPUTE MODULE SalaryPaymentsFlow_ExceptionCapture
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
 		DECLARE Env REFERENCE TO Environment.Variables;
-		SET Environment.Variables.Timelocaltransaction = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
+		SET Environment.Variables.Date_Time = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Env.Timelocaltransaction,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+			CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc; 
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
+		RETURN FALSE; 
 	END;
 END MODULE;
 
