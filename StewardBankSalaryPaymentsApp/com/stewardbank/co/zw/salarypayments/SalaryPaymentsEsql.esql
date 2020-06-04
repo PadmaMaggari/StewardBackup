@@ -106,7 +106,7 @@ CREATE COMPUTE MODULE csv_Compute
 		SET Environment.Variables.msg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
 			--ZSS Call
-			SET OutputRoot.DFDL = Environment.Variables.zssdfdlData;
+			SET OutputRoot.DFDL = Environment.Variables.zssdfdlData; 
 			----- Database Logging ------------
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL DBLogging(Environment.Variables.UID,Environment.Variables.msg,'ZSS Request',ApplicationLabel,BrokerName,outRef.DateSettlement_015,outRef.AccountIdentification2_103,outRef.RetrievalReferenceNumber_037,outRefer);
