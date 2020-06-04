@@ -11,7 +11,7 @@ PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE MAX_RETRY_COUNT EXTERNAL INTEGER 0;
 DECLARE INIT_LOG4J_ERROR EXTERNAL CHARACTER '';
-DECLARE RETRY_INTERVAL EXTERNAL INTEGER 0;	
+DECLARE RETRY_INTERVAL EXTERNAL INTEGER 0;
 
 
 CREATE COMPUTE MODULE StewardBankT24SubFlow
@@ -99,26 +99,9 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow_addHeaderData
 			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','OutputRoot:') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainRef,encodeRef,ccsidRef)) INTO rc;
 			PROPAGATE TO TERMINAL 'out';
-		ELSEIF domainName = 'JSON' THEN
-			DECLARE rc BOOLEAN FALSE;
-			CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
-			IF ( rc = FALSE ) THEN
-				DECLARE msg CHARACTER ;
-				SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
-			END IF;
-			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','..............Start logging T24 sub flow...........') INTO rc;
-			SET OutputRoot.Properties = InputRoot.Properties;
-			SET OutputRoot = InputRoot;
-			DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-			DECLARE ccsidRef INTEGER InputRoot.Properties.CodedCharSetId;
-			DECLARE outDomainRef REFERENCE TO OutputRoot.JSON.Data; 
-			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','OutputRoot:') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainRef,encodeRef,ccsidRef)) INTO rc;
-			PROPAGATE TO TERMINAL 'out1';  
-
 		END IF;
-	--	RETURN TRUE;
-	END;	
+		RETURN TRUE;
+	END;
 
 
 END MODULE;
@@ -150,26 +133,9 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow_removeHeaderData
 			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','OutputRoot:') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainRef,encodeRef,ccsidRef)) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','..............end logging T24 sub flow...........') INTO rc;
-			ELSEIF domainName = 'JSON' THEN
-			DECLARE rc BOOLEAN FALSE; 
-			CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 
-			IF ( rc = FALSE ) THEN
-				DECLARE msg CHARACTER ; 
-				SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
-			END IF; 
-			SET OutputRoot.Properties = InputRoot.Properties;
-			SET OutputRoot = InputRoot;
-			DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-			DECLARE ccsidRef INTEGER InputRoot.Properties.CodedCharSetId;
-			DECLARE outDomainRef REFERENCE TO OutputRoot.JSON.Data; 
-			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','OutputRoot:') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.JSON.Data),outDomainRef,encodeRef,ccsidRef)) INTO rc; 
-			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','..............end logging T24 sub flow...........') INTO rc;
-			PROPAGATE TO TERMINAL 'out1'; 
-			
 		END IF;
 		RETURN TRUE;
-	END;	
+	END;
 
 
 END MODULE;
