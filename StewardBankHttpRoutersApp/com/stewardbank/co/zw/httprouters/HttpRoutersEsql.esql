@@ -130,7 +130,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 		------------------------------
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.JSON = InputRoot.JSON;
-		Set OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 	END;
 END MODULE;
 
@@ -139,31 +139,8 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL BuildErrorMsg();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
-
---	CREATE PROCEDURE BuildErrorMsg() BEGIN
---		DECLARE rc BOOLEAN FALSE;
---		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
---		IF ( rc = FALSE ) THEN
---			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error'; 
---		END IF;
---		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
---		DECLARE outRefer REFERENCE TO OutputRoot;
---		DECLARE Id CHARACTER CAST(Environment.usr.Id AS CHARACTER);
---		-- ============Error Logging in DB===================
---		DECLARE exe_Desc CHARACTER CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding);
---		--CALL Error_DBLogging(CAST(Environment.usr.Id AS CHARACTER),Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,'','','',outRefer);
---		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
---		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
---		PROPAGATE TO TERMINAL 'out1';
---		-- ============END Error Logging in DB===================
---		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
---		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'HTTP_REQROUTER';
---		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
---		CALL BuildExceptionDetails(excpRef,outRef,'HTTP_REQROUTER');
---		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId ) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId ENCODING InputRoot.Properties.Encoding)) INTO rc;
---	END;
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -185,13 +162,14 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_BuildExceptionDetails
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error  Logging in DB----------
 		CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.BalanceEnquiry.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out';
+		PROPAGATE TO TERMINAL 'out1';
 		----------------------------------
 		END;
 END MODULE;
@@ -224,13 +202,14 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_BuildExceptionDetails
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error  Logging in DB----------
 		CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.BalanceEnquiry.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out';
+		PROPAGATE TO TERMINAL 'out1';
 		----------------------------------
 		END;
 END MODULE;
