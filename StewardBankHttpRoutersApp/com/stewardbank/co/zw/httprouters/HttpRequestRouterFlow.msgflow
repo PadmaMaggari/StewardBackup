@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode" xmlns:ComIbmWSInput.msgnode="ComIbmWSInput.msgnode" xmlns:com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow="com/stewardbank/co/zw/common/exceptionhandling/exceptionHandlingSubFlow.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility"
-    nsURI="com/stewardbank/co/zw/httprouters/HttpRequestRouterFlow.msgflow" nsPrefix="com_stewardbank_co_zw_httprouters_HttpRequestRouterFlow.msgflow">
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmFlowOrder.msgnode="ComIbmFlowOrder.msgnode" xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode" xmlns:ComIbmWSInput.msgnode="ComIbmWSInput.msgnode" xmlns:ComIbmWSReply.msgnode="ComIbmWSReply.msgnode" xmlns:com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow="com/stewardbank/co/zw/common/exceptionhandling/exceptionHandlingSubFlow.subflow"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/httprouters/HttpRequestRouterFlow.msgflow" nsPrefix="com_stewardbank_co_zw_httprouters_HttpRequestRouterFlow.msgflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.IsLogRequired" name="IsLogRequired" defaultValueLiteral="Y">
@@ -43,11 +43,17 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="213,18" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.httprouters#HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCode.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="RouteToInterfaceBasedOnProcessingCode"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="367,150" computeExpression="esql://routine/com.stewardbank.co.zw.httprouters#HttpRequestRouterFlow_BuildExceptionDetails.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="367,150" computeExpression="esql://routine/com.stewardbank.co.zw.httprouters#HttpRequestRouterFlow_BuildExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionRequest"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="155,150">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmFlowOrder.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="580,151">
+        <translation xmi:type="utility:ConstantString" string="Flow Order"/>
+      </nodes>
+      <nodes xmi:type="ComIbmWSReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="713,151">
+        <translation xmi:type="utility:ConstantString" string="HTTP Reply"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.timeout" targetTerminalName="InTerminal.Input"/>
@@ -55,7 +61,10 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.second" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.first" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
