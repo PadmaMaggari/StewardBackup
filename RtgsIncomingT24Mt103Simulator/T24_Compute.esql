@@ -1,0 +1,23 @@
+
+
+CREATE COMPUTE MODULE T24_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		CALL t24ISOResponseFrame();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE t24ISOResponseFrame() BEGIN
+		
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE Response ROW;
+		DECLARE Str CHARACTER 'MT103';
+		SET Response.ROW[]= SELECT * FROM Database.ORADSN.SYSTEM.RTGSRESPONSE AS A WHERE A.FILENAME=Str;     
+		--SET OutputRoot.BLOB.BLOB = Response.ROW[1].RESPONSE;       
+		SET OutputRoot.Properties = InputRoot.Properties;
+		--CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(Response.ROW[1].RESPONSE CCSID ccidRef SET '{MT103}' TYPE '{}:MT103')  ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(Response.ROW[1].RESPONSE  ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+	END;
+END MODULE;

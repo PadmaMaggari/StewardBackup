@@ -147,6 +147,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
 		SET OutputRoot.Properties = InputRoot.Properties;
 		DECLARE inDomain REFERENCE TO InputRoot.DFDL;
 		DECLARE sql CHARACTER;
+		
 --		DECLARE status CHARACTER 'SUCCESS';
 		DECLARE id CHARACTER Environment.Guid;
 		CASE
@@ -155,10 +156,15 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
 --			SET sql = 'UPDATE SB_ISAVE_PAYNET_TRX_TRACKING SET PAYNET_T24_STATUS ='||status||' WHERE PAYNET_GUID ='||Environment.Guid;
 --		PASSTHRU(sql);
 		WHEN FIELDNAME(inDomain.ISO8583_1987) IS NOT NULL THEN
+			IF(inDomain.ISO8583_1987.ResponseCode_039 LIKE '00')  THEN
 			
 			UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_ZSS_STATUS = 'SUCCESS' WHERE I.PAYNET_GUID =id;
 			--SET sql = 'UPDATE SB_ISAVE_PAYNET_TRX_TRACKING SET PAYNET_ZSS_STATUS ='||status||' WHERE PAYNET_GUID ='||Environment.Guid;
 --		PASSTHRU(sql);
+		ELSE
+			UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_ZSS_STATUS = 'FAILURE' WHERE I.PAYNET_GUID =id;
+		END IF;
+			
 		END CASE;
 		SET OutputRoot = InputRoot;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RTGS_INCOMING_SB_Q';
