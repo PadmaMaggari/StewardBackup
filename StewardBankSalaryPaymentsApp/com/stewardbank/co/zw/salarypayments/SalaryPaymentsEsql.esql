@@ -1,3 +1,5 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.salarypayments
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
@@ -106,7 +108,7 @@ CREATE COMPUTE MODULE csv_Compute
 		SET Environment.Variables.msg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
 			--ZSS Call
-			SET OutputRoot.DFDL = Environment.Variables.zssdfdlData; 
+			SET OutputRoot.DFDL = Environment.Variables.zssdfdlData;
 			----- Database Logging ------------
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL DBLogging(Environment.Variables.UID,Environment.Variables.msg,'ZSS Request',ApplicationLabel,BrokerName,outRef.DateSettlement_015,outRef.AccountIdentification2_103,outRef.RetrievalReferenceNumber_037,outRefer);
@@ -168,7 +170,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyEntireMessage();
-		RETURN FALSE;
+		RETURN FALSE; 
 	END;
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		DECLARE rc BOOLEAN FALSE;
@@ -243,24 +245,26 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 					PAYNET_ZSS_STATUS = 'FAILURE', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID;
 				END IF;
 				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
-				 ---Error DB Logging---
-				 DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
-				 SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
-				 DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-				 DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-				 SET Environment.Variables.Timelocaltransaction = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
-				 DECLARE Env REFERENCE TO Environment.Variables;
-				 IF IsLogRequired LIKE 'Y' THEN
-				 CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Env.Timelocaltransaction,
-				 CAST(CURRENT_TIMESTAMP AS TIMESTAMP),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
-				 CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
-				 END IF;
-				 SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
-				 PROPAGATE TO TERMINAL 'out';
-				 -------------------------------------
-				IF IsLogRequired LIKE 'Y' THEN 
+				---Error DB Logging---
+				DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+				SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+				DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+				DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+				SET Environment.Variables.Date_Time = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
+				DECLARE Env REFERENCE TO Environment.Variables;
+				IF IsLogRequired LIKE 'Y' THEN
+					CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),
+					CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+				END IF;
+				SET OutputRoot.DFDL = NULL;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
+				PROPAGATE TO TERMINAL 'out';
+				-------------------------------------
+				IF IsLogRequired LIKE 'Y' THEN
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','ZSS Response:: FAILURE') INTO rc;
 				END IF;
+				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 				PROPAGATE TO TERMINAL 'out';
 			END CASE;
@@ -302,7 +306,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 					-- Env.msg,'','','FAILURE','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
 					--
 					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET
-					PAYNET_T24_STATUS = 'FAILURE', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;  
+					PAYNET_T24_STATUS = 'FAILURE', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;
 
 				ELSE
 					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
@@ -313,24 +317,26 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 
 				END IF;
 				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
-				 ---Error DB Logging---
-				 DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
-				 SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
-				 DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-				 DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-				 SET Environment.Variables.Timelocaltransaction = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
-				 DECLARE Env REFERENCE TO Environment.Variables;
-				 IF IsLogRequired LIKE 'Y' THEN
-				 CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Env.Timelocaltransaction,
-				 CAST(CURRENT_TIMESTAMP AS TIMESTAMP),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
-				 CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
-				 END IF;
-				 SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
-				 PROPAGATE TO TERMINAL 'out';
-				 --------------------------- ----------
+				---Error DB Logging---
+				DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+				SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+				DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+				DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+				SET Environment.Variables.Date_Time = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
+				DECLARE Env REFERENCE TO Environment.Variables;
+				IF IsLogRequired LIKE 'Y' THEN
+					CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),
+					CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+				END IF;
+				SET OutputRoot.DFDL = NULL;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
+				PROPAGATE TO TERMINAL 'out';
+				--------------------------- ----------
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','T24 Response:: FAILURE') INTO rc;
 				END IF;
+				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 				PROPAGATE TO TERMINAL 'out';
 			END CASE;
@@ -370,12 +376,12 @@ CREATE COMPUTE MODULE SalaryPaymentsFlow_ExceptionCapture
 		SET Environment.Variables.Date_Time = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
-		RETURN FALSE; 
+		RETURN FALSE;
 	END;
 END MODULE;
 
