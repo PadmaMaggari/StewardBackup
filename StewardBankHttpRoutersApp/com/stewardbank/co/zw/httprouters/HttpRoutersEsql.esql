@@ -51,28 +51,14 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
-		IF EXISTS(InputRoot.JSON[]) THEN
-			MOVE inRef TO InputRoot.JSON.Data.receive.isomsg;
-		ELSE
-			MOVE inRef TO InputRoot.XMLNSC.log.receive.isomsg; 
-		END IF;
-		DECLARE procCode CHARACTER COALESCE(SUBSTRING(inRef.field.Item[3].value FROM 1 FOR 2),SUBSTRING(FIELDVALUE(inRef.field[3]) FROM 1 FOR 2),'');
-		SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
-		--SET procCodeData = InputRoot.JSON.Data.channel; 
 		SET procCodeData = InputRoot.JSON.Data.proccessingCode;  
 		IF EXISTS(getDBDetailsCache.Values[]) THEN
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Values available in shared cache: '|| getDBDetailsCache.Values.*[])INTO rc;
-			--SET DBDetails.values[] = select A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData and A.DOMAIN = domainName;
+			--SET DBDetails.values[] = SELECT A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData;
 			SET QueueName = getDBDetailsCache.Values.HTTP_REQ;
 		ELSE
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Calling the Cache')INTO rc;
 			CALL STORE_CACHE(procCodeData);
-			DECLARE DBValues ROW;
-				--IF version||class||funct||origin = '0800' OR version||class||funct||origin = '0801' THEN
-					--SET DBValues.values[] = SELECT T.REQ_QUEUE, T.RES_QUEUE FROM getDBDetailsCache.Values[] AS T WHERE T.PROC_CODE = NETWORKPROCESSCODE;
-				--ELSE
-					--SET DBValues.values[] = SELECT T.REQ_QUEUE, T.RES_QUEUE FROM getDBDetailsCache.Values[] AS T WHERE T.PROC_CODE = procCodeData;
-				--END IF;
 			SET QueueName = getDBDetailsCache.Values.HTTP_REQ;
 		END IF;
 		SET Environment.MQRFH2.usr.resQueueName = getDBDetailsCache.Values.HTTP_RES;
