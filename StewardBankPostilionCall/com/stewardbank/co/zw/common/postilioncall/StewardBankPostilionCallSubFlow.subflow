@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmTCPIPClientInput.msgnode="ComIbmTCPIPClientInput.msgnode" xmlns:ComIbmTCPIPClientOutput.msgnode="ComIbmTCPIPClientOutput.msgnode" xmlns:ComIbmTCPIPClientReceive.msgnode="ComIbmTCPIPClientReceive.msgnode" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionCallSubFlow.subflow" nsPrefix="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow">
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmTCPIPClientOutput.msgnode="ComIbmTCPIPClientOutput.msgnode" xmlns:ComIbmTCPIPClientReceive.msgnode="ComIbmTCPIPClientReceive.msgnode" xmlns:com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow="com/stewardbank/co/zw/common/exceptionhandling/exceptionHandlingSubFlow.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow"
+    xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionCallSubFlow.subflow" nsPrefix="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1" useDefaults="true" udpSupport="true">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log\Log4jConfig.xml">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.MAX_RETRY_COUNT" name="MAX_RETRY_COUNT">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.INIT_LOG4J_ERROR" name="INIT_LOG4J_ERROR" defaultValueLiteral="[log4j]Initializing the path error">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RETRY_INTERVAL" name="RETRY_INTERVAL" defaultValueLiteral="5000">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="StewardBankPostilionCallSubFlow" bundleName="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionCallSubFlow" pluginId="StewardBankPostilionCall"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankPostilionCall/icons/full/obj16/StewardBankPostilionCallSubFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankPostilionCall/icons/full/obj30/StewardBankPostilionCallSubFlow.gif"/>
@@ -9,22 +22,66 @@
       <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="20,20">
         <translation xmi:type="utility:TranslatableString" key="InTerminal.Input" bundleName="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionCallSubFlow" pluginId="StewardBankPostilionCall"/>
       </nodes>
-      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="381,23">
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="393,21">
         <translation xmi:type="utility:TranslatableString" key="OutTerminal.Output" bundleName="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionCallSubFlow" pluginId="StewardBankPostilionCall"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="99,24" connectionDetails="{ESBPolicies}:PostilionClient" timeoutSendingData="120" closeOutputStream="true" modifyInputStream="reserveThenRelease">
+      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="99,24" connectionDetails="{ESBPolicies}:PostilionClient" timeoutSendingData="100" modifyOutputStream="reserve">
         <translation xmi:type="utility:ConstantString" string="PostilionClientCall"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="210,24" connectionDetails="{ESBPolicies}:PostilionClient" timeoutWaitingForData="120" closeInputStream="true" modifyOutputStream="reserveThenRelease" idLocation="$LocalEnvironment/WrittenDestination/TCPIP/Output/ConnectionDetails[1]/Id" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
-        <translation xmi:type="utility:ConstantString" string="PostilionClientRecevieData"/>
+      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="221,24" connectionDetails="{ESBPolicies}:PostilionClient" timeoutWaitingForData="100" modifyInputStream="release" modifyOutputStream="release" idLocation="$LocalEnvironment/WrittenDestination/TCPIP/Output/ConnectionDetails[1]/Id" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583WithHeader" validateTiming="immediate" recordDetection="parsedRecordSequence">
+        <translation xmi:type="utility:ConstantString" string="PostilionRecevieData"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPClientInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="245,81" connectionDetails="{ESBPolicies}:PostilionClient" timeoutWaitingForData="90" closeInputStream="true" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
-        <translation xmi:type="utility:ConstantString" string="PostilionClientRecevie"/>
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="286,84">
+        <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="280,153" computeExpression="esql://routine/com.stewardbank.co.zw.common.postilioncall#StewardBankPostilionSubFlow.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="Retry"/>
+      </nodes>
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output1" location="388,154">
+        <translation xmi:type="utility:TranslatableString" key="OutTerminal.exceptionData" bundleName="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionCallSubFlow" pluginId="StewardBankPostilionCall"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_1" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="OutTerminal.Output" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="OutTerminal.Output" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input">
+        <bendPoints>29,54,-182,-6</bendPoints>
+      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input">
+        <bendPoints>30,48,-52,-9</bendPoints>
+      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.timeout" targetTerminalName="InTerminal.Input">
+        <bendPoints>23,48,-59,-9</bendPoints>
+      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in">
+        <bendPoints>27,32,78,-37</bendPoints>
+        <bendPoints>-77,33,-26,-36</bendPoints>
+      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in">
+        <bendPoints>25,30,185,159</bendPoints>
+        <bendPoints>-86,29,74,158</bendPoints>
+        <bendPoints>-199,35,-39,164</bendPoints>
+        <bendPoints>-202,-144,-42,-15</bendPoints>
+      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="OutTerminal.Output1" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
     </composition>
-    <propertyOrganizer/>
-    <stickyBoard/>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionCallSubFlow" pluginId="StewardBankPostilionCall"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.MAX_RETRY_COUNT">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.MAX_RETRY_COUNT" bundleName="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionCallSubFlow" pluginId="StewardBankPostilionCall"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.INIT_LOG4J_ERROR">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.INIT_LOG4J_ERROR" bundleName="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionCallSubFlow" pluginId="StewardBankPostilionCall"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RETRY_INTERVAL">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.RETRY_INTERVAL" bundleName="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionCallSubFlow" pluginId="StewardBankPostilionCall"/>
+            </propertyDescriptor>
+          </propertyDescriptor>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
+    <stickyBoard>
+      <stickyNote location="469,11">
+        <body xmi:type="utility:ConstantString" string="1.Subflow will send ISO8583  to T24 and then reponse from T24 &#xA;will be in ISO8583.&#xA;2.Then send ISO8583 to main application flow.&#xA;3.In case of failure and if the domain is DFDL then log it in &#xA;database,log4j and send&#xA;failure reponse to outgoing router in ISO8583.&#xA;4.In case of connection failure retry for 3 times with interval duration&#xA;0 sec,5 sec,5 sec.&#xA;"/>
+      </stickyNote>
+    </stickyBoard>
   </eClassifiers>
 </ecore:EPackage>
