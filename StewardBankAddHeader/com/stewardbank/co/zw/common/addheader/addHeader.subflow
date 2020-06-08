@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode" xmlns:com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow="com/stewardbank/co/zw/common/exceptionhandling/exceptionHandlingSubFlow.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/common/addheader/addHeader.subflow" nsPrefix="com_stewardbank_co_zw_common_addheader_addHeader.subflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1" useDefaults="true" udpSupport="true">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log\Log4jConfig.xml">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG4J_INIT_ERROR_MSG" name="LOG4J_INIT_ERROR_MSG" defaultValueLiteral="[log4j] Initialization Error">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <translation xmi:type="utility:TranslatableString" key="addHeader" bundleName="com/stewardbank/co/zw/common/addheader/addHeader" pluginId="StewardBankAddHeader"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankAddHeader/icons/full/obj16/addHeader.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankAddHeader/icons/full/obj30/addHeader.gif"/>
+    <composition>
+      <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="20,20">
+        <translation xmi:type="utility:TranslatableString" key="InTerminal.Input" bundleName="com/stewardbank/co/zw/common/addheader/addHeader" pluginId="StewardBankAddHeader"/>
+      </nodes>
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="320,20">
+        <translation xmi:type="utility:TranslatableString" key="OutTerminal.Output" bundleName="com/stewardbank/co/zw/common/addheader/addHeader" pluginId="StewardBankAddHeader"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="136,22" computeExpression="esql://routine/com.stewardbank.co.zw.common.addheader#addHeader.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="addHeaderData"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="277,81">
+        <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="447,79" queueName="SB_EXCQ">
+        <translation xmi:type="utility:ConstantString" string="ExceptionQ"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_1" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="OutTerminal.Output" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/common/addheader/addHeader" pluginId="StewardBankAddHeader"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4J_INIT_ERROR_MSG">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR_MSG" bundleName="com/stewardbank/co/zw/common/addheader/addHeader" pluginId="StewardBankAddHeader"/>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
+    <stickyBoard>
+      <stickyNote location="21,151">
+        <body xmi:type="utility:ConstantString" string="1.Sub flow calculate the incoming ISO8583 data length and added it before ISO8583 data."/>
+      </stickyNote>
+    </stickyBoard>
+  </eClassifiers>
+</ecore:EPackage>
