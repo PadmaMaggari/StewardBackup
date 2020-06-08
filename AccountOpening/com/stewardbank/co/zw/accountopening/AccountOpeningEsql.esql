@@ -1,43 +1,259 @@
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
-path StewardBankCommonEsql;
+PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
-
-CREATE COMPUTE MODULE AccountOpeningFlow_DBLogging
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE IsLogRequired EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+CREATE COMPUTE MODULE AccountOpeningFlow_VerifyRequest
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL CopyMessageHeaders();
-		CALL DBLogging();
+		CALL VerifyRequest();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE VerifyRequest() BEGIN
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		--DECLARE domainName CHARACTER;
+		IF CONTAINS(InputRoot.BLOB.BLOB,'XMLNSC') THEN
+			CREATE LASTCHILD OF OutputRoot DOMAIN('XMLNSC') PARSE(InputRoot.BLOB.BLOB);
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'KYC';
+		ELSEIF CONTAINS(InputRoot.BLOB.BLOB,'GET') THEN
+			--CREATE LASTCHILD OF OutputRoot DOMAIN('XMLNSC') PARSE(InputRoot.BLOB.BLOB);
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'KYC';
+		ELSEIF CONTAINS(InputRoot.BLOB.BLOB,'JSON') THEN
+			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(InputRoot.BLOB.BLOB);
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'FCM';
+		ELSEIF CONTAINS(InputRoot.BLOB.BLOB,'DFDL') THEN
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(InputRoot.BLOB.BLOB);
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'Update_ACC';	
+		END IF;
+		DECLARE inRef REFERENCE TO InputBody;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG','-----Request from Frontend------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+		END IF;	
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		-----------------------------			 
+	END;
+END MODULE;	
+CREATE COMPUTE MODULE AccountOpeningKYC_Flow_GenerateReqToEconet
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateReqToEconet();
 		RETURN TRUE;
 	END;
 
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
-	END;
-
-	CREATE PROCEDURE DBLogging() BEGIN
-		DECLARE env REFERENCE TO Environment.Variables;
-		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
-		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
+	CREATE PROCEDURE GenerateReqToEconet() BEGIN
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE inRequest REFERENCE TO InputRoot.XMLNSC.request;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE randomNumber CHARACTER;
 		DECLARE rc BOOLEAN FALSE;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
 		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Request from Frontend::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208) AS CHARACTER)) INTO rc;
-		SET OutputRoot = InputRoot;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Request To KYC_Customer::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER )) INTO rc;
-	
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG','-----Request from Frontend------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+		END IF;	
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		-----------------------------			
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'request';
+		DECLARE env REFERENCE TO Environment.Variables;
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE request REFERENCE TO OutputRoot.XMLNSC.request;
+		SET randomNumber = UUIDASCHAR;
+		SET request.requestId = inRequest.requestId;--'2';
+		SET request.transactionId = inRequest.transactionId;---it Should be a random Number
+		SET request.featureId = inRequest.featureId;--'search-msisdn';
+		SET request.timeStamp = inRequest.timeStamp;--CURRENT_TIMESTAMP;
+		SET request.channelId = inRequest.channelId;--'6';
+		SET request.languageId = inRequest.languageId;--'1';
+		SET request.username = inRequest.username;--'Steward';
+		SET request.password = inRequest.password;--'@St3ward';
+		SET request.data.name = inRequest.data.name;--'msisdn';
+		SET request.data.value = inRequest.data.value;--'777991604';
+		
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG','-----Econet Request------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+		END IF;	
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Econet Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		SET Environment.Variables.EconetRequest = OutputRoot.XMLNSC;
+		SET OutputRoot.XMLNSC = NULL;
+		PROPAGATE TO TERMINAL 'out1';
+		-----------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		SET OutputRoot.XMLNSC = Environment.Variables.EconetRequest;		
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://localhost:7080/Engrafi/MOAdapter'; 
 	END;
+END MODULE;
+
+
+CREATE FILTER MODULE AccountOpeningFlow_VerifyDWHResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		IF EXISTS(Root.JSON[]) = FALSE OR Root.JSON.Data IS NULL THEN
+			RETURN FALSE;	
+		ELSE
+			RETURN TRUE;
+		END IF;
+	END;
+END MODULE;
+
+CREATE FILTER MODULE AccountOpeningFlow_VerifyEconetResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE StatusCode CHARACTER Root.XMLNSC.acknowledgement.status.code;
+		DECLARE StatusDesc CHARACTER Root.XMLNSC.acknowledgement.status.desc;
+		IF StatusCode <> 'SC0000' AND StatusDesc <> 'SUCCESS' THEN
+			RETURN FALSE;	
+		ELSE
+			RETURN TRUE;
+		END IF;
+	END;
+END MODULE;
+
+---GenerateKYCResponseTo236Backend
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYCResponseTo236Backend
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 	CALL GenerateResponseTo236Backend();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateResponseTo236Backend() BEGIN
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputBody;
+--		IF EXISTS(InputRoot.XMLNSC[]) THEN
+--			MOVE domainDataRef TO InputRoot.XMLNSC;
+--		ELSEIF EXISTS(InputRoot.JSON[]) THEN
+--			MOVE domainDataRef TO InputRoot.JSON;
+--		END IF;	 
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
+		SET Environment.Variables.EconetResponseMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG','----- Econet Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.EconetResponseMsg) INTO rc;
+		END IF;	
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.EconetResponseMsg,'Econet Response',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		-----------------------------
+		SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
+		SET Environment.Variables.AppResponse = OutputRoot.XMLNSC;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG','----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+		END IF;	
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		SET OutputRoot.XMLNSC = NULL;
+		PROPAGATE TO TERMINAL 'out1';
+		-----------------------------
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.XMLNSC = Environment.Variables.AppResponse;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;			
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToDWH
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateReqToDWH();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateReqToDWH() BEGIN
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
+		SET Environment.Variables.EconetResponseMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG','----- Econet Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.EconetResponseMsg) INTO rc;
+		END IF;	
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.EconetResponseMsg,'Econet Response',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		-----------------------------
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG','----- DWH Request ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG','DWH is a Get type of request') INTO rc;
+		END IF;	
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,'','DWH Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		-----------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.HTTPRequestHeader."Accept-Encoding" = 'gzip,deflate';
+		SET OutputRoot.HTTPRequestHeader.Host = 'localhost:7080';
+		SET OutputRoot.HTTPRequestHeader.Connection = 'Keep-Alive';
+		SET OutputRoot.HTTPRequestHeader."User-Agent" = 'Apache-HttpClient/4.1.1 (java 1.5)';
+		SET OutputRoot.HTTPRequestHeader."X-Original-HTTP-Command" = 'GET http://localhost:7080/ecocash/ HTTP/1.1';
+		SET OutputRoot.HTTPRequestHeader."X-Query-String" = 'id=263785974144';
+		SET OutputRoot.HTTPRequestHeader."X-Server-Name" = 'localhost';
+		SET OutputRoot.HTTPRequestHeader."X-Server-Port" = '7080';
+		SET OutputRoot.HTTPRequestHeader."X-Remote-Addr" = '127.0.0.1';
+		SET OutputRoot.HTTPRequestHeader."X-Remote-Host" = 'localhost';
+		SET OutputRoot.HTTPRequestHeader."X-Scheme" = 'http';
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://localhost:7080/ecocash/?id=263785974144';--||'?id='||id;
+		END;
 END MODULE;
 
 
@@ -72,160 +288,6 @@ CREATE COMPUTE MODULE AccountOpeningFlow_CaptureException
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'BalanceEnquiry';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'BalanceEnquiry');
-	END;
-END MODULE;
-
-
-CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToFCM
-	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
-		CALL CopyMessageHeaders();
-		CALL GenerateReqToFCM();
-		RETURN TRUE;
-	END;
-
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
-	END;
-
-	CREATE PROCEDURE GenerateReqToFCM() BEGIN
-		DECLARE env REFERENCE TO Environment.Variables;
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
-		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
-		DECLARE rc BOOLEAN FALSE;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Request from MainFlow::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208) AS CHARACTER)) INTO rc;
-		SET OutputRoot = InputRoot;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://localhost:7080/ecocash/?id=263785974133';		
-		
-		--SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://localhost:7080/ecocash/?id=263785974144';		
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Request To DWH Service::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER )) INTO rc;
-			
-	END;
-END MODULE;
-
-----KYC Compute Modules
-CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToDWH
-	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
-		CALL CopyMessageHeaders();
-		CALL GenerateReqToDWH();
-		RETURN TRUE;
-	END;
-
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
-	END;
-
-	CREATE PROCEDURE GenerateReqToDWH() BEGIN
-		DECLARE env REFERENCE TO Environment.Variables;
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
-		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
-		DECLARE rc BOOLEAN FALSE;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Request from MainFlow::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208) AS CHARACTER)) INTO rc;
-		SET OutputRoot = InputRoot;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://localhost:7080/ecocash/?id=263785974133';		
-		
-		--SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://localhost:7080/ecocash/?id=263785974144';		
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Request To DWH Service::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER )) INTO rc;
-			
-	END;
-END MODULE;
-
-
-
-CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToEconet
-	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
-		CALL CopyMessageHeaders();
-		CALL GenerateReqToEconet();
-		RETURN TRUE;
-	END;
-
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
-	END;
-
-	CREATE PROCEDURE GenerateReqToEconet() BEGIN
-		DECLARE env REFERENCE TO Environment.Variables;
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'request';
-		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.request;
-		DECLARE randomNumber CHARACTER;
-		DECLARE rc BOOLEAN FALSE;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','..............Initializing Account Opening Logger...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Request from KYC_Customer::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208) AS CHARACTER)) INTO rc;
-		
-		SET randomNumber = UUIDASCHAR;
-		SET outRef.requestId = '2';
-		SET outRef.transactionId = '5437654328765435';
-		SET outRef.featureId = 'search_msisdn';
-		SET outRef.timeStamp = CURRENT_TIMESTAMP;
-		SET outRef.channelId = '6';
-		SET outRef.languageId = '1';
-		SET outRef.username = 'eeeeeee';
-		SET outRef.password = 'eeeeeeeee';
-		SET outRef.data.name = 'MSISDN';
-		SET outRef.data.value = '772984803';
-				
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Response to Econet::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER )) INTO rc;
-			
-	END;
-END MODULE;
-
-
-CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYCResponse
-	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
-		CALL CopyMessageHeaders();
-		CALL GenerateKYCResponse();
-		RETURN TRUE;
-	END;
-
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
-	END;
-
-	CREATE PROCEDURE GenerateKYCResponse() BEGIN
-		DECLARE rc BOOLEAN FALSE;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Response from DWH/Econet::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208) AS CHARACTER)) INTO rc;
-		SET OutputRoot = InputRoot;
-		
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Genreting KYC Response ::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208) AS CHARACTER)) INTO rc;
 	END;
 END MODULE;
 
@@ -308,11 +370,11 @@ END MODULE;
 
 -----FCM Compute Module
 
-CREATE COMPUTE MODULE AccountOpeningFlow_GenerateFCMResponse
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		-- CALL CopyMessageHeaders();
-		-- CALL GenerateFCMResponse();
+		 CALL GenerateReqToT24();
 		RETURN TRUE;
 	END;
 
@@ -326,27 +388,16 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateFCMResponse
 		END WHILE;
 	END;
 
-	CREATE PROCEDURE GenerateFCMResponse() BEGIN
+	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		SET OutputRoot = InputRoot;
 	END;
 END MODULE;
  
-
-
----DWH Compute Module
-CREATE COMPUTE MODULE AccountOpeningFlow_GenerateDWHResponse
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateFCMResponseTo236Backend
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL CopyMessageHeaders();
-		DECLARE inRef REFERENCE TO InputRoot.JSON;
-		 IF EXISTS(InputRoot.JSON[]) = TRUE THEN
-		 	CALL GenerateDWHResponse();
-		 	PROPAGATE TO TERMINAL 'out';
-		 RETURN FALSE;
-		 ELSE
-		 	PROPAGATE TO TERMINAL 'out1';
-		 	RETURN FALSE; 
-		 END IF;
+		-- CALL CopyMessageHeaders();
+		 CALL GenerateFCMResponseTo236Backend();
 		RETURN TRUE;
 	END;
 
@@ -360,32 +411,17 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateDWHResponse
 		END WHILE;
 	END;
 
-	CREATE PROCEDURE GenerateDWHResponse() BEGIN
-		DECLARE rc BOOLEAN FALSE;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Response from DWH/Econet::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208) AS CHARACTER)) INTO rc;
+	CREATE PROCEDURE GenerateFCMResponseTo236Backend() BEGIN
 		SET OutputRoot = InputRoot;
-		
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Genreting KYC Response ::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208) AS CHARACTER)) INTO rc;
 	END;
 END MODULE;
 
 
----Econet Compute Module
-CREATE COMPUTE MODULE AccountOpeningFlow_GenerateEconetResponse
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateUpdateResTo236Backend
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL CopyMessageHeaders();
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
-		 IF EXISTS(InputRoot.XMLNSC[]) = TRUE THEN
-		 	CALL GenerateEconetResponse();
-		 	PROPAGATE TO TERMINAL 'out';
-		 RETURN FALSE;
-		 ELSE
-		 	PROPAGATE TO TERMINAL 'out1';
-		 	RETURN FALSE; 
-		 END IF;
+		-- CALL CopyMessageHeaders();
+		 CALL GenerateUpdateResTo236Backend();
 		RETURN TRUE;
 	END;
 
@@ -399,13 +435,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateEconetResponse
 		END WHILE;
 	END;
 
-	CREATE PROCEDURE GenerateEconetResponse() BEGIN
-		DECLARE rc BOOLEAN FALSE;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Response from DWH/Econet::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208) AS CHARACTER)) INTO rc;
+	CREATE PROCEDURE GenerateUpdateResTo236Backend() BEGIN
 		SET OutputRoot = InputRoot;
-		
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Genreting KYC Response ::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208) AS CHARACTER)) INTO rc;
 	END;
 END MODULE;

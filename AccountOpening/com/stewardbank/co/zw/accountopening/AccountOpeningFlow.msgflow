@@ -1,61 +1,144 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmWSInput.msgnode="ComIbmWSInput.msgnode" xmlns:ComIbmWSReply.msgnode="ComIbmWSReply.msgnode" xmlns:ExceptionHandling.subflow="ExceptionHandling.subflow" xmlns:com_stewardbank_co_zw_accountopening_CallFCM.subflow="com/stewardbank/co/zw/accountopening/CallFCM.subflow" xmlns:com_stewardbank_co_zw_accountopening_CallKYC_Customer.subflow="com/stewardbank/co/zw/accountopening/CallKYC_Customer.subflow"
-    xmlns:com_stewardbank_co_zw_accountopening_UpdateAccountDetails.subflow="com/stewardbank/co/zw/accountopening/UpdateAccountDetails.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/accountopening/AccountOpeningFlow.msgflow" nsPrefix="com_stewardbank_co_zw_accountopening_AccountOpeningFlow.msgflow">
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmLabel.msgnode="ComIbmLabel.msgnode" xmlns:ComIbmMQInput.msgnode="ComIbmMQInput.msgnode" xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode" xmlns:ComIbmRouteToLabel.msgnode="ComIbmRouteToLabel.msgnode" xmlns:com_stewardbank_co_zw_accountopening_CallDWH.subflow="com/stewardbank/co/zw/accountopening/CallDWH.subflow" xmlns:com_stewardbank_co_zw_accountopening_CallEconet.subflow="com/stewardbank/co/zw/accountopening/CallEconet.subflow"
+    xmlns:com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow="com/stewardbank/co/zw/common/exceptionhandling/exceptionHandlingSubFlow.subflow" xmlns:com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionJSONCallSubFlow.subflow="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionJSONCallSubFlow.subflow" xmlns:com_stewardbank_co_zw_common_t24call_StewardBankT24JSONCall.subflow="com/stewardbank/co/zw/common/t24call/StewardBankT24JSONCall.subflow" xmlns:com_stewardbank_co_zw_common_zsscall_StewardBankZssJSONCallSubFlow.subflow="com/stewardbank/co/zw/common/zsscall/StewardBankZssJSONCallSubFlow.subflow"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/accountopening/AccountOpeningFlow.msgflow" nsPrefix="com_stewardbank_co_zw_accountopening_AccountOpeningFlow.msgflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Users\usufw\git\StewardBank\AccountOpening\brokerlog.xml">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:/Documents/Steward/Log/Log4jConfig.xml">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_Q" name="RAW_AUDIT_Q" defaultValueLiteral="RAW_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERR_AUDIT_Q" name="ERR_AUDIT_Q" defaultValueLiteral="ERR_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.EXCEPTION_Q" name="EXCEPTION_Q" defaultValueLiteral="SB_EXCQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.IsLogRequired" name="IsLogRequired" defaultValueLiteral="Y">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG4J_INIT_ERROR_MSG" name="LOG4J_INIT_ERROR_MSG" defaultValueLiteral="[log4j] Initialization Error">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="AccountOpeningFlow" bundleName="com/stewardbank/co/zw/accountopening/AccountOpeningFlow" pluginId="StewardBankAccountOpeningApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankAccountOpeningApp/icons/full/obj16/AccountOpeningFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankAccountOpeningApp/icons/full/obj30/AccountOpeningFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmWSReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="813,171">
-        <translation xmi:type="utility:ConstantString" string="HTTP Reply"/>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="392,275" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningKYC_Flow_GenerateReqToEconet.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="GenerateReqToEconet"/>
       </nodes>
-      <nodes xmi:type="ComIbmWSInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="31,52" URLSpecifier="/accountOpening/KYC_Customer" messageDomainProperty="XMLNSC">
-        <translation xmi:type="utility:ConstantString" string="AccountOpeningRestChannel"/>
-      </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="226,48" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_DBLogging.Main">
-        <translation xmi:type="utility:ConstantString" string="DBLogging"/>
-      </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_accountopening_CallKYC_Customer.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="330,49">
-        <translation xmi:type="utility:ConstantString" string="CallKYC_Customer"/>
-      </nodes>
-      <nodes xmi:type="ExceptionHandling.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="186,170">
-        <translation xmi:type="utility:ConstantString" string="ExceptionHandlingLib"/>
-      </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="345,170" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_CaptureException.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="483,741" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_CaptureException.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="CaptureException"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="453,49" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_GenerateReqToFCM.Main">
-        <translation xmi:type="utility:ConstantString" string="GenerateReqToFCM"/>
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="213,741">
+        <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_accountopening_CallFCM.subflow:FCMComposite_1" xmi:id="FCMComposite_1_12" location="529,-43">
-        <translation xmi:type="utility:ConstantString" string="CallFCM"/>
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="33,33" queueName="ACCOPN_SB_HTTP_REQ" messageDomainProperty="BLOB">
+        <translation xmi:type="utility:ConstantString" string="AccountOpening_InQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_13" location="693,-43" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_GenerateReqToZSS.Main">
+      <nodes xmi:type="com_stewardbank_co_zw_accountopening_CallEconet.subflow:FCMComposite_1" xmi:id="FCMComposite_1_9" location="622,278">
+        <translation xmi:type="utility:ConstantString" string="CallEconet"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="621,193" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_GenerateKYCResponseTo236Backend.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="GenerateKYCResTo236Backend"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_13" location="182,195" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_GenerateReqToDWH.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="GenerateReqToDWH"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_accountopening_CallDWH.subflow:FCMComposite_1" xmi:id="FCMComposite_1_14" location="371,197">
+        <translation xmi:type="utility:ConstantString" string="CallDWH"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_15" location="931,439" destinationMode="list">
+        <translation xmi:type="utility:ConstantString" string="AccountOpening_OutQ"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="189,33" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_VerifyRequest.Main">
+        <translation xmi:type="utility:ConstantString" string="VerifyRequest"/>
+      </nodes>
+      <nodes xmi:type="ComIbmRouteToLabel.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="352,34">
+        <translation xmi:type="utility:ConstantString" string="Route To Label"/>
+      </nodes>
+      <nodes xmi:type="ComIbmLabel.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="48,196" labelName="KYC">
+        <translation xmi:type="utility:ConstantString" string="KYC"/>
+      </nodes>
+      <nodes xmi:type="ComIbmLabel.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="55,391" labelName="FCM">
+        <translation xmi:type="utility:ConstantString" string="FCM"/>
+      </nodes>
+      <nodes xmi:type="ComIbmLabel.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="36,509" labelName="Update_ACC">
+        <translation xmi:type="utility:ConstantString" string="Update_ACC"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="246,109" destinationMode="list">
+        <translation xmi:type="utility:ConstantString" string="DBLogging"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_16" location="183,391" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_GenerateReqToT24.Main">
+        <translation xmi:type="utility:ConstantString" string="GenerateReqToT24"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_17" location="185,509" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_GenerateReqToZSS.Main">
         <translation xmi:type="utility:ConstantString" string="GenerateReqToZSS"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_accountopening_UpdateAccountDetails.subflow:FCMComposite_1" xmi:id="FCMComposite_1_14" location="734,53">
-        <translation xmi:type="utility:ConstantString" string="UpdateAccountDetails"/>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_19" location="534,392" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_GenerateFCMResponseTo236Backend.Main">
+        <translation xmi:type="utility:ConstantString" string="GenerateFCMResTo236Backend"/>
       </nodes>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.timeout" targetTerminalName="InTerminal.Input"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_13" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_12" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_14" targetNode="FCMComposite_1_14" sourceNode="FCMComposite_1_13" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_15" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_14" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_16" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <nodes xmi:type="com_stewardbank_co_zw_common_zsscall_StewardBankZssJSONCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_20" location="196,595">
+        <translation xmi:type="utility:ConstantString" string="StewardBankZssJSONCallSubFlow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_21" location="461,591" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_GenerateReqToPostilion.Main">
+        <translation xmi:type="utility:ConstantString" string="GenerateReqToPostilion"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24JSONCall.subflow:FCMComposite_1" xmi:id="FCMComposite_1_22" location="365,392">
+        <translation xmi:type="utility:ConstantString" string="StewardBankT24JSONCall"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionJSONCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_23" location="471,519">
+        <translation xmi:type="utility:ConstantString" string="StewardBankPostilionJSONCallSubFlow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_24" location="727,519" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#AccountOpeningFlow_GenerateUpdateResTo236Backend.Main">
+        <translation xmi:type="utility:ConstantString" string="GenerateUpdateResTo236Backend"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_15" targetNode="FCMComposite_1_15" sourceNode="FCMComposite_1_11" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_16" targetNode="FCMComposite_1_15" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_12" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_14" sourceNode="FCMComposite_1_13" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_13" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_14" sourceTerminalName="OutTerminal.DetailsFound1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_9" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_14" sourceTerminalName="OutTerminal.found" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_16" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_17" sourceNode="FCMComposite_1_10" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_18" targetNode="FCMComposite_1_15" sourceNode="FCMComposite_1_19" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_19" targetNode="FCMComposite_1_20" sourceNode="FCMComposite_1_17" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_20" targetNode="FCMComposite_1_21" sourceNode="FCMComposite_1_20" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_21" targetNode="FCMComposite_1_22" sourceNode="FCMComposite_1_16" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_23" targetNode="FCMComposite_1_19" sourceNode="FCMComposite_1_22" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_24" targetNode="FCMComposite_1_23" sourceNode="FCMComposite_1_21" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_26" targetNode="FCMComposite_1_24" sourceNode="FCMComposite_1_23" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_27" targetNode="FCMComposite_1_15" sourceNode="FCMComposite_1_24" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_28" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_13" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_29" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_16" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_30" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_17" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
         <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/accountopening/AccountOpeningFlow" pluginId="StewardBankAccountOpeningApp"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RAW_AUDIT_Q">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_Q" bundleName="com/stewardbank/co/zw/accountopening/AccountOpeningFlow" pluginId="StewardBankAccountOpeningApp"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERR_AUDIT_Q">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.ERR_AUDIT_Q" bundleName="com/stewardbank/co/zw/accountopening/AccountOpeningFlow" pluginId="StewardBankAccountOpeningApp"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.EXCEPTION_Q">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_Q" bundleName="com/stewardbank/co/zw/accountopening/AccountOpeningFlow" pluginId="StewardBankAccountOpeningApp"/>
+              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
+                <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/accountopening/AccountOpeningFlow" pluginId="StewardBankAccountOpeningApp"/>
+                <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4J_INIT_ERROR_MSG">
+                  <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR_MSG" bundleName="com/stewardbank/co/zw/accountopening/AccountOpeningFlow" pluginId="StewardBankAccountOpeningApp"/>
+                </propertyDescriptor>
+              </propertyDescriptor>
+            </propertyDescriptor>
+          </propertyDescriptor>
+        </propertyDescriptor>
       </propertyDescriptor>
     </propertyOrganizer>
     <stickyBoard/>
