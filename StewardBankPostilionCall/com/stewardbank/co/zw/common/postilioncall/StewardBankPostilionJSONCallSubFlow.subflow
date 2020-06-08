@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmTCPIPClientInput.msgnode="ComIbmTCPIPClientInput.msgnode" xmlns:ComIbmTCPIPClientOutput.msgnode="ComIbmTCPIPClientOutput.msgnode" xmlns:ComIbmTCPIPClientReceive.msgnode="ComIbmTCPIPClientReceive.msgnode" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionJSONCallSubFlow.subflow" nsPrefix="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionJSONCallSubFlow.subflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1" useDefaults="true" udpSupport="true">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <translation xmi:type="utility:TranslatableString" key="StewardBankPostilionJSONCallSubFlow" bundleName="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionJSONCallSubFlow" pluginId="StewardBankPostilionCall"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankPostilionCall/icons/full/obj16/StewardBankPostilionJSONCallSubFlow.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankPostilionCall/icons/full/obj30/StewardBankPostilionJSONCallSubFlow.gif"/>
+    <composition>
+      <nodes xmi:type="ComIbmTCPIPClientInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="300,81" connectionDetails="{ESBPolicies}:PostilionClient" timeoutWaitingForData="90" closeInputStream="true" messageDomainProperty="JSON">
+        <translation xmi:type="utility:ConstantString" string="PostilionClientRecevie"/>
+      </nodes>
+      <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="75,20">
+        <translation xmi:type="utility:TranslatableString" key="InTerminal.Input" bundleName="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionJSONCallSubFlow" pluginId="StewardBankPostilionCall"/>
+      </nodes>
+      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="265,24" connectionDetails="{ESBPolicies}:PostilionClient" timeoutWaitingForData="120" closeInputStream="true" modifyOutputStream="reserveThenRelease" idLocation="$LocalEnvironment/WrittenDestination/TCPIP/Output/ConnectionDetails[1]/Id" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
+        <translation xmi:type="utility:ConstantString" string="PostilionClientRecevieData"/>
+      </nodes>
+      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="154,24" connectionDetails="{ESBPolicies}:PostilionClient" timeoutSendingData="120" closeOutputStream="true" modifyInputStream="reserveThenRelease">
+        <translation xmi:type="utility:ConstantString" string="PostilionClientCall"/>
+      </nodes>
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="436,23">
+        <translation xmi:type="utility:TranslatableString" key="OutTerminal.Output" bundleName="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionJSONCallSubFlow" pluginId="StewardBankPostilionCall"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="OutTerminal.Output" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_3" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer/>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>

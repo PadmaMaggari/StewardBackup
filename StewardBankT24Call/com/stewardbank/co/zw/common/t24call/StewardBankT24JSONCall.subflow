@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmTCPIPClientOutput.msgnode="ComIbmTCPIPClientOutput.msgnode" xmlns:ComIbmTCPIPClientReceive.msgnode="ComIbmTCPIPClientReceive.msgnode" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/common/t24call/StewardBankT24JSONCall.subflow" nsPrefix="com_stewardbank_co_zw_common_t24call_StewardBankT24JSONCall.subflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1" useDefaults="true" udpSupport="true">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <translation xmi:type="utility:TranslatableString" key="StewardBankT24JSONCall" bundleName="com/stewardbank/co/zw/common/t24call/StewardBankT24JSONCall" pluginId="StewardBankT24Call"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankT24Call/icons/full/obj16/StewardBankT24JSONCall.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankT24Call/icons/full/obj30/StewardBankT24JSONCall.gif"/>
+    <composition>
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="436,37">
+        <translation xmi:type="utility:TranslatableString" key="OutTerminal.Output" bundleName="com/stewardbank/co/zw/common/t24call/StewardBankT24JSONCall" pluginId="StewardBankT24Call"/>
+      </nodes>
+      <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="38,29">
+        <translation xmi:type="utility:TranslatableString" key="InTerminal.Input" bundleName="com/stewardbank/co/zw/common/t24call/StewardBankT24JSONCall" pluginId="StewardBankT24Call"/>
+      </nodes>
+      <nodes xmi:type="ComIbmTCPIPClientReceive.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="280,41" connectionDetails="{ESBPolicies}:T24Client" timeoutWaitingForData="90" modifyInputStream="release" modifyOutputStream="release" messageDomainProperty="JSON" validateTiming="immediate" recordDetection="parsedRecordSequence">
+        <translation xmi:type="utility:ConstantString" string="TCPIP Client Receive"/>
+      </nodes>
+      <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="144,35" connectionDetails="{ESBPolicies}:T24Client" modifyOutputStream="reserve">
+        <translation xmi:type="utility:ConstantString" string="T24ClientOut"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="OutTerminal.Output" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_2" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer/>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>
