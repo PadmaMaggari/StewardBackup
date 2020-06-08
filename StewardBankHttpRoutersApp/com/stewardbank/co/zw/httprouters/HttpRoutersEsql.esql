@@ -58,8 +58,8 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		END IF;
 		DECLARE procCode CHARACTER COALESCE(SUBSTRING(inRef.field.Item[3].value FROM 1 FOR 2),SUBSTRING(FIELDVALUE(inRef.field[3]) FROM 1 FOR 2),'');
 		SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
-		SET procCodeData = InputRoot.JSON.Data.channel; 
-		SET procCodeData = InputRoot.JSON.Data.proccessingCode; 
+		--SET procCodeData = InputRoot.JSON.Data.channel; 
+		SET procCodeData = InputRoot.JSON.Data.proccessingCode;  
 		IF EXISTS(getDBDetailsCache.Values[]) THEN
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Values available in shared cache: '|| getDBDetailsCache.Values.*[])INTO rc;
 			--SET DBDetails.values[] = select A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData and A.DOMAIN = domainName;
