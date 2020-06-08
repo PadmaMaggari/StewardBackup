@@ -75,7 +75,7 @@ DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 				DECLARE msg CHARACTER ;
 				SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 			END IF;
-			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','..............Start logging T24 sub flow...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','..............Start logging ZSS sub flow...........') INTO rc;
 	 		--JAVA procedure call to get 2 byte header
 	 		SET tcpHeader = Get2ByteHeader(data);
 	 		CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','Data with header') INTO rc;
@@ -92,9 +92,7 @@ DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 	 		CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainRef,encodeRef,ccsidRef)) INTO rc;
 		END IF;
  		RETURN TRUE;
-	END;
-
-	
+	END;	
 END MODULE;
 
 
