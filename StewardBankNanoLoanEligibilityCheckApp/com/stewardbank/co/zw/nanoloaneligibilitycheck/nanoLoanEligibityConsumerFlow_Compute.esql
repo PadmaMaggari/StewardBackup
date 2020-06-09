@@ -1,0 +1,130 @@
+BROKER SCHEMA com.stewardbank.co.zw.nanoloaneligibilitycheck
+path com.stewardbank.co.zw.common.esql;
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ExceptionQ,DSN EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE IsWToBLoggerRequired EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+
+CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingRequest
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 
+		 CALL GenerateRequest();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateRequest() BEGIN
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET  Environment.id = CAST(InputLocalEnvironment.Destination.HTTP.RequestIdentifier AS CHARACTER);
+		--SET Environment.reqMsg = CAST(InputRoot.JSON AS CHARACTER);
+		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CALL DBLogging(Environment.id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,' ',' ',' ',outRefer);
+		--CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		SET Environment.dbLog = OutputRoot.XMLNSC;
+		PROPAGATE TO TERMINAL 'out1';
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;	
+		
+		-- ********************Log4j ********************************
+		IF ( rc = FALSE ) THEN  
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+		END IF;
+		
+		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Request Received ================') INTO rc;
+--			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG',Environment.reqMsg) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Request End ================') INTO rc;
+		SET OutputRoot.Properties = InputRoot.Properties; 
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingReponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		 CALL GeneratingResponse();
+		RETURN TRUE;
+	END;
+
+	
+
+	CREATE PROCEDURE GeneratingResponse() BEGIN
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE resMsg CHARACTER ;
+		SET resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;	
+		-- ********************Log4j ********************************
+		IF ( rc = FALSE ) THEN  
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		
+		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Response  Received  From DWH Provider================') INTO rc;
+		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','Response Message:'|| resMsg) INTO rc;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CALL DBLogging(Environment.id,resMsg,'Application Request',ApplicationLabel,BrokerName,' ',' ',' ',outRefer);
+		--CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		SET Environment.dbLog = OutputRoot.XMLNSC;
+		PROPAGATE TO TERMINAL 'out1';
+		SET OutputRoot = InputRoot ;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_BuildExceptionDetails
+	
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL BuildExceptionResponse();
+		RETURN FALSE;
+	END;
+
+	CREATE PROCEDURE BuildExceptionResponse() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'NanoLoanEligibility';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'NanoLoanEligibility');
+		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ;
+		PROPAGATE TO TERMINAL 'out';
+		------------Error  Logging in DB----------
+		CALL Error_DBLogging(Environment.id,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,' ',' ',' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.NanoLoanEligibility.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		----------------------------------
+	END;
+	END MODULE;
+	
+
