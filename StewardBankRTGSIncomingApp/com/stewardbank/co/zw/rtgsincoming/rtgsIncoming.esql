@@ -1,15 +1,15 @@
 /*
-Author:Rathod Veerender
+Author:Swathi
 Version:0.0.1
-Date of Creation:13-05-2020
-Date of Modification:14-05-2020
+Date of Creation:16-05-2020
+Date of Modification:6-06-2020
 Description:Pick file from remote location and based on the account send request to t24 or zss.
 			If it is t24 account then send MT103 else send ISO8583 to ZSS.
  			
 */
 BROKER SCHEMA com.stewardbank.co.zw.rtgsincoming
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,RTGS_INCOMING_SB_Q,DSN EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,RTGS_INCOMING_SB_Q,DSN,OUTQ EXTERNAL CHARACTER '';
 DECLARE UUID SHARED CHARACTER '';
 
 
@@ -39,13 +39,19 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateReqToPostilion
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.BLOB;
 		SET Environment.File.Name = InputLocalEnvironment.File.Name;
+		IF (InputLocalEnvironment.File.Name NOT LIKE ' ') THEN
+			SET Environment.File.Status = 'SUCCESS';
+		ELSE
+			SET Environment.File.Status = 'FAILURE'; 	
+		END IF;
+		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Start RTGSIncoming logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','RTGSIncoming Request in RAW data start') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',Environment.reqMsg) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','RTGSIncoming Request in RAW data end') INTO rc;
 		SET OutputRoot.Properties.MessageSet = '{MT103}';
 		SET OutputRoot.Properties.MessageType = '{}:MT103';
@@ -84,6 +90,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Start RTGSIncoming  ReqToPostilion logging...........') INTO rc;
 		DECLARE Response ROW;
 		DECLARE sql CHARACTER '';
+		
 		SET UUID = UUIDASCHAR;
 		SET Environment.Guid = UUID;
 		DECLARE SettlementAmt CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 10); 
@@ -92,12 +99,12 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 		DECLARE LF CHARACTER CAST(CAST('X''0D''' AS BLOB) AS CHARACTER CCSID ccidRef);
 		DECLARE MT50Data CHARACTER SUBSTRING(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField BEFORE CR) BEFORE LF) FROM 2);
 		DECLARE MT59Data CHARACTER SUBSTRING(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField BEFORE CR) BEFORE LF) FROM 2);
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',MT59Data) INTO rc;
+		
 		--***************Inserting values in RTGSIncoming ISAVE table ***************************
-		SET sql='INSERT INTO SB_ISAVE_PAYNET_TRX_TRACKING VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,ID_SEQ.NEXTVAL)';
-		SET Response.insert[]=PASSTHRU(sql VALUES(UUID,inDomainDataRef.MT103.header.Block1.SessionNumber,CURRENT_TIMESTAMP,
-		inDomainDataRef.MT103.header.Block1.SequenceNum,
-		'','',Environment.File.Name,'',Amt,MT50Data,MT59Data,'','','','','',CURRENT_TIMESTAMP,''));
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Inserting Values into SB_ISAVE_PAYNET_TRX_TRACKING table*************') INTO rc;
+		CALL insertIntoSbIsaveTable(UUID,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',Environment.File.Name,'',Amt,MT50Data,MT59Data,'','','','',Environment.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+		
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Checking for the Account'||MT59Data||' belongs to ZSS or T24**********') INTO rc;
 		--get account details from db to check weather Account belongs to Zss or T24
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
 		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(MT59Data));
@@ -119,21 +126,34 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 			SET outRef.AccountIdentification2_103 = MT59Data;
 			CALL UpdateMsgWithAsciiBitMap(outRef);
 			
-			 --******************Updating ISAVE table with ZSS Request Message ************
+			
 			
 			 SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef);
-			 UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_ISO_REQUEST_MSG = reqMsg WHERE I.PAYNET_GUID = Environment.Guid ;
+			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Account Exixts in ZSS **********') INTO rc;
+			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','**************Zss Request Message **********') INTO rc;
+			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
+			 --******************Updating ISAVE table with ZSS Request Message ************
+			CALL updateDBwithReqMessage(reqMsg,Environment.Guid,'ISO');
+			
 			  PROPAGATE TO TERMINAL 'out';
 		ELSE
 			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{MT103}' TYPE '{}:MT103')  ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
 			SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),inDomainDataRef,encodeRef,ccidRef);
-			UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_MT103_T24_MSG = reqMsg WHERE I.PAYNET_GUID = Environment.Guid ;
+			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Account Exixts in T24 **********') INTO rc;
+			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','**************T24 Request Message **********') INTO rc;
+			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
+			 --******************Updating ISAVE table with T24 Request Message ************
+			CALL updateDBwithReqMessage(reqMsg,Environment.Guid,'MT103');
+			
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming  ReqToPostilion logging...........') INTO rc;
 	
 	END;
+	
+	
 END MODULE;
+
 
 CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -147,27 +167,28 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
 		SET OutputRoot.Properties = InputRoot.Properties;
 		DECLARE inDomain REFERENCE TO InputRoot.DFDL;
 		DECLARE sql CHARACTER;
-		
+		DECLARE rc BOOLEAN FALSE;
 --		DECLARE status CHARACTER 'SUCCESS';
 		DECLARE id CHARACTER Environment.Guid;
+		--***************Updating Database with Zss/T24 Status and Response codes***********************
 		CASE
 		WHEN FIELDNAME(inDomain.MT103) IS NOT NULL THEN
-			UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_T24_STATUS = 'SUCCESS' WHERE I.PAYNET_GUID =id;
---			SET sql = 'UPDATE SB_ISAVE_PAYNET_TRX_TRACKING SET PAYNET_T24_STATUS ='||status||' WHERE PAYNET_GUID ='||Environment.Guid;
---		PASSTHRU(sql);
+			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
+			CALL UpdateDBStatus(id,'SUCCESS',' ',' ','MT103');
 		WHEN FIELDNAME(inDomain.ISO8583_1987) IS NOT NULL THEN
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating ZSS Status in Database**********') INTO rc;
 			IF(inDomain.ISO8583_1987.ResponseCode_039 LIKE '00')  THEN
 			
-			UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_ZSS_STATUS = 'SUCCESS' WHERE I.PAYNET_GUID =id;
-			--SET sql = 'UPDATE SB_ISAVE_PAYNET_TRX_TRACKING SET PAYNET_ZSS_STATUS ='||status||' WHERE PAYNET_GUID ='||Environment.Guid;
---		PASSTHRU(sql);
+			CALL UpdateDBStatus(id,'SUCCESS',CAST(inDomain.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(inDomain.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ISO');
+			
 		ELSE
-			UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_ZSS_STATUS = 'FAILURE' WHERE I.PAYNET_GUID =id;
+			CALL UpdateDBStatus(id,'FAILURE',CAST(inDomain.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(inDomain.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ISO');
+			
 		END IF;
 			
 		END CASE;
 		SET OutputRoot = InputRoot;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'RTGS_INCOMING_SB_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RTGS_INCOMING_SB_Q;
 	END;
 END MODULE;
 
@@ -203,10 +224,30 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
 			-- DB Logging===================
 		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
-		--CALL Error_DBLogging(Environment.tcpip.Id ,Environment.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.systemsTraceAuditNumber,Environment.dateLocalTransaction,Environment.retrievalReferenceNumber,CAST(Environment.Variables.ExceptionData.excpNumber AS CHARACTER),Environment.userDefineError.InComingRouter.ErrorCode,outRefer);
-		--SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
+		CALL Error_DBLogging(Environment.Guid,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,' ',' ',' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.RTGSIncoming.ErrorCode,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		--PROPAGATE TO TERMINAL 'out';
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming Exception logging...........') INTO rc;
 		
 	END;
 END MODULE;
+
+--*************Procedure to insert Values into SB_ISAVE_TABLE**********************************
+	CREATE PROCEDURE insertIntoSbIsaveTable(IN PAYNET_GUID CHARACTER,IN PAYNET_STAN_NUM CHARACTER, IN PAYNET_STANDATE CHARACTER
+,IN PAYNET_RRN_REF CHARACTER,IN PAYNET_ISO_REQUEST_MSG CHARACTER,IN PAYNET_ISO_RESPONSE_CODE CHARACTER,IN PAYNET_MT103_FILENAME CHARACTER,IN PAYNET_MT103_FIELDS CHARACTER,IN PAYNET_MT103_AMOUNT CHARACTER,
+IN PAYNET_MT103_DTACCOUNT CHARACTER,IN PAYNET_MT103_CRACCOUNT CHARACTER,IN PAYNET_MT103_DTDATE CHARACTER,IN PAYNET_MT103_T24_MSG CHARACTER,
+IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_MT103_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP)
+	LANGUAGE DATABASE
+	EXTERNAL NAME "INSERT_SB_ISAVE_TABLE";
+	
+	--*********************Procedure To Update SB_ISAVE_TABLE with ZSS/T24 Request Message********************
+	CREATE PROCEDURE updateDBwithReqMessage (IN REQMSG CHARACTER,IN ISAVEID CHARACTER,IN STR CHARACTER)
+	LANGUAGE DATABASE
+	EXTERNAL NAME "UPDATE_REQMSG_SB_ISAVE";
+	
+	--*********************Procedure to Update Database Status***************
+	CREATE PROCEDURE UpdateDBStatus (IN PAYNET_ID CHARACTER,IN PAYNET_STATUS CHARACTER,IN PAYNET_RESPONSE_CODE CHARACTER,IN PAYNET_REFNUM CHARACTER,IN STR CHARACTER)
+	LANGUAGE DATABASE
+	EXTERNAL NAME "UPDATE_STASUS_SB_ISAVE";
+	
+	

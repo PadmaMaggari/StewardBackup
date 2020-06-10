@@ -12,7 +12,7 @@ CREATE PROCEDURE ZSSResponseFrame() BEGIN
 		DECLARE Response ROW;
 		DECLARE Str CHARACTER 'ISO';
 		SET Response.ROW[]= SELECT * FROM Database.ORADSN.SYSTEM.RTGSRESPONSE AS A WHERE A.FILENAME=Str;     
-		SET OutputRoot.BLOB.BLOB = Response.ROW[1].RESPONSE;       
+		SET OutputRoot.BLOB.BLOB = Response.ROW[1].ISORESPONSE;       
 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(OutputRoot.BLOB.BLOB ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader');
 	END;
 END MODULE;
