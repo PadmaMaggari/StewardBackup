@@ -1,5 +1,3 @@
-
-
 BROKER SCHEMA com.stewardbank.co.zw.salarypayments
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
@@ -162,15 +160,22 @@ CREATE COMPUTE MODULE csv_Compute
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
 			END IF;
 			PROPAGATE TO TERMINAL 'out1';
+--			IF EXISTS (Env.FileNameCheck LIKE 'PO') OR (Env.FileNameCheck LIKE 'PM') THEN
+--				UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET
+--				PAYNET_CSV_STATUS = 'SUCCESS' WHERE I.PAYNET_GUID =Env.UID;				
+--			ELSE
+--				UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET
+--				PAYNET_CSV_STATUS = 'FAILURE' WHERE I.PAYNET_GUID =Env.UID;
+--			END IF; 
 		END IF;
 	END;
 END MODULE;
 --------------------------------------------------------------------------------------------ZSS or T24 Response COMPUTE------------------------------------------------------------------------------------------------------------
-CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute 
+CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyEntireMessage();
-		RETURN FALSE; 
+		RETURN FALSE;
 	END;
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		DECLARE rc BOOLEAN FALSE;
