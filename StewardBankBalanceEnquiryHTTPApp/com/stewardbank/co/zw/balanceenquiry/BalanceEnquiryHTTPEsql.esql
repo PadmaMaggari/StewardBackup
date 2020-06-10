@@ -13,7 +13,6 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion
 		CALL GenerateReqToPostilion();
 		RETURN TRUE;
 	END;
-
 	CREATE PROCEDURE GenerateReqToPostilion() BEGIN
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE rc BOOLEAN FALSE;
@@ -54,7 +53,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		SET domainName = FIELDNAME(outDomainDataRef);
 		--------------DBLogging-------------------
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef),'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef),'Postilion Request',ApplicationLabel,BrokerName,'','','',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET OutputRoot.DFDL = NULL;
 		PROPAGATE TO TERMINAL 'out1';
@@ -90,16 +89,15 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion1
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		--------------DBLogging-------------------
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'T24 Response',ApplicationLabel,BrokerName,'','','',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		-----------------------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Application Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','T24 Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;   
 		END IF;
 		--field to field mapping
-		--SET OutputRoot = null;
 		--CALL JSONToISOMapping(inRef,outRef);
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
 		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
@@ -114,7 +112,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion1
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		SET domainName = FIELDNAME(outDomainDataRef);
 		--------------DBLogging-------------------
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef),'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef),'Postilion Request',ApplicationLabel,BrokerName,'','','',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET OutputRoot.DFDL = NULL;
 		PROPAGATE TO TERMINAL 'out1';
@@ -150,20 +148,21 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToT24
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		--------------DBLogging-------------------
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,'','','',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		-----------------------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Application Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Postilion Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;   
 		END IF;
 		--field to field mapping
 		--SET OutputRoot = null;
 		--CALL JSONToISOMapping(inRef,outRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
+		SET OutputRoot.DFDL = NULL;
 		--------------DBLogging-------------------
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,'','','',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		-----------------------------
@@ -183,29 +182,49 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 	END;
 
 	CREATE PROCEDURE GenerateResToBackend() BEGIN
-		DECLARE inRef REFERENCE TO InputRoot.JSON.Data.receive.isomsg;
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
-		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','..............Initializing Balance Enquiry logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BalanceEnquiryWarnLogger', 'WARN','..............ISO Message parsed successfully...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Request from Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.DFDL ENCODING 546 CCSID 1208 ) AS CHARACTER)) INTO rc;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		-----------------------------
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Postilion Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;   
+		END IF;
 		--field to field mapping
-		--SET OutputRoot = null;
 		--CALL ISOToJSONMapping(inRef,outRef);
-SET outRef.statusCode = '200'; 
-              SET outRef.message = 'SUCCESS'; 
-SET outRef.responseBody = '';
-		
-		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.JSON.Data CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987' ) AS CHARACTER )) INTO rc;
+		SET outRef.statusCode = '200'; 
+        SET outRef.message = 'SUCCESS'; 
+		SET outRef.responseBody = '';
+		SET Environment.jsonData = OutputRoot.JSON;
+		SET OutputRoot.JSON = NULL;
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(domainName,domainDataRef,encodeRef,ccidRef),'Response to Backend',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		-----------------------------
+		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.jsonData;
+		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Response to Backend::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 	END;
 END MODULE;
 
@@ -214,7 +233,6 @@ END MODULE;
 CREATE COMPUTE MODULE BalanceEnquiryHTTPFlowCaptureException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL CopyMessageHeaders();
 		CALL BuildErrorMsg();
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
@@ -226,16 +244,6 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlowCaptureException
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208 SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER)) INTO rc;
 		
 		RETURN TRUE;
-	END;
-
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
 	END;
 
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
@@ -270,4 +278,3 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlowCaptureException
 		----------------------------------
 	END;
 END MODULE;
-
