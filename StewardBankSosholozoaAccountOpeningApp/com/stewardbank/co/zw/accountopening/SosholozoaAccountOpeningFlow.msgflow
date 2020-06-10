@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmLabel.msgnode="ComIbmLabel.msgnode" xmlns:ComIbmMQInput.msgnode="ComIbmMQInput.msgnode" xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode" xmlns:ComIbmResetContentDescriptor.msgnode="ComIbmResetContentDescriptor.msgnode" xmlns:ComIbmRouteToLabel.msgnode="ComIbmRouteToLabel.msgnode" xmlns:com_stewardbank_co_zw_accountopening_DWHCall.subflow="com/stewardbank/co/zw/accountopening/DWHCall.subflow"
+    xmlns:com_stewardbank_co_zw_accountopening_FCBCall.subflow="com/stewardbank/co/zw/accountopening/FCBCall.subflow" xmlns:com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow="com/stewardbank/co/zw/common/exceptionhandling/exceptionHandlingSubFlow.subflow" xmlns:com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow="com/stewardbank/co/zw/common/t24call/StewardBankT24SubFlow.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow"
+    xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/accountopening/SosholozoaAccountOpeningFlow.msgflow" nsPrefix="com_stewardbank_co_zw_accountopening_SosholozoaAccountOpeningFlow.msgflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <translation xmi:type="utility:TranslatableString" key="SosholozoaAccountOpeningFlow" bundleName="com/stewardbank/co/zw/accountopening/SosholozoaAccountOpeningFlow" pluginId="StewardBankSosholozoaAccountOpeningApp"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSosholozoaAccountOpeningApp/icons/full/obj16/SosholozoaAccountOpeningFlow.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSosholozoaAccountOpeningApp/icons/full/obj30/SosholozoaAccountOpeningFlow.gif"/>
+    <composition>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="301,109" destinationMode="list">
+        <translation xmi:type="utility:ConstantString" string="DBLogging"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="244,33" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#SosholozoaAccountOpeningFlow_VerifyRequest.Main">
+        <translation xmi:type="utility:ConstantString" string="VerifyRequest"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="654,420" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#SosholozoaAccountOpeningFlow_GenerateReqToT241.Main">
+        <translation xmi:type="utility:ConstantString" string="GenerateReqToT241"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="766,562">
+        <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="1036,562" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#SosholozoaAccountOpeningFlow_BuildException.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="CaptureException"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="975,316" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#SosholozoaAccountOpeningFlow_GenerateFCMResponse.Main">
+        <translation xmi:type="utility:ConstantString" string="GenerateFCMRes"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="553,388" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#SosholozoaAccountOpeningFlow_GenerateReqToFCB.Main">
+        <translation xmi:type="utility:ConstantString" string="GenerateReqToFCB"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="682,196" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#SosholozoaAccountOpeningFlow_GenerateKYCResponse.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="GenerateKYCRes"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="88,33" queueName="ACCOPN_SB_HTTP_REQ" messageDomainProperty="BLOB">
+        <translation xmi:type="utility:ConstantString" string="AccountOpening_InQ"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_13" location="238,391" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#SosholozoaAccountOpeningFlow_GenerateReqToT24.Main">
+        <translation xmi:type="utility:ConstantString" string="GenerateReqToT24"/>
+      </nodes>
+      <nodes xmi:type="ComIbmLabel.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_14" location="103,196" labelName="KYC">
+        <translation xmi:type="utility:ConstantString" string="KYC"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_18" location="1072,197" destinationMode="list">
+        <translation xmi:type="utility:ConstantString" string="AccountOpening_OutQ"/>
+      </nodes>
+      <nodes xmi:type="ComIbmLabel.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_19" location="110,391" labelName="FCM">
+        <translation xmi:type="utility:ConstantString" string="FCM"/>
+      </nodes>
+      <nodes xmi:type="ComIbmRouteToLabel.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_20" location="407,34">
+        <translation xmi:type="utility:ConstantString" string="Route To Label"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_23" location="237,195" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#SosholozoaAccountOpeningFlow_GenerateReqToDWH.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="GenerateReqToDWH"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_accountopening_DWHCall.subflow:FCMComposite_1" xmi:id="FCMComposite_1_24" location="487,196">
+        <translation xmi:type="utility:ConstantString" string="DWHCall"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_25" location="382,392">
+        <translation xmi:type="utility:ConstantString" string="StewardBankT24SubFlow"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_accountopening_FCBCall.subflow:FCMComposite_1" xmi:id="FCMComposite_1_27" location="627,493">
+        <translation xmi:type="utility:ConstantString" string="FCBCall"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_28" location="785,420">
+        <translation xmi:type="utility:ConstantString" string="StewardBankT24SubFlow1"/>
+      </nodes>
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_29" location="875,312">
+        <translation xmi:type="utility:ConstantString" string="ValidateISO"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_23" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input">
+        <bendPoints>27,338,-522,-29</bendPoints>
+        <bendPoints>522,339,-27,-28</bendPoints>
+      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_18" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_18" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_13" sourceNode="FCMComposite_1_19" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_10" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_23" sourceNode="FCMComposite_1_14" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_18" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_20" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_14" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_13" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input">
+        <bendPoints>26,161,-527,-10</bendPoints>
+      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_17" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_18" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_19" targetNode="FCMComposite_1_24" sourceNode="FCMComposite_1_23" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input1"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_20" targetNode="FCMComposite_1_9" sourceNode="FCMComposite_1_24" sourceTerminalName="OutTerminal.DetailsNoFound" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_21" targetNode="FCMComposite_1_25" sourceNode="FCMComposite_1_13" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_23" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_25" sourceTerminalName="OutTerminal.Output1" targetTerminalName="InTerminal.in">
+        <bendPoints>23,110,-613,-60</bendPoints>
+        <bendPoints>609,109,-27,-61</bendPoints>
+      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_25" targetNode="FCMComposite_1_27" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_26" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_27" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_27" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_25" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_28" targetNode="FCMComposite_1_28" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_30" targetNode="FCMComposite_1_29" sourceNode="FCMComposite_1_28" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_31" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_29" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer/>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>
