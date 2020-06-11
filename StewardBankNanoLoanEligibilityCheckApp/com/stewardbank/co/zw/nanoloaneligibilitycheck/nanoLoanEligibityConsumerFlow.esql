@@ -6,7 +6,7 @@ DECLARE ExceptionQ,DSN EXTERNAL CHARACTER '';
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE IsWToBLoggerRequired EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
-
+DECLARE Url EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingRequest
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -20,11 +20,13 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingRequest
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		SET  Environment.id = CAST(InputLocalEnvironment.Destination.HTTP.RequestIdentifier AS CHARACTER);
-		--SET Environment.reqMsg = CAST(InputRoot.JSON AS CHARACTER);
-		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		SET  Environment.Variables.id = CAST(InputLocalEnvironment.Destination.HTTP.RequestIdentifier AS CHARACTER);
+--		DECLARE intime CHARACTER CAST(InputRoot.Properties.CreationTime AS CHARACTER);
+--		SET Environment.Variables.Date = SUBSTRING(intime FROM 1 FOR 10);
+--		--SET Environment.reqMsg = CAST(InputRoot.JSON AS CHARACTER);
+		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,' ',' ',' ',outRefer);
+		CALL DBLogging(Environment.Variables.id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,' ',' ',' ',outRefer);
 		--CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
@@ -44,6 +46,7 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingRequest
 			CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Request End ================') INTO rc;
 		SET OutputRoot.Properties = InputRoot.Properties; 
 		SET OutputRoot = InputRoot;
+		SET  OutputLocalEnvironment.Destination.HTTP.RequestURL = Url;
 	END;
 END MODULE;
 
@@ -77,7 +80,7 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingReponse
 		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Response  Received  From DWH Provider================') INTO rc;
 		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','Response Message:'|| resMsg) INTO rc;
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.id,resMsg,'Application Request',ApplicationLabel,BrokerName,' ',' ',' ',outRefer);
+		CALL DBLogging(Environment.Variables.id,resMsg,'Application Response',ApplicationLabel,BrokerName,' ',' ',' ',outRefer);
 		--CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
