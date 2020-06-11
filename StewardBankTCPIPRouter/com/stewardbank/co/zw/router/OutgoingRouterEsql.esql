@@ -29,7 +29,14 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		DECLARE logRef REFERENCE TO InputRoot.DFDL.ISO8583_1987.PrimaryAccountNumber_002;
+		DECLARE jsonRef REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
+		CALL JSONLogMessage(logRef,jsonRef);
+		SET Environment.Variables.resMsg = getPayLoad('JSON',jsonRef,encodeRef,ccidRef);
+		SET OutputRoot.JSON = NULL;
+		--SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
 		SET Environment.Variables.Id = COALESCE(tcpipDetails.Id,InputRoot.MQRFH2.usr.Id,'');
 		DECLARE req CHARACTER;

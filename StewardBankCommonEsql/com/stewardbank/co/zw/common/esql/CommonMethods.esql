@@ -1217,7 +1217,33 @@
  		MOVE outRef NEXTSIBLING;
  	END WHILE;
  END;
-
+ 
+CREATE PROCEDURE JSONLogMessage (IN logRef REFERENCE, IN outRef REFERENCE )
+ BEGIN
+ 	DECLARE CurrentFieldName,CurrentFieldValue CHAR;
+ 	WHILE LASTMOVE(logRef) DO
+ 		SET CurrentFieldName = FIELDNAME(logRef);
+ 		SET CurrentFieldValue = FIELDVALUE(logRef);
+ 		IF CONTAINS(CurrentFieldName,'127') THEN
+ 			IF CONTAINS(CurrentFieldName,'127_') AND NOT CONTAINS(CurrentFieldName, '127_25') THEN
+ 				CREATE LASTCHILD OF outRef.ISO8583_1987 NAME CurrentFieldName VALUE CurrentFieldValue;
+ 			ELSEIF CONTAINS(CurrentFieldName, '127_25') AND LENGTH(SUBSTRING(CurrentFieldName AFTER '_')) < 7 THEN
+ 				CREATE LASTCHILD OF outRef.ISO8583_1987 NAME CurrentFieldName VALUE CurrentFieldValue;
+ 			ELSEIF CONTAINS(CurrentFieldName, '127_25_') THEN
+ 				CREATE LASTCHILD OF outRef.ISO8583_1987 NAME CurrentFieldName VALUE CurrentFieldValue;
+ 			ELSE
+ 				CREATE LASTCHILD OF outRef.ISO8583_1987 NAME CurrentFieldName VALUE CurrentFieldValue;
+ 			END IF;
+ 		ELSE
+ 			IF CAST(SUBSTRING(CurrentFieldName AFTER '_') AS INT) < 65 AND SUBSTRING(CurrentFieldName AFTER '_') <> '' THEN
+ 				CREATE LASTCHILD OF outRef.ISO8583_1987 NAME CurrentFieldName VALUE CurrentFieldValue;
+ 			ELSEIF CAST(SUBSTRING(CurrentFieldName AFTER '_') AS INT) > 64 AND SUBSTRING(CurrentFieldName AFTER '_') <> '' THEN
+				CREATE LASTCHILD OF outRef.ISO8583_1987 NAME CurrentFieldName VALUE CurrentFieldValue;
+ 			END IF;
+ 		END IF;
+ 		MOVE logRef NEXTSIBLING;
+ 	END WHILE;
+ END;	
 
  CREATE PROCEDURE ISOToJSONMapping (IN inputRef REFERENCE, IN outRef REFERENCE )
  BEGIN
@@ -1299,7 +1325,7 @@
 
 
 
- CREATE PROCEDURE JSONToISOMapping(IN inputRef REFERENCE,IN tcpRef REFERENCE,IN outRef REFERENCE)
+ CREATE PROCEDURE JSONToISOMapping(IN inputRef REFERENCE,IN outRef REFERENCE)
  BEGIN
  	DECLARE fieldRef REFERENCE TO inputRef.field.Item[1];
  	DECLARE fieldId CHARACTER;
