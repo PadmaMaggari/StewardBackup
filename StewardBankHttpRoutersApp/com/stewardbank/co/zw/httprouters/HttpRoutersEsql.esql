@@ -118,7 +118,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','======HTTP RequestIdentifier====='|| CAST(Environment.MQRFH2.usr.RequestIdentifier AS CHARACTER)) INTO rc ; 
 		END IF;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.usr.RequestIdentifier AS BLOB);
+		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 	END;
 END MODULE;
 

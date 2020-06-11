@@ -85,6 +85,11 @@ CREATE COMPUTE MODULE csv_Compute
 		SET outRef.MTI_MessageClass='2';
 		SET outRef.MTI_MessageFunction='0';
 		SET outRef.MTI_MessageOrigin='0';
+		IF Env.FileNameCheck LIKE 'PM' THEN
+		SET outRef.ProcessingCode_003 = '410000';	
+			ELSE
+		SET outRef.ProcessingCode_003 = '420000'; 
+		END IF; 
 		SET outRef.AmountTransaction_004 = inRef.AMOUNT; --4
 		SET outRef.TransmissionDatetime_007 = inRef.DEBIT_DATE||debitDate; -- CSV Field 7
 		SET outRef.TimeLocalTransaction_012 = CREDIT_DATE; -- CSV Field 8
@@ -95,7 +100,7 @@ CREATE COMPUTE MODULE csv_Compute
 		SET outRef.CurrencyCodeTransaction_049 = inRef.CURRENNCY; -- CSV Field 3
 		SET outRef.AccountIdentification1_102 = inRef.CREDIT_ACCOUNT; -- CSV Field 5
 		SET outRef.AccountIdentification2_103 = inRef.DEBIT_ACCOUNT; -- CSV Field 2
-		SET outRef.TransactionDescription_104 = inRef.TRANSACTION_TYPE; -- CSV Field 1
+		SET outRef.TransactionDescription_104 = inRef.TRANSACTION_TYPE; -- CSV Field 1 
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		--get account details from db lookup
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
@@ -207,18 +212,16 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 			WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN
 				---Success Case---
 				IF Env.FileNameCheck LIKE 'PO' THEN
-					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,Env.msg,
-					-- inDomainDataRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					-- '','','SUCCESS','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
-
-					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM = inRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),
-					PAYNET_RRN_REF = inRef.RetrievalReferenceNumber_037, PAYNET_ISO_RESPONSE_CODE = inRef.ResponseCode_039, PAYNET_ZSS_STATUS = 'SUCCESS', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;
+--					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM = inRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),
+--					PAYNET_RRN_REF = inRef.RetrievalReferenceNumber_037, PAYNET_ISO_RESPONSE_CODE = inRef.ResponseCode_039, PAYNET_ZSS_STATUS = 'SUCCESS', PAYNET_T24_STATUS = '', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;
+					
+					
+					CALL UpdateDBStatus(Env.UID,inRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),inRef.RetrievalReferenceNumber_037,inRef.ResponseCode_039,'SUCCESS','','TRUE'); 
 				ELSE
-					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,Env.msg,
-					-- inDomainDataRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					-- '','','SUCCESS','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
-					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM = inRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),
-					PAYNET_RRN_REF = inRef.RetrievalReferenceNumber_037, PAYNET_ISO_RESPONSE_CODE = inRef.ResponseCode_039, PAYNET_ZSS_STATUS = 'SUCCESS', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID;
+--					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM = inRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),
+--					PAYNET_RRN_REF = inRef.RetrievalReferenceNumber_037, PAYNET_ISO_RESPONSE_CODE = inRef.ResponseCode_039, PAYNET_ZSS_STATUS = 'SUCCESS', PAYNET_T24_STATUS = '', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID;
+					
+					CALL UpdateDBStatus(Env.UID,inRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),inRef.RetrievalReferenceNumber_037,inRef.ResponseCode_039,'SUCCESS','','FALSE'); 
 				END IF;
 				---DB Logging---
 				IF IsLogRequired LIKE 'Y' THEN
@@ -238,16 +241,16 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 				PROPAGATE TO TERMINAL 'out';
 			ELSE
 				---Failure Case---
-				IF Env.FileNameCheck LIKE 'PO' THEN
-					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','',Env.msg,'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					-- '','','FAILURE','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
-					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET
-					PAYNET_ZSS_STATUS = 'FAILURE', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;
-				ELSE
-					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','',Env.msg,'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					-- '','','FAILURE','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
-					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET
-					PAYNET_ZSS_STATUS = 'FAILURE', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID;
+				IF Env.FileNameCheck LIKE 'PO' THEN			
+--					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM ='',PAYNET_STANDATE = '',
+--					PAYNET_RRN_REF ='', PAYNET_ISO_RESPONSE_CODE ='', PAYNET_ZSS_STATUS = 'FAILURE', PAYNET_T24_STATUS = '', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID; 
+					
+					CALL UpdateDBStatus(Env.UID,'','','','','FAILURE','','TRUE');  
+						 			
+				ELSE 					
+--					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM ='',PAYNET_STANDATE = '',
+--					PAYNET_RRN_REF ='', PAYNET_ISO_RESPONSE_CODE ='', PAYNET_ZSS_STATUS = 'FAILURE', PAYNET_T24_STATUS = '', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID; 
+					CALL UpdateDBStatus(Env.UID,'','','','','FAILURE','','FALSE');
 				END IF;
 				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 				---Error DB Logging---
@@ -279,15 +282,18 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 			WHEN InputRoot.DFDL.ISO8583_1987.ResponseCode_039 LIKE '00' THEN
 				---Success Case---
 				IF Env.FileNameCheck LIKE 'PO' THEN
-					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,'',outRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					-- Env.msg,'','','SUCCESS','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
-					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM = inRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),
-					PAYNET_RRN_REF = inRef.RetrievalReferenceNumber_037, PAYNET_ISO_RESPONSE_CODE = inRef.ResponseCode_039, PAYNET_T24_STATUS = 'SUCCESS', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;
+--					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM = inRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),
+--					PAYNET_RRN_REF = inRef.RetrievalReferenceNumber_037, PAYNET_ISO_RESPONSE_CODE = inRef.ResponseCode_039, PAYNET_ZSS_STATUS ='', PAYNET_T24_STATUS = 'SUCCESS', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;
+--					
+					
+					CALL UpdateDBStatus(Env.UID,inRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),inRef.RetrievalReferenceNumber_037,inRef.ResponseCode_039,'','SUCCESS','TRUE'); 
+					 
 				ELSE
-					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,outRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),outRef.RetrievalReferenceNumber_037,'',outRef.ResponseCode_039,Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					-- Env.msg,'','','SUCCESS','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
-					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM = inRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),
-					PAYNET_RRN_REF = inRef.RetrievalReferenceNumber_037, PAYNET_ISO_RESPONSE_CODE = inRef.ResponseCode_039, PAYNET_T24_STATUS = 'SUCCESS', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID;
+--					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM = inRef.SystemsTraceAuditNumber_011,PAYNET_STANDATE = CAST(Env.CreationDate AS CHARACTER),
+--					PAYNET_RRN_REF = inRef.RetrievalReferenceNumber_037, PAYNET_ISO_RESPONSE_CODE = inRef.ResponseCode_039, PAYNET_ZSS_STATUS ='', PAYNET_T24_STATUS = 'SUCCESS', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID;
+				
+					CALL UpdateDBStatus(Env.UID,inRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),inRef.RetrievalReferenceNumber_037,inRef.ResponseCode_039,'','SUCCESS','FALSE'); 
+					
 				END IF;
 				---DB Logging---
 				IF IsLogRequired LIKE 'Y' THEN
@@ -307,19 +313,19 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 			ELSE
 				---Failure Case---
 				IF Env.FileNameCheck LIKE 'PO' THEN
-					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					-- Env.msg,'','','FAILURE','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
-					--
-					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET
-					PAYNET_T24_STATUS = 'FAILURE', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;
-
+--					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM ='',PAYNET_STANDATE ='',
+--					PAYNET_RRN_REF ='', PAYNET_ISO_RESPONSE_CODE ='', PAYNET_ZSS_STATUS ='', PAYNET_T24_STATUS = 'SUCCESS', PAYNET_TAXABLE = 'TRUE' WHERE I.PAYNET_GUID =Env.UID;
+					 
+					
+					CALL UpdateDBStatus(Env.UID,'','','','','','SUCCESS','TRUE'); 
+					
 				ELSE
-					-- CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-					-- Env.msg,'','','FAILURE','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
-					--
-					UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET
-					PAYNET_T24_STATUS = 'FAILURE', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID;
-
+--						UPDATE Database.ORADSN.SYSTEM.SB_ISAVE_PAYNET_TRX_TRACKING AS I SET PAYNET_STAN_NUM ='',PAYNET_STANDATE ='',
+--					PAYNET_RRN_REF ='', PAYNET_ISO_RESPONSE_CODE ='', PAYNET_ZSS_STATUS ='', PAYNET_T24_STATUS = 'SUCCESS', PAYNET_TAXABLE = 'FALSE' WHERE I.PAYNET_GUID =Env.UID;  
+--					
+					
+					CALL UpdateDBStatus(Env.UID,'','','','','','FAILURE','FALSE');  
+					
 				END IF;
 				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 				---Error DB Logging---
@@ -396,3 +402,9 @@ IN PAYNET_CSV_DTACCOUNT CHARACTER,IN PAYNET_CSV_CRACCOUNT CHARACTER,IN PAYNET_CS
 IN PAYNET_ISO_FT CHARACTER,IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_CSV_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP,IN PAYNET_TAXABLE CHARACTER)
 LANGUAGE DATABASE
 EXTERNAL NAME "INSERT_SB_ISAVE_PAYNET_TRX_TRACKING";
+
+
+CREATE PROCEDURE UpdateDBStatus (IN PAYNET_ID CHARACTER,IN PAYNET_STAN_NUM CHARACTER,IN PAYNET_STANDATE CHARACTER,IN PAYNET_RRN_REF CHARACTER,
+IN PAYNET_ISO_RESPONSE_CODE CHARACTER,IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_TAXABLE CHARACTER)
+LANGUAGE DATABASE
+EXTERNAL NAME "UPDATE_STATUS_SB_ISAVE"; 
