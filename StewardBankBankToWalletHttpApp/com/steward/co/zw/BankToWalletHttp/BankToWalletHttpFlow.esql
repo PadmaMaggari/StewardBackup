@@ -110,7 +110,7 @@ CREATE COMPUTE MODULE BankToWalletHttpFlow_BuildExceptionDetails
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'BTW_HTTP');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
-		SET Environment.MQRFH2.usr.Id = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER);
+		SET Environment.MQRFH2.usr.Id = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER);     
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
 		IF IsLogRequired LIKE 'Y' THEN
