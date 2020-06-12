@@ -348,8 +348,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','T24 Response:: FAILURE') INTO rc;
 				END IF;
 				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
-				PROPAGATE TO TERMINAL 'out';
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName; 
 			END CASE;
 		END IF;
 	END;

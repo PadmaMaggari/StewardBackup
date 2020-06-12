@@ -106,7 +106,7 @@ CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 
 	CREATE PROCEDURE GenerateResToPortalBackend() BEGIN 
 		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2; 
+		SET OutputRoot.MQRFH2.usr = Environment.MQRFH2;   
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
