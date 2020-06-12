@@ -204,7 +204,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_BuildExceptionDetails
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
-		SET Environment.MQRFH2.usr.Id = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER);     
+		SET Environment.MQRFH2.usr.Id = CAST(Environment.MQRFH2.usr.RequestIdentifier AS CHARACTER);      
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc; 
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
@@ -225,7 +225,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_BuildExceptionDetails
 		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.HTTP_RESROUTER);
 		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.HTTP_RESROUTER.ErrorCode;
 		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.HTTP_RESROUTER.ErrorType;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.usr.RequestIdentifier AS BLOB); 
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','End of Logging Application Related Exception') INTO rc;
