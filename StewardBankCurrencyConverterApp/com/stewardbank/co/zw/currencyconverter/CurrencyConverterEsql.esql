@@ -103,7 +103,6 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 		SET Environment.Properties = InputRoot.Properties;
 		SET Environment.MQMD = InputRoot.MQMD;
 		DECLARE resData CHARACTER;
-		-- SET Environment.resData= CAST(ASBITSTREAM(InputRoot.DFDL ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') AS CHARACTER);
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
@@ -126,19 +125,7 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	DECLARE i INT 1;
---		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
---		CREATE LASTCHILD OF OutputRoot AS OutRefer DOMAIN 'JSON';
---		CREATE LASTCHILD OF OutRefer AS OutRefer NAME 'Data';
---		SET OutRefer.statusCode = InputRoot.JSON.Data.statusCode;
---		SET OutRefer.message = InputRoot.JSON.Data.message;
---		CREATE FIELD OutRefer.responseBody.exchangeRatesResponses IDENTITY(JSON.Array)exchangeRatesResponses;
---		DECLARE Inrefer REFERENCE to InputRoot.JSON.Data.responseBody.exchangeRatesResponses.[i];
---		WHILE LASTMOVE(Inrefer) DO
---			SET OutRefer.responseBody.exchangeRatesResponses.[i] =Inrefer;
---			SET i = i + 1;
---			MOVE Inrefer NEXTSIBLING;
---		END WHILE;
+	DECLARE i INT 1; 
 	CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
 		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
@@ -160,8 +147,7 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 			SET OutRefer.statusCode = '000';
 			SET OutRefer.message = 'FAILURE';
 			SET OutRefer.responseBody.source = 'ESB';
-			SET OutRefer.responseBody.applicationName = 'Currency Converter';  
-		
+			SET OutRefer.responseBody.applicationName = 'Currency Converter';  		
 		END IF;
 		SET Environment.jsonData = OutputRoot.JSON.Data; 
 		SET OutputRoot = NULL; 
@@ -218,6 +204,7 @@ CREATE COMPUTE MODULE CurrencyConverter_CaptureException
 		CALL BuildExceptionDetails(excpRef,outRef,'CurrencyConvertor');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		SET Environment.MQRFH2.usr.Id = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER); 
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc; 

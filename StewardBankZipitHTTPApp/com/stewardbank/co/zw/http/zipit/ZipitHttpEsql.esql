@@ -177,6 +177,7 @@ CREATE FUNCTION Main() RETURNS BOOLEAN
 		CALL BuildExceptionDetails(excpRef,outRef,'ZIPIT_HTTP');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		SET Environment.MQRFH2.usr.Id = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);  
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
