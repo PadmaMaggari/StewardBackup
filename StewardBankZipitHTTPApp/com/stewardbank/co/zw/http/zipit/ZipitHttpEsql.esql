@@ -106,7 +106,7 @@ CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 
 	CREATE PROCEDURE GenerateResToPortalBackend() BEGIN 
 		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2.usr = Environment.MQRFH2;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2; 
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
@@ -130,13 +130,13 @@ CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 			SET outRef.statusCode = '200';
 			SET outRef.message = 'SUCCESS';
 			SET outRef.responseBody.source = 'ESB';
-			SET outRef.responseBody.applicationName = 'IFT_HTTP';
+			SET outRef.responseBody.applicationName = 'ZIPIT_HTTP'; 
 		
-		ELSE
+		ELSE 
 			SET outRef.statusCode = '000';
 			SET outRef.message = 'FAILURE';
 			SET outRef.responseBody.source = 'ESB';
-			SET outRef.responseBody.applicationName = 'IFT_HTTP';
+			SET outRef.responseBody.applicationName = 'ZIPIT_HTTP'; 
 		
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';--Environment.Variables.usr.resQueueName;
