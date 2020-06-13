@@ -35,34 +35,110 @@
             <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
         </layout>
     </appender>
-    <appender name="HTTPRouterLog" class="org.apache.log4j.DailyRollingFileAppender">
+
+ <appender name="MINI_STMT_DEBUG" class="org.apache.log4j.FileAppender">
         <param name="Threshold" value="DEBUG"/>
-		<param name="File" value="/log/esb/interfaces/log4j/log/HTTPRouter.log"/>       
-		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <param name="File" value="/log/esb/interfaces/log4j/log/MINI_STMTDebug.log"/>
         <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
         </layout>
     </appender>
-    <appender name="WToBAppender" class="org.apache.log4j.DailyRollingFileAppender">
+
+<appender name="POSTILION_MSGS" class="org.apache.log4j.FileAppender">
         <param name="Threshold" value="DEBUG"/>
-		<param name="File" value="C:/Documents/Steward/Log/WToB.log"/>       
-		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <param name="File" value="/log/esb/interfaces/log4j/log/POSTILION_MSGS.log"/>
         <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
         </layout>
     </appender>
-    <appender name="BToWAppender" class="org.apache.log4j.DailyRollingFileAppender">
+<appender name="T24SubFlow" class="org.apache.log4j.DailyRollingFileAppender">
         <param name="Threshold" value="DEBUG"/>
-		<param name="File" value="C:/Documents/Steward/Log/BToW.log"/>       
+		<param name="File" value="/log/esb/interfaces/log4j/log/T24SubFlow.log"/>       
 		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
         <layout class="org.apache.log4j.PatternLayout">
             <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
         </layout>
     </appender>
 
-    <logger name="IFTLogger">
+<appender name="BILL_PAYMENTS_DEBUG" class="org.apache.log4j.FileAppender">
+        <param name="Threshold" value="DEBUG"/>
+        <param name="File" value="/log/esb/interfaces/log4j/log/BILL_PAYMENTS.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    </appender>
+
+
+<appender name="AIRTIME_PURCHASES_DEBUG" class="org.apache.log4j.FileAppender">
+        <param name="Threshold" value="DEBUG"/>
+        <param name="File" value="/log/esb/interfaces/log4j/log/AIRTIME_PURCHASES.log"/> 
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    </appender>
+
+ <appender name="ZipitSendLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/ZipitSend.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+        </layout>
+    </appender>
+
+
+
+<appender name="WToBAppender" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/WToBLog.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+
+
+
+
+	<appender name="BToWAppender" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/BToW.log"/>       
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
+        </layout>
+    </appender>
+
+    <logger name="BToWLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="BToWAppender"/>
+    </logger>
+
+
+    <logger name="WToBLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="WToBAppender"/>
+    </logger>
+
+
+	
+	 <logger name="airtimePurchasesDebug">
+	<level value="DEBUG"/>
+	<appender-ref ref="AIRTIME_PURCHASES_DEBUG"/>
+    </logger>
+	
+	 <logger name="billPaymentsDebug">
+	<level value="DEBUG"/>
+	<appender-ref ref="BILL_PAYMENTS_DEBUG"/>
+    </logger>
+   
+<logger name="IFTLogger">
 		<level value="DEBUG"/>
 		<appender-ref ref="IFTLogger"/>
+    </logger>
+<logger name="ZipitSendLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="ZipitSendLogger"/> 
     </logger>
 	<logger name="RTGSOutGoingLogger">
 		<level value="DEBUG"/>
@@ -76,19 +152,84 @@
 		<level value="DEBUG"/>
 		<appender-ref ref="TCPRouterLog"/>
     </logger>
-     <logger name="HttpRouterLogger">
-		<level value="DEBUG"/>
-		<appender-ref ref="HTTPRouterLog"/>
+<logger name="minidebug">
+	<level value="DEBUG"/>
+	<appender-ref ref="MINI_STMT_DEBUG"/>
     </logger>
-    <logger name="WToBLogger">
-		<level value="DEBUG"/>
-		<appender-ref ref="WToBAppender"/>
-    </logger>
-    <logger name="BToWLogger">
-		<level value="DEBUG"/>
-		<appender-ref ref="BToWAppender"/>
-    </logger>
-	
-	
 
+<logger name="PostilionMsgs">
+	<level value="DEBUG"/>
+	<appender-ref ref="POSTILION_MSGS"/>
+    </logger>
+	<logger name="T24SubFlowLogger">
+		<level value="DEBUG"/>
+		<appender-ref ref="T24SubFlow"/>
+    </logger>
+	
+<appender name="BalEnqLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/BalEnq.log"/>           
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+    </appender>
+	
+	<logger name="BalEnqLogger">
+		<level value="DEBUG"/> 
+		<appender-ref ref="BalEnqLogger"/> 
+    </logger>
+<appender name="RemoveHeaderLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/removeHeader.log"/>           
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+</appender>
+	
+<logger name="RemoveHeaderLogger">
+		<level value="DEBUG"/> 
+		<appender-ref ref="RemoveHeaderLogger"/> 
+</logger>
+<appender name="AddHeaderLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/addHeader.log"/>           
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+</appender>
+	
+<logger name="AddHeaderLogger">
+		<level value="DEBUG"/> 
+		<appender-ref ref="AddHeaderLogger"/> 
+</logger>
+<appender name="IFTHTTPLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/IFT_HTTP.log"/>           
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+</appender>
+	
+<logger name="IFTHTTPLogger">
+		<level value="DEBUG"/> 
+		<appender-ref ref="IFTHTTPLogger"/> 
+</logger>
+<appender name="HTTPLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/HTTPRouter.log"/>           
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+</appender>
+	
+<logger name="HTTPLogger">
+		<level value="DEBUG"/> 
+		<appender-ref ref="HTTPLogger"/> 
+</logger>
+	
 </log4j:configuration>
