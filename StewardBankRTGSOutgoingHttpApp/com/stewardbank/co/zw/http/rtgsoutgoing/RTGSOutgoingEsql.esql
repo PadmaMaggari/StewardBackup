@@ -125,7 +125,7 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_reqToFrondEnd
 		--CALL ISOToJSONMapping(inRef,outRef); 
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
-		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
+		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data; 
 		IF inRef.ResponseCode_039 = '00' THEN
 			SET outRef.statusCode = '200';
 			SET outRef.message = 'SUCCESS';
