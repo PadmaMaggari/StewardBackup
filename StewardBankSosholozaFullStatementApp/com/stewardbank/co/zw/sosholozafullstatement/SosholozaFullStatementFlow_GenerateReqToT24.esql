@@ -1,0 +1,239 @@
+BROKER SCHEMA com.stewardbank.co.zw.sosholozafullstatement
+
+PATH  com.stewardbank.co.zw.common.esql; 
+
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';	
+DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE IsLogRequired EXTERNAL CHARACTER'';
+DECLARE URL EXTERNAL CHARACTER'';
+CREATE COMPUTE MODULE SosholozaFullStatementFlow_GenerateReqToT24
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL GenerateReqToT24();
+		RETURN FALSE;
+	END;
+
+	
+
+	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		SET Environment.MQRFH2= InputRoot.MQRFH2;
+		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE DBDetails ROW;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inRef REFERENCE TO InputRoot;
+		DECLARE col CHARACTER ':';
+		DECLARE comm CHARACTER ',';
+		DECLARE channel CHARACTER 'Channel';
+		DECLARE destinationPhone CHARACTER 'DestinationPhone';
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
+		-- SET DBLogging Properties ==============
+		SET Environment.reqMsg = reqMsg;
+		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		-- =================== CALLING DB RAW AUDIT LOGGING ==============
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+			END IF; 
+			
+			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+			/* =================== CALLING LOG4J LOGGING  ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		SET Environment.data = InputRoot.JSON.Data;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'FullStatementHTTPLogger', 'DEBUG','..............Start FullStatementHTTPApp logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'FullStatementHTTPLogger', 'DEBUG','Incoming Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'FullStatementHTTPLogger', 'DEBUG',reqMsg) INTO rc;
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'FullStatementHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'FullStatementHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid)) INTO rc;
+		END IF;
+		
+		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'T24  Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF; 
+		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON.Data = Environment.data;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
+		PROPAGATE TO TERMINAL 'out';
+	END;
+END MODULE;
+CREATE COMPUTE MODULE SosholozaFullStatementFlow_ReqToFrondEnd
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL ReqToFrondEnd();
+		RETURN TRUE;
+	END;
+
+	
+
+	CREATE PROCEDURE ReqToFrondEnd() BEGIN
+		SET Environment.Properties = InputRoot.Properties;
+		-- SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+	 	DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+	 	DECLARE inRef1 REFERENCE TO InputRoot.JSON.Data.body;
+	 	DECLARE inDomain CHARACTER FIELDNAME(InputBody);
+	 	DECLARE i INTEGER 0;
+	 	DECLARE outRefer REFERENCE TO OutputRoot;
+	 	DECLARE inDomainDataRef REFERENCE TO InputRoot.JSON.Data;
+	 	DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		DECLARE rc BOOLEAN FALSE;
+		
+		/* =================== CALLING  LOG4J LOGGING   ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+			
+			CALL writeToLogFile(MessageFlowLabel, 'FullStatementHTTPLogger', 'DEBUG','Response from Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'FullStatementHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid)) INTO rc;
+		END IF;
+		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
+		/* =================== CALLING DB LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid),'T24  Responce',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
+		END IF; 
+		/* =================== CALLING DB LOGGING ENDING  ==============*/
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		DECLARE outRef REFERENCE  TO OutputRoot.JSON.Data;
+		
+		
+		
+		
+		IF inDomain LIKE 'JSON' OR inDomain LIKE 'XMLNSC'OR responceCode LIKE  '200' THEN
+			SET outRef.statusCode = '200';
+			SET outRef.message = 'SUCCESS';
+			SET outRef.responseBody.source = 'ESB';
+			SET outRef.responseBody.applicationName = 'FULL_STATEMENT_HTTP';
+			CREATE FIELD OutputRoot.JSON.Data.responseBody.body IDENTITY(JSON.Array)body;
+			WHILE LASTMOVE(inRef1) DO
+				SET outRef.responseBody.body = inRef1;
+				SET i=i+1;
+				MOVE inRef1 NEXTSIBLING;
+			END WHILE;
+		
+		ELSE
+			SET outRef.statusCode = '000';
+			SET outRef.message = 'FAILURE';
+			SET outRef.responseBody.source = 'ESB';
+			SET outRef.responseBody.applicationName = 'FULL_STATEMENT_HTTP';
+		
+		END IF;
+		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
+		DECLARE envref REFERENCE TO Environment.JSON.Data;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
+		CREATE LASTCHILD OF envref AS envref NAME 'Data';
+		SET envref = OutRefer;
+		SET OutputRoot = NULL; 
+		/* =================== CALLING DB LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid),'Application Responce',ApplicationLabel,BrokerName,'','','',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
+		END IF; 
+		/* =================== CALLING DB LOGGING ENDING  ==============*/
+		SET OutputRoot.Properties = Environment.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON.Data = envref;
+		
+		
+		
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';--Environment.Variables.usr.resQueueName;
+		/* =================== CALLING LOG4J LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
+			CALL writeToLogFile(MessageFlowLabel, 'FullStatementHTTPLogger', 'DEBUG','Response To Outgoing Router::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'FullStatementHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.JSON),outDomainDataRef,encodeRef,ccsid)) INTO rc;
+		END IF;
+		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+	END;
+END MODULE;
+CREATE COMPUTE MODULE SosholozaFullStatementFlow_BuildExceptionDetails
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL BuildErrorMsg();
+		RETURN TRUE;
+	END;
+
+	
+
+	CREATE PROCEDURE BuildErrorMsg() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;     
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'FULL_STATEMENT_HTTP';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'FULL_STATEMENT_HTTP');
+		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
+		/* =================== CALLING LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+		/* =================== CALLING DB LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.FULL_STATEMENT_HTTP.ErrorCode,outRefer);
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
+		/* =================== CALLING DB LOGGING ENDING  ==============*/
+		----------------------------------
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		DECLARE outJsonRef REFERENCE TO OutputRoot.JSON.Data;
+		SET outJsonRef.statusCode = '000';
+		SET outJsonRef.message = 'FAILURE';
+		SET outJsonRef.responseBody.source = 'ESB';
+		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.FULL_STATEMENT_HTTP);
+		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.FULL_STATEMENT_HTTP.ErrorCode;
+		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.FULL_STATEMENT_HTTP.ErrorType;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+		/* =================== CALLING LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','End of Logging Application Related Exception') INTO rc;
+		END IF;
+		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+		PROPAGATE TO TERMINAL 'out1';
+		----------------------------------
+		END;
+END MODULE;

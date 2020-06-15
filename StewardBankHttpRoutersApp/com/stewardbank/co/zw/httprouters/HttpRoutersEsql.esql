@@ -44,6 +44,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Incoming Router Start ==============') INTO rc ;
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','JSON Request: '|| Environment.Variables.reqMsg) INTO rc ;   
 		END IF;   
 		----------DBLogging LOGGING -------------------
@@ -98,6 +99,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		SET OutputRoot.JSON.Data = InputRoot.JSON.Data;
 		CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============Business QUEUENAME=============='' '||QueueName||'') INTO rc ;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName; 
+		CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Incoming Router End ==============') INTO rc ;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 	/*Retrieve application related queues from database or cache*/
@@ -150,6 +152,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Outgoing Router Start ==============') INTO rc ;
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','JSON Response: '|| Environment.Variables.reqMsg) INTO rc ; 
 		END IF;
 		----------- DBLogging Properties ==============
@@ -163,6 +166,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','======HTTP RequestIdentifier====='|| CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER)) INTO rc ; 
 		END IF;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+		CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Outgoing Router End ==============') INTO rc ;
 	END;
 END MODULE;
 
