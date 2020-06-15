@@ -133,9 +133,9 @@ CREATE COMPUTE MODULE BankToWalletHttpFlow_BuildExceptionDetails
 		SET outJsonRef.statusCode = '000';
 		SET outJsonRef.message = 'FAILURE';
 		SET outJsonRef.responseBody.source = 'ESB';
-		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.IFT_HTTP);
-		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.IFT_HTTP.ErrorCode;
-		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.IFT_HTTP.ErrorType;
+		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.BTW_HTTP);
+		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.BTW_HTTP.ErrorCode;
+		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.BTW_HTTP.ErrorType;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Front End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
@@ -210,7 +210,7 @@ CREATE COMPUTE MODULE BankToWalletHttpFlow_reqToFrondEnd
 			SET outRef.responseBody.applicationName = 'BTW_HTTP';
 		
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';--Environment.Variables.usr.resQueueName;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 		IF IsLogRequired LIKE 'Y' THEN
 			DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
 			CALL writeToLogFile(MessageFlowLabel, 'BTWHTTPLogger', 'DEBUG','Response To Outgoing Router::') INTO rc;
