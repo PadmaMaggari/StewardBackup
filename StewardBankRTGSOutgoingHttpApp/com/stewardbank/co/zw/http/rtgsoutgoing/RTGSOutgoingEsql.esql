@@ -1,4 +1,4 @@
-BROKER SCHEMA com.stewardbank.co.zw.http.zipit
+BROKER SCHEMA com.stewardbank.co.zw.http.rtgsoutgoing
 
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -7,7 +7,7 @@ DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER''; 
-CREATE COMPUTE MODULE ZipitHttpFlow_GenerateIsoReq
+CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_GenerateIsoReq
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GenerateIsoReq();
@@ -39,9 +39,9 @@ CREATE COMPUTE MODULE ZipitHttpFlow_GenerateIsoReq
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','..............Start ZIPITHTTPAPP logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','Incoming Request::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','..............Start ZIPITHTTPAPP logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','Incoming Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		---JSON TO ISO
 		--CALL JSONToISOMapping(inRef,,outRef);
@@ -65,15 +65,15 @@ CREATE COMPUTE MODULE ZipitHttpFlow_GenerateIsoReq
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc; 
-			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid)) INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid)) INTO rc; 
 		END IF;
 	END;
 END MODULE;
 
 
 
-CREATE COMPUTE MODULE ZipitHttpFlow_ReqToT24
+CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GenerateReqToT24();
@@ -85,7 +85,7 @@ CREATE COMPUTE MODULE ZipitHttpFlow_ReqToT24
 	
 	END MODULE; 
 	
-CREATE COMPUTE MODULE ZipitHttpFlow_ReqToPostilion
+CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToPostilion
 CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL reqToPostilion();
@@ -97,7 +97,7 @@ CREATE FUNCTION Main() RETURNS BOOLEAN
 	
 END MODULE;	
 	
-CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd 
+CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_reqToFrondEnd 
 	CREATE FUNCTION Main() RETURNS BOOLEAN 
 	BEGIN
 		CALL GenerateResToPortalBackend();
@@ -118,8 +118,8 @@ CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
 			DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
-			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','Response from Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','Response from Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid)) INTO rc; 
 		END IF;
 		--ISO to JSON mapping
 		--CALL ISOToJSONMapping(inRef,outRef); 
@@ -130,27 +130,27 @@ CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 			SET outRef.statusCode = '200';
 			SET outRef.message = 'SUCCESS';
 			SET outRef.responseBody.source = 'ESB';
-			SET outRef.responseBody.applicationName = 'ZIPIT_HTTP';  	
+			SET outRef.responseBody.applicationName = 'RTGSOutgoingHTTP';  	
 		ELSE 
 			SET outRef.statusCode = '000';
 			SET outRef.message = 'FAILURE';
 			SET outRef.responseBody.source = 'ESB';
-			SET outRef.responseBody.applicationName = 'ZIPIT_HTTP'; 
+			SET outRef.responseBody.applicationName = 'RTGSOutgoingHTTP';  
 		
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';--Environment.Variables.usr.resQueueName;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;--Environment.Variables.usr.resQueueName;
 		IF IsLogRequired LIKE 'Y' THEN
-			DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
-			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','Response To Outgoing Router::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.JSON),outDomainDataRef,encodeRef,ccsid)) INTO rc;
+			DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data; 
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','Response To Outgoing Router::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.JSON),outDomainDataRef,encodeRef,ccsid)) INTO rc;
 		END IF;
 	END;
-	 
+	  
 END MODULE; 
 
 	
 
-CREATE COMPUTE MODULE ZipitHttpFlow_BuildExceptionDetails
+CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_BuildExceptionDetails 
 CREATE FUNCTION Main() RETURNS BOOLEAN 
 	BEGIN
 		CALL BuildErrorMsg();
@@ -171,9 +171,9 @@ CREATE FUNCTION Main() RETURNS BOOLEAN
 		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;     
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'ZIPIT_HTTP';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'RTGSOutgoingHTTP';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'ZIPIT_HTTP');
+		CALL BuildExceptionDetails(excpRef,outRef,'RTGSOutgoingHTTP');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		SET Environment.Variables.msgID = CAST(Environment.MQRFH2.usr.RequestIdentifier AS CHARACTER );  		
@@ -187,7 +187,7 @@ CREATE FUNCTION Main() RETURNS BOOLEAN
 		PROPAGATE TO TERMINAL 'out';
 		------------Error  Logging in DB----------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Environment.Variables.msgID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ZIPIT_HTTP.ErrorCode,outRefer);
+			CALL Error_DBLogging(Environment.Variables.msgID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.RTGSOutgoingHTTP.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;  
@@ -199,10 +199,10 @@ CREATE FUNCTION Main() RETURNS BOOLEAN
 		SET outJsonRef.statusCode = '000';
 		SET outJsonRef.message = 'FAILURE';
 		SET outJsonRef.responseBody.source = 'ESB';
-		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.ZIPIT_HTTP);
-		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.ZIPIT_HTTP.ErrorCode;
-		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.ZIPIT_HTTP.ErrorType; 
-		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.RTGSOutgoingHTTP);
+		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.RTGSOutgoingHTTP.ErrorCode;
+		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.RTGSOutgoingHTTP.ErrorType; 
+		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB); 
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','End of Logging Application Related Exception') INTO rc;
@@ -212,3 +212,5 @@ CREATE FUNCTION Main() RETURNS BOOLEAN
 		END;
 END MODULE;
  
+
+
