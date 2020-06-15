@@ -1,0 +1,46 @@
+BROKER SCHEMA com.stewardbank.co.zw.currencyconverter
+
+
+CREATE COMPUTE MODULE CurrencyConverterFlow_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+
+	CALL CopyEntireMessage();
+		RETURN TRUE;
+	END;
+
+
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+				CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;  
+		DECLARE OutRefer REFERENCE to OutputRoot.JSON.Data;
+		DECLARE Inrefer REFERENCE to InputRoot.JSON.Data.body;
+		IF inRef.body[>] IS NULL THEN
+			SET OutRefer.statusCode = '200';
+			SET OutRefer.message = 'SUCCESS'; 
+			SET OutRefer.responseBody.source = 'ESB';
+			SET OutRefer.responseBody.applicationName = 'Currency Converter';
+			DECLARE inRefData REFERENCE TO InputRoot.JSON.Data.body.Item; 						
+			DECLARE I INTEGER 1;
+			DECLARE count INTEGER 8;
+			--CREATE LASTCHILD OF OutputRoot.JSON.Data.responseBody IDENTITY(JSON.Array)exchangeRatesResponses;      
+		      --CREATE FIELD OutRefer.responseBody.exchangeRatesResponses IDENTITY(JSON.Array)exchangeRatesResponses;  
+		      CREATE FIELD OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item IDENTITY(JSON.Array)Item;     
+			WHILE I <= count DO 
+				SET OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item[I].currency = InputRoot.JSON.Data.body.Item.currencyId;
+				SET OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item[I].ccyname = InputRoot.JSON.Data.body.Item.displayName;
+				SET OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item[I].buyrate = InputRoot.JSON.Data.body.Item.markets.Item.buyRate;
+				SET OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item[I].sellrate = InputRoot.JSON.Data.body.Item.markets.Item.sellRate;               
+				SET I = I + 1;
+			END WHILE;
+		ELSE
+			SET OutRefer.statusCode = '000';
+			SET OutRefer.message = 'FAILURE';
+			SET OutRefer.responseBody.source = 'ESB';
+			SET OutRefer.responseBody.applicationName = 'Currency Converter';
+		END IF;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName; 
+	END;
+END MODULE;
