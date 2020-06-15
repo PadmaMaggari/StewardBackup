@@ -53,7 +53,7 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateReqToT24
 		SET Environment.Variables.ResponseQ = resQ;
 		SET Environment.Variables.TcpIp.ConnectionId = connId;
 		CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','..............Initializing Withdrawal logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'WarnLogger', 'WARN','..............ISO Message parsed successfully...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'WARN','..............ISO Message parsed successfully...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','Request from Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		--field to field mapping
@@ -88,6 +88,7 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateResToPostilion
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
 		SET Environment.Properties = InputRoot.Properties;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		SET Environment.MQMD = InputRoot.MQMD;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
