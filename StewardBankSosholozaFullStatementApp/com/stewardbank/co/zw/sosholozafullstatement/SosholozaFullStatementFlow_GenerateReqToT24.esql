@@ -30,6 +30,9 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_GenerateReqToT24
 		DECLARE comm CHARACTER ',';
 		DECLARE channel CHARACTER 'Channel';
 		DECLARE destinationPhone CHARACTER 'DestinationPhone';
+		DECLARE accNo CHARACTER InputRoot.JSON.Data.fromAccount;
+		DECLARE fromDate CHARACTER InputRoot.JSON.Data.fromDate;
+		DECLARE toDate CHARACTER InputRoot.JSON.Data.toDate;
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
@@ -70,7 +73,7 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_GenerateReqToT24
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data = Environment.data;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||accNo||'/'||fromDate||'/'||toDate;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
