@@ -1,0 +1,138 @@
+BROKER SCHEMA com.stewardbank.co.zw.loanenginenotification
+path com.stewardbank.co.zw.common.esql;
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ExceptionQ,DSN EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE IsWToBLoggerRequired EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE Url EXTERNAL CHARACTER '';
+CREATE COMPUTE MODULE LoanEngineNotificationFlow_GeneratingRequest
+CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 
+		 CALL GenerateRequest();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateRequest() BEGIN
+		SET Environment.MQRFH2= InputRoot.MQRFH2;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		
+		--SET  Environment.Variables.id = CAST(InputLocalEnvironment.Destination.HTTP.RequestIdentifier AS CHARACTER);
+--		DECLARE intime CHARACTER CAST(InputRoot.Properties.CreationTime AS CHARACTER);
+--		SET Environment.Variables.Date = SUBSTRING(intime FROM 1 FOR 10);
+--		--SET Environment.reqMsg = CAST(InputRoot.JSON AS CHARACTER);
+		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,' ',' ',' ',outRefer);
+		--CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		SET Environment.dbLog = OutputRoot.XMLNSC;
+		PROPAGATE TO TERMINAL 'out1';
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;	
+		
+		-- ********************Log4j ********************************
+		IF ( rc = FALSE ) THEN  
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+		END IF;
+		
+		CALL writeToLogFile (MessageFlowLabel,'LoanEngineNotification','DEBUG','=================== Request Received ================') INTO rc;
+--			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
+			CALL writeToLogFile (MessageFlowLabel,'LoanEngineNotification','DEBUG',Environment.reqMsg) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'LoanEngineNotification','DEBUG','=================== Request End ================') INTO rc;
+		SET OutputRoot.Properties = InputRoot.Properties; 
+		SET OutputRoot = InputRoot;
+		SET  OutputLocalEnvironment.Destination.HTTP.RequestURL = Url;
+		CALL writeToLogFile (MessageFlowLabel,'LoanEngineNotification','DEBUG','=================== Request to T24================') INTO rc;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE LoanEngineNotificationFlow_GeneratingReponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		 CALL GeneratingResponse();
+		RETURN FALSE;
+	END;
+
+	
+
+	CREATE PROCEDURE GeneratingResponse() BEGIN
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE resMsg CHARACTER ;
+		SET resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;	
+		-- ********************Log4j ********************************
+		IF ( rc = FALSE ) THEN  
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		
+		CALL writeToLogFile (MessageFlowLabel,'LoanEngineNotification','DEBUG','=================== Response  Received  From T24================') INTO rc;
+		CALL writeToLogFile (MessageFlowLabel,'LoanEngineNotification','DEBUG','Response Message:'|| resMsg) INTO rc;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,resMsg,'Application Response',ApplicationLabel,BrokerName,' ',' ',' ',outRefer);
+		--CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		SET Environment.dbLog = OutputRoot.XMLNSC;
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON.Data = InputRoot.JSON.Data;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
+		CALL writeToLogFile (MessageFlowLabel,'LoanEngineNotification','DEBUG','=================== Response  to HTTPResponseRouter================') INTO rc;
+		PROPAGATE TO TERMINAL 'out';
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE LoanEngineNotificationFlow_BuildExceptionDetails
+	
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL BuildExceptionResponse();
+		RETURN FALSE;
+	END;
+
+	CREATE PROCEDURE BuildExceptionResponse() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'LoanEngineNotification';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'LoanEngineNotification');
+		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ;
+		PROPAGATE TO TERMINAL 'out';
+		------------Error  Logging in DB----------
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,' ',' ',' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LoanEngineNotification.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		----------------------------------
+	END;
+	END MODULE;
