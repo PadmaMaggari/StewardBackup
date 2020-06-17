@@ -176,7 +176,7 @@ CREATE FUNCTION Main() RETURNS BOOLEAN
 		CALL BuildExceptionDetails(excpRef,outRef,'ZIPIT_HTTP');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-		SET Environment.Variables.msgID = CAST(Environment.MQRFH2.usr.RequestIdentifier AS CHARACTER );  		
+		SET Environment.Variables.msgID = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER );   		
 		SET Environment.MQRFH2.usr.Id = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER);     
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
 		IF IsLogRequired LIKE 'Y' THEN
