@@ -157,7 +157,7 @@ CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Environment.Variables.msgID,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Response to Front End',ApplicationLabel,BrokerName,  
 			'','','',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME; 
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;  
 		PROPAGATE TO TERMINAL 'out'; 
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
