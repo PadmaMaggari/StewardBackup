@@ -29,7 +29,7 @@ CREATE COMPUTE MODULE RTGSOutgoingHttp_GenerateIsoReq
 		DECLARE destinationPhone CHARACTER 'DestinationPhone';
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
-		SET Environment.reqMsg = reqMsg;
+		SET Environment.Variables.reqMsg = reqMsg;
 		SET Environment.Variables.msgID=InputRoot.MQRFH2.RequestIdentifier; 
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============

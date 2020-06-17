@@ -27,7 +27,7 @@ CREATE COMPUTE MODULE ZipitHttpFlow_GenerateIsoReq
 		DECLARE destinationPhone CHARACTER 'DestinationPhone';
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
-		SET Environment.reqMsg = reqMsg;
+		SET Environment.Variables.reqMsg = reqMsg;  
 		SET Environment.Variables.msgID=InputRoot.MQRFH2.RequestIdentifier;  
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
@@ -177,9 +177,9 @@ CREATE FUNCTION Main() RETURNS BOOLEAN
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		SET Environment.Variables.msgID = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER );   		
-		SET Environment.MQRFH2.usr.Id = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER);     
+		--SET Environment.Variables.reqMsg = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER);     
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
-		IF IsLogRequired LIKE 'Y' THEN
+		IF IsLogRequired LIKE 'Y' THEN 
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
