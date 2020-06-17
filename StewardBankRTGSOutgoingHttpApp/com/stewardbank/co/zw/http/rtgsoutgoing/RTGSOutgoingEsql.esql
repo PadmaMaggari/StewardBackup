@@ -2,17 +2,19 @@ BROKER SCHEMA com.stewardbank.co.zw.http.rtgsoutgoing
 
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
-DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';	
 DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
-DECLARE IsLogRequired EXTERNAL CHARACTER''; 
-CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_GenerateIsoReq
+DECLARE IsLogRequired EXTERNAL CHARACTER'';
+
+CREATE COMPUTE MODULE RTGSOutgoingHttp_GenerateIsoReq 
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GenerateIsoReq();
 		RETURN TRUE;
 	END;
+
 	CREATE PROCEDURE GenerateIsoReq() BEGIN
 		SET Environment.MQRFH2= InputRoot.MQRFH2;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
@@ -28,23 +30,23 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_GenerateIsoReq
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
-		SET Environment.Variables.msgID=InputRoot.MQRFH2.RequestIdentifier;  
+		SET Environment.Variables.msgID=InputRoot.MQRFH2.RequestIdentifier; 
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		CALL DBLogging(Environment.Variables.msgID,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer); 
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME; 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;  			
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','..............Start ZIPITHTTPAPP logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','Incoming Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','..............Start RTGSOutgoing logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','Incoming Request::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		---JSON TO ISO
-		--CALL JSONToISOMapping(inRef,,outRef);
+		--CALL JSONToISOMapping(inRef,,outRef);  
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
@@ -58,18 +60,18 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_GenerateIsoReq
 		SET outRef.MTI_MessageOrigin = 0;
 		SET outRef.ProcessingCode_003 = CAST(inRef.JSON.Data.proccessingCode AS INTEGER);
 		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.amount AS INTEGER);
-		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.debitAccountNumber AS INTEGER);
-		SET outRef.AccountIdentification2_103 = CAST(inRef.JSON.Data.accountIdentification2 AS INTEGER);
-		SET outRef.ReservedPrivate_127 = '000000';
+		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.fromAccount AS INTEGER); 
+		SET outRef.AccountIdentification2_103 = CAST(inRef.JSON.Data.destinationAccount AS INTEGER); 
+		SET outRef.ReservedPrivate_127 = '000000'; 
 		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.destinationPhone;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
-		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc; 
-			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid)) INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid)) INTO rc;
 		END IF;
 	END;
-END MODULE;
+END MODULE; 
 
 
 
