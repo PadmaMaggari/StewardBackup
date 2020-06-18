@@ -118,7 +118,7 @@ SET Environment.MQRFH2= InputRoot.MQRFH2;
 		SET outRef.ProcessingCode_003 = CAST(inRef.JSON.Data.proccessingCode AS INTEGER);
 		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.fromAccount AS INTEGER);
 		SET outRef.ReservedPrivate_127 = '000000';
-		SET outRef.StructuredDataPostilionPrivate_127_22 = inRef.JSON.Data.msisdn;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = inRef.JSON.Data.msisdn;     
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);        
