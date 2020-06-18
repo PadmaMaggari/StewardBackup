@@ -83,7 +83,7 @@ SET Environment.MQRFH2= InputRoot.MQRFH2;
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);        
 		SET Environment.dfdlData = OutputRoot.DFDL;
-		SET OutputRoot.DFDL = NULL;
+		SET OutputRoot.DFDL = NULL;      
 		/*=================== CALLING LOG4J LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'IFTHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc;
