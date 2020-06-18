@@ -1,7 +1,3 @@
-
-
-
-
 BROKER SCHEMA com.stewardbank.co.zw.currencyconverter
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -20,6 +16,8 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -39,7 +37,7 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
 		SET Environment.MQRFH2.usr.Id = InputRoot.MQRFH2.RequestIdentifier;
 		--------------DBLogging-------------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,
+			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),
 			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -60,10 +58,10 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
 		SET Environment.Variables.ResponseQ = resQ;
 		SET Environment.Variables.HttpIp.ConnectionId = connId;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','..............Initializing CurrencyConvertor logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','Request from Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','..............Initializing CurrencyConverter logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','Request from Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		----------------------------------------------------------------
 		SET outRef = inRef;
@@ -71,8 +69,8 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
 		SET OutputRoot = NULL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,
-			Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),
+			CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
@@ -82,9 +80,9 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
 		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
 		MOVE outRef TO OutputRoot.JSON;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','Request To T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','Request To T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
 	END;
@@ -103,6 +101,8 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		SET Environment.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET Environment.MQMD = InputRoot.MQMD;
@@ -118,24 +118,24 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 		SET OutputRoot = NULL;
 		---------DBLogging------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.resData,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction
-			,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,OutRef);
+			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.resData,'T24 Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),
+			CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',OutRef);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','T24 Response::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','T24 Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
 		DECLARE OutRefer REFERENCE to OutputRoot.JSON.Data;
-		DECLARE Inrefer REFERENCE to InputRoot.JSON.Data.body; 
-		IF domainName LIKE 'JSON' THEN 
+		DECLARE Inrefer REFERENCE to InputRoot.JSON.Data.body;
+		IF domainName LIKE 'JSON' THEN
 			SET OutRefer.statusCode = '200';
 			SET OutRefer.message = 'SUCCESS';
 			SET OutRefer.responseBody.source = 'ESB';
@@ -179,10 +179,10 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 		CREATE LASTCHILD OF envref AS envref NAME 'Data';
 		SET envref = OutRefer;
 		SET OutputRoot = NULL;
-		----- Database Logging ------------ 
+		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(FIELDNAME(InputBody),envref,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,
-			Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,OutRef);
+			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(FIELDNAME(InputBody),envref,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,
+			CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',OutRef);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 
@@ -195,9 +195,9 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
 		SET OutputRoot.JSON.Data=envref;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','CurrencyConvertor Response To Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG',Environment.jsonData) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConvertorLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','CurrencyConvertor Response To Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',Environment.jsonData) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 	END;
@@ -223,12 +223,14 @@ CREATE COMPUTE MODULE CurrencyConverter_CaptureException
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'CurrencyConvertor';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'CurrencyConverter';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'CurrencyConvertor');
+		CALL BuildExceptionDetails(excpRef,outRef,'CurrencyConverter');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		SET Environment.MQRFH2.usr.Id = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER);
@@ -241,7 +243,8 @@ CREATE COMPUTE MODULE CurrencyConverter_CaptureException
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.CurrencyConvertor.ErrorCode,outRefer);
+			CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),
+			CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.CurrencyConverter.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;

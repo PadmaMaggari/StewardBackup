@@ -1,5 +1,4 @@
 
-
 BROKER SCHEMA com.stewardbank.co.zw.http.rtgsoutgoing
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -186,7 +185,7 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_reqToFrondEnd
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
@@ -289,7 +288,7 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_BuildExceptionDetails
 			,CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.RTGSOutgoing_HTTP.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
-		/*=================== CALLING ERROR DB RAW AUDIT LOGGING END ==============*/ 
+		/*=================== CALLING ERROR DB RAW AUDIT LOGGING END ==============*/
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
