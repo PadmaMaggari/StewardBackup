@@ -27,7 +27,7 @@ CREATE COMPUTE MODULE iftHttp_GenerateIsoReq
 	END;
 
 	CREATE PROCEDURE GenerateIsoReq() BEGIN
-		SET Environment.MQRFH2= InputRoot.MQRFH2;
+SET Environment.MQRFH2= InputRoot.MQRFH2;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE DBDetails ROW;
@@ -38,15 +38,20 @@ CREATE COMPUTE MODULE iftHttp_GenerateIsoReq
 		DECLARE comm CHARACTER ',';
 		DECLARE channel CHARACTER 'Channel';
 		DECLARE destinationPhone CHARACTER 'DestinationPhone';
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
-		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.usr.Id,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer); 
+		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
+		/*=================== CALLING LOG4j  LOGGING   ==============*/
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
@@ -56,8 +61,7 @@ CREATE COMPUTE MODULE iftHttp_GenerateIsoReq
 			CALL writeToLogFile(MessageFlowLabel, 'IFTHTTPLogger', 'DEBUG','Incoming Request::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'IFTHTTPLogger', 'DEBUG',reqMsg) INTO rc;
 		END IF;
-		---JSON TO ISO
-		--CALL JSONToISOMapping(inRef,,outRef);  
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
@@ -77,10 +81,28 @@ CREATE COMPUTE MODULE iftHttp_GenerateIsoReq
 		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.destinationPhone;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
+		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);        
+		SET Environment.dfdlData = OutputRoot.DFDL;
+		SET OutputRoot.DFDL = NULL;
+		/*=================== CALLING LOG4J LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'IFTHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'IFTHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid)) INTO rc;
 		END IF;
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
+		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.DFDL = Environment.dfdlData;
 	END;
 END MODULE;
 CREATE COMPUTE MODULE iftHttp_BuildExceptionDetails
@@ -91,7 +113,7 @@ CREATE COMPUTE MODULE iftHttp_BuildExceptionDetails
 	END;
 
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
-		DECLARE rc BOOLEAN FALSE;
+	DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
@@ -101,6 +123,8 @@ CREATE COMPUTE MODULE iftHttp_BuildExceptionDetails
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;     
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
@@ -109,18 +133,21 @@ CREATE COMPUTE MODULE iftHttp_BuildExceptionDetails
 		CALL BuildExceptionDetails(excpRef,outRef,'IFT_HTTP');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		/*=================== CALLING DB LOG4J LOGGING  ==============*/  
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
-		------------Error  Logging in DB----------
+/*=================== CALLING ERROR DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.IFT_HTTP.ErrorCode,outRefer);
+			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.IFT_HTTP.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
+		/*=================== CALLING ERROR DB RAW AUDIT LOGGING END  ==============*/
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
@@ -134,10 +161,12 @@ CREATE COMPUTE MODULE iftHttp_BuildExceptionDetails
 		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.IFT_HTTP.ErrorCode;
 		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.IFT_HTTP.ErrorType;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+		/*=================== CALLING LOG4J LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','End of Logging Application Related Exception') INTO rc;
 		END IF;
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		PROPAGATE TO TERMINAL 'out1';
 		----------------------------------
 		END;
@@ -173,24 +202,35 @@ CREATE COMPUTE MODULE iftHttpFlow_reqToFrondEnd
 	END;
 
 	CREATE PROCEDURE GenerateResToPortalBackend() BEGIN 
-		SET OutputRoot.Properties = InputRoot.Properties;
+	SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
+		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid),'Postilion Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
+		END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
+		/*=================== CALLING LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			
 			CALL writeToLogFile(MessageFlowLabel, 'IFTHTTPLogger', 'DEBUG','Response from Postilion::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'IFTHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid)) INTO rc;
 		END IF;
-		--ISO to JSON mapping
-		--CALL ISOToJSONMapping(inRef,outRef); 
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
@@ -207,12 +247,29 @@ CREATE COMPUTE MODULE iftHttpFlow_reqToFrondEnd
 			SET outRef.responseBody.applicationName = 'IFT_HTTP';
 		
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';--Environment.Variables.usr.resQueueName;
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
+		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.JSON),outDomainDataRef,encodeRef,ccsid);
+		SET Environment.jsonData = OutputRoot.JSON.Data;
+		SET OutputRoot.JSON = NULL;
+		/*=================== CALLING LOG4J LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
 			CALL writeToLogFile(MessageFlowLabel, 'IFTHTTPLogger', 'DEBUG','Response To Outgoing Router::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'IFTHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.JSON),outDomainDataRef,encodeRef,ccsid)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'IFTHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
+		END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON.Data = Environment.jsonData;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';--Environment.Variables.usr.resQueueName;
+		
 	END;
 	
 END MODULE;
