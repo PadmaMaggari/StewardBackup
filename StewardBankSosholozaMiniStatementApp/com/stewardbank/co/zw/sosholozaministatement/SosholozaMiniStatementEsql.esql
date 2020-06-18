@@ -97,6 +97,35 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToT24
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;	
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccsid);
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
+		/*=================== CALLING LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','Request to T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+		END IF;
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		
+		
 		SET OutputRoot = InputRoot;
 	END;
 END MODULE;
@@ -107,6 +136,34 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToPostilion
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE reqToPostilion() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;	
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccsid);
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'T24 Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
+		/*=================== CALLING LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','Response from T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+		END IF;
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		
 		SET OutputRoot = InputRoot;
 	END;
 END MODULE;
