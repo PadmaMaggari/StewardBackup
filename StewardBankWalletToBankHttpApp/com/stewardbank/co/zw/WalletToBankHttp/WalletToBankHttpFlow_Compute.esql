@@ -30,7 +30,6 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateISOReq
 		CALL GenerateIsoReq();
 		RETURN TRUE;
 	END;
-
 	CREATE PROCEDURE GenerateIsoReq() BEGIN
 		SET Environment.MQRFH2= InputRoot.MQRFH2;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
@@ -43,13 +42,15 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateISOReq
 		DECLARE comm CHARACTER ',';
 		DECLARE channel CHARACTER 'Channel';
 		DECLARE destinationPhone CHARACTER 'DestinationPhone';
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer); 
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
@@ -62,7 +63,6 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateISOReq
 			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		--***************JSON TO ISO*****************
-		  
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
@@ -96,6 +96,8 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_BuildExceptionDetails
 	END;
 
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -124,7 +126,7 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_BuildExceptionDetails
 		PROPAGATE TO TERMINAL 'out';
 		------------Error  Logging in DB----------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.WTB_HTTP.ErrorCode,outRefer);
+			CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.WTB_HTTP.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
@@ -156,6 +158,8 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateReqToT24
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL;
@@ -168,7 +172,7 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateReqToT24
 		SET reqMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inRef,encodeRef,ccsid);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,reqMsg,'T24 Request',ApplicationLabel,BrokerName,'','','',outRefer); 
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,reqMsg,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		IF IsLogRequired LIKE 'Y' THEN
@@ -178,8 +182,7 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateReqToT24
 		SET OutputRoot = InputRoot;
 		PROPAGATE TO TERMINAL 'out';
 	END;
-	
-END MODULE;
+	END MODULE;
 CREATE COMPUTE MODULE WalletToBankHttpFlow_reqToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -187,6 +190,8 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_reqToPostilion
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE reqToPostilion() BEGIN
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
 	DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL;
@@ -199,7 +204,7 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_reqToPostilion
 		SET reqMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inRef,encodeRef,ccsid);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,reqMsg,'Request To Postilion',ApplicationLabel,BrokerName,'','','',outRefer); 
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,reqMsg,'Request To Postilion',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		IF IsLogRequired LIKE 'Y' THEN
@@ -216,9 +221,9 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_resToFrondEnd
 		CALL GenerateResToPortalBackend();
 		RETURN FALSE;
 	END;
-
 	CREATE PROCEDURE GenerateResToPortalBackend() BEGIN 
-		
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
@@ -258,7 +263,7 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_resToFrondEnd
 		SET OutputRoot = NULL;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,reqMsg,'Response To Frontend',ApplicationLabel,BrokerName,'','','',outRefer); 
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,reqMsg,'Response To Frontend',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
