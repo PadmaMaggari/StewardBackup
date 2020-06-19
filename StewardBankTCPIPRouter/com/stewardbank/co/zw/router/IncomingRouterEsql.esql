@@ -9,6 +9,7 @@ This TCPIP Router would be triggered whenever Postilion initiate the request to 
 BROKER SCHEMA com.stewardbank.co.zw.router
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE getDBDetailsCache SHARED ROW;
+DECLARE esbPcode SHARED ROW;
 CREATE COMPUTE MODULE IncomingRouterFlow_RouteToInterfaceBasedonProcessingCode
 DECLARE DSN EXTERNAL CHARACTER '';
 DECLARE SCH EXTERNAL CHARACTER '';
@@ -51,6 +52,7 @@ DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 		DECLARE DBDetails ROW;
 		DECLARE QueueName CHARACTER;
 		DECLARE refProcessingCode CHARACTER inRef.ProcessingCode_003;
+		DECLARE channel CHARACTER inRef.RoutingInformationPostilionPrivate_127_3;
 		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Receive.ConnectionDetails;
 		DECLARE procCode,reqMsg CHARACTER InputRoot.DFDL.ISO8583_1987.ProcessingCode_003;
 		SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
@@ -114,6 +116,7 @@ DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 					SET qDetails.values[] = SELECT P.REQ_QUEUE, P.RES_QUEUE FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = NETWORKPROCESSCODE;
 				ELSE
 					SET qDetails.values[] = SELECT P.REQ_QUEUE, P.RES_QUEUE FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData;
+					CALL generateEsbPcode(procCode,channel);
 				END IF;
 				SET QueueName = qDetails.values.REQ_QUEUE;
 				SET OutputRoot.MQRFH2.usr.resQueueName = qDetails.values.RES_QUEUE;
@@ -125,12 +128,14 @@ DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 					SET DBValues.values[] = SELECT T.REQ_QUEUE, T.RES_QUEUE FROM getDBDetailsCache.Values[] AS T WHERE T.PROC_CODE = NETWORKPROCESSCODE;
 				ELSE
 					SET DBValues.values[] = SELECT T.REQ_QUEUE, T.RES_QUEUE FROM getDBDetailsCache.Values[] AS T WHERE T.PROC_CODE = procCodeData;
+					CALL generateEsbPcode(procCode,channel);
 				END IF;
 				SET QueueName = DBValues.values.REQ_QUEUE;
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','============Stored Cache================================='||CAST(getDBDetailsCache.Values AS CHARACTER)) INTO rc ;
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG',DBValues.values.REQ_QUEUE) INTO rc ;
 				SET OutputRoot.MQRFH2.usr.resQueueName = DBValues.values.RES_QUEUE;
 			END IF;
+			SET OutputRoot.MQRFH2.usr.esbPcode = Environment.MQRFH2.usr.esbPcode;
 			SET OutputRoot.DFDL = InputRoot.DFDL;
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','=====================================Business QUEUENAME=================================') INTO rc ;
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG',QueueName) INTO rc ;
@@ -141,12 +146,55 @@ DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 
 	CREATE PROCEDURE STORE_CACHE (IN procCodeData CHARACTER)
 	BEGIN
-		-- A.PROC_CODE, A.REQ_QUEUE, A.RES_QUEUE
-		SET getDBDetailsCache.Values[] = SELECT A.PROC_CODE,A.REQ_QUEUE,A.RES_QUEUE,A.HTTP_REQ,A.HTTP_RES FROM Database.INTEGRATION_SOL_DETAILS AS A; --WHERE A.PROC_CODE = procCodeData;
-		IF getDBDetailsCache.Values IS NOT NULL OR getDBDetailsCache.Values <> '' THEN
-		CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Retrieved values from Database')INTO rc;
+		SET getDBDetailsCache.Values[] = SELECT A.* FROM Database.INTEGRATION_SOL_DETAILS AS A; 
+		IF EXISTS(getDBDetailsCache.Values[]) THEN
+			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Retrieved values from Database')INTO rc;
 		ELSE
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','No Data retrieved from Database')INTO rc;
+		END IF;
+	END;
+	CREATE PROCEDURE generateEsbPcode(IN pcode CHARACTER,IN channel CHARACTER)
+	BEGIN
+			/*get esb processing codes from cache if available else call database to retrive values */
+			IF EXISTS(esbPcode.val[]) THEN 
+				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','===esb pcode values available in shared cache===')INTO rc;	
+				CALL filterPcode(pcode,channel);
+			ELSE
+				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','===esb pcode values not available in shared cache calling db===')INTO rc;
+				CALL getEsbPcode(pcode,channel);
+				CALL filterPcode(pcode,channel);
+			END IF;
+	END;
+	/*get esb processing code by filter processing code based on channel and postilion processing code */
+	CREATE PROCEDURE filterPcode(IN pcode CHARACTER,IN channel CHARACTER)
+	BEGIN
+			SET Environment.Variables.esbPcode.values[] = esbPcode.val[];
+			FOR pcodeRef AS Environment.Variables.esbPcode.values[] DO
+				IF (CONTAINS(channel,pcodeRef.CHANNEL) OR CONTAINS(channel,pcodeRef.CHANNEL2)
+					OR CONTAINS(channel,pcodeRef.CHANNEL3) OR CONTAINS(channel,pcodeRef.CHANNEL4)) AND pcodeRef.POSTILION_PCODE = pcode THEN
+						SET Environment.MQRFH2.usr.esbPcode = pcodeRef.ESB_PCODE;
+						CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','====filtering done successfully====')INTO rc;
+						CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','====ESB processing code===')INTO rc;
+						CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG',Environment.Variables.esbPcode)INTO rc;
+				END IF;
+			END FOR;
+	END;
+	/* get esb processing codes from database and store it in shared variable */
+	CREATE PROCEDURE getEsbPcode(IN pcode CHARACTER,IN channel CHARACTER) 
+	BEGIN
+		IF pcode <> '' AND pcode IS NOT NULL THEN 
+			IF channel <> '' AND channel IS NOT NULL THEN 
+				SET esbPcode.val[] = SELECT A.* FROM Database.SB_ESB_PCODE AS A;
+				IF EXISTS(esbPcode.val[]) THEN
+						CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Retrieved pcode values from Database')INTO rc;
+				ELSE
+					CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','No pcode retrieved from Database')INTO rc;
+				END IF;
+			ELSE
+				CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','channel is null or empty')INTO rc;
+			END IF;
+		ELSE
+			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','processing code is null or empty')INTO rc;
 		END IF;
 	END;
 END MODULE;
