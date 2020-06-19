@@ -16,20 +16,17 @@ CREATE FUNCTION Main() RETURNS BOOLEAN
 	END;
 
 	CREATE PROCEDURE GenerateRequest() BEGIN
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		SET Environment.MQRFH2= InputRoot.MQRFH2;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		
-		--SET  Environment.Variables.id = CAST(InputLocalEnvironment.Destination.HTTP.RequestIdentifier AS CHARACTER);
---		DECLARE intime CHARACTER CAST(InputRoot.Properties.CreationTime AS CHARACTER);
---		SET Environment.Variables.Date = SUBSTRING(intime FROM 1 FOR 10);
---		--SET Environment.reqMsg = CAST(InputRoot.JSON AS CHARACTER);
 		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,' ',' ',' ',outRefer);
-		--CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		--*******DBLOgging ******************
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out1';
@@ -60,10 +57,9 @@ CREATE COMPUTE MODULE LoanEngineNotificationFlow_GeneratingReponse
 		 CALL GeneratingResponse();
 		RETURN FALSE;
 	END;
-
-	
-
 	CREATE PROCEDURE GeneratingResponse() BEGIN
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
@@ -82,7 +78,7 @@ CREATE COMPUTE MODULE LoanEngineNotificationFlow_GeneratingReponse
 		CALL writeToLogFile (MessageFlowLabel,'LoanEngineNotification','DEBUG','=================== Response  Received  From T24================') INTO rc;
 		CALL writeToLogFile (MessageFlowLabel,'LoanEngineNotification','DEBUG','Response Message:'|| resMsg) INTO rc;
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,resMsg,'Application Response',ApplicationLabel,BrokerName,' ',' ',' ',outRefer);
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,resMsg,'Application Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',outRefer);
 		--CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
@@ -95,8 +91,6 @@ CREATE COMPUTE MODULE LoanEngineNotificationFlow_GeneratingReponse
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
-
-
 CREATE COMPUTE MODULE LoanEngineNotificationFlow_BuildExceptionDetails
 	
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -107,6 +101,8 @@ CREATE COMPUTE MODULE LoanEngineNotificationFlow_BuildExceptionDetails
 
 	CREATE PROCEDURE BuildExceptionResponse() BEGIN
 		DECLARE rc BOOLEAN FALSE;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
@@ -129,7 +125,7 @@ CREATE COMPUTE MODULE LoanEngineNotificationFlow_BuildExceptionDetails
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error  Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,' ',' ',' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LoanEngineNotification.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LoanEngineNotification.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';

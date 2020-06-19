@@ -125,16 +125,12 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 			SET outRef.AccountIdentification1_102 = MT50Data;
 			SET outRef.AccountIdentification2_103 = MT59Data;
 			CALL UpdateMsgWithAsciiBitMap(outRef);
-			
-			
-			
 			 SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef);
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Account Exixts in ZSS **********') INTO rc;
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','**************Zss Request Message **********') INTO rc;
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
 			 --******************Updating ISAVE table with ZSS Request Message ************
 			CALL updateDBwithReqMessage(reqMsg,Environment.Guid,'ISO');
-			
 			  PROPAGATE TO TERMINAL 'out';
 		ELSE
 			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{MT103}' TYPE '{}:MT103')  ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
@@ -144,25 +140,17 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
 			 --******************Updating ISAVE table with T24 Request Message ************
 			CALL updateDBwithReqMessage(reqMsg,Environment.Guid,'MT103');
-			
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming  ReqToPostilion logging...........') INTO rc;
-	
-	END;
-	
-	
-END MODULE;
-
-
+		END;
+		END MODULE;
 CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		
 		 CALL UpdateDatabaseStatus();
 		RETURN TRUE;
 	END;
-
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
 		DECLARE inDomain REFERENCE TO InputRoot.DFDL;
@@ -178,20 +166,15 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
 		WHEN FIELDNAME(inDomain.ISO8583_1987) IS NOT NULL THEN
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating ZSS Status in Database**********') INTO rc;
 			IF(inDomain.ISO8583_1987.ResponseCode_039 LIKE '00')  THEN
-			
-			CALL UpdateDBStatus(id,'SUCCESS',CAST(inDomain.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(inDomain.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ISO');
-			
-		ELSE
-			CALL UpdateDBStatus(id,'FAILURE',CAST(inDomain.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(inDomain.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ISO');
-			
-		END IF;
-			
+				CALL UpdateDBStatus(id,'SUCCESS',CAST(inDomain.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(inDomain.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ISO');
+			ELSE
+				CALL UpdateDBStatus(id,'FAILURE',CAST(inDomain.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(inDomain.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ISO');
+			END IF;
 		END CASE;
 		SET OutputRoot = InputRoot;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RTGS_INCOMING_SB_Q;
 	END;
 END MODULE;
-
 CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -199,8 +182,9 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
 		CALL BuildErrorMsg();
 		RETURN TRUE;
 	END;
-
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -220,18 +204,15 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
 		SET Environment.userDefineError = OutputRoot.XMLNSC;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SB_EXCQ ;
 		PROPAGATE TO TERMINAL 'out';
-		
-			-- DB Logging===================
+				-- DB Logging===================
 		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
-		CALL Error_DBLogging(Environment.Guid,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,' ',' ',' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.RTGSIncoming.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Guid,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.RTGSIncoming.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		--PROPAGATE TO TERMINAL 'out';
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming Exception logging...........') INTO rc;
-		
 	END;
 END MODULE;
-
 --*************Procedure to insert Values into SB_ISAVE_TABLE**********************************
 	CREATE PROCEDURE insertIntoSbIsaveTable(IN PAYNET_GUID CHARACTER,IN PAYNET_STAN_NUM CHARACTER, IN PAYNET_STANDATE CHARACTER
 ,IN PAYNET_RRN_REF CHARACTER,IN PAYNET_ISO_REQUEST_MSG CHARACTER,IN PAYNET_ISO_RESPONSE_CODE CHARACTER,IN PAYNET_MT103_FILENAME CHARACTER,IN PAYNET_MT103_FIELDS CHARACTER,IN PAYNET_MT103_AMOUNT CHARACTER,
@@ -239,8 +220,7 @@ IN PAYNET_MT103_DTACCOUNT CHARACTER,IN PAYNET_MT103_CRACCOUNT CHARACTER,IN PAYNE
 IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_MT103_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP)
 	LANGUAGE DATABASE
 	EXTERNAL NAME "INSERT_SB_ISAVE_TABLE";
-	
-	--*********************Procedure To Update SB_ISAVE_TABLE with ZSS/T24 Request Message********************
+		--*********************Procedure To Update SB_ISAVE_TABLE with ZSS/T24 Request Message********************
 	CREATE PROCEDURE updateDBwithReqMessage (IN REQMSG CHARACTER,IN ISAVEID CHARACTER,IN STR CHARACTER)
 	LANGUAGE DATABASE
 	EXTERNAL NAME "UPDATE_REQMSG_SB_ISAVE";
