@@ -29,11 +29,11 @@ SET Environment.MQRFH2= InputRoot.MQRFH2;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
-		SET Environment.reqMsg = reqMsg;
+		SET Environment.Variable.reqMsg = reqMsg;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -104,7 +104,7 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToT24
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;	
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccsid);
+		SET Environment.Variables.reqISOMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccsid);
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
@@ -112,7 +112,7 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToT24
 		END IF;
 		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -121,7 +121,7 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToT24
 		IF IsLogRequired LIKE 'Y' THEN
 			
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','Request to T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.reqISOMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		
@@ -143,7 +143,7 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToPostilion
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;	
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccsid);
+		SET Environment.Variables.resISOMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccsid);
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
@@ -151,7 +151,7 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToPostilion
 		END IF;
 		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'T24 Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resISOMsg,'T24 Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -160,7 +160,7 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToPostilion
 		IF IsLogRequired LIKE 'Y' THEN
 			
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','Response from T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.resISOMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		
@@ -280,7 +280,7 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_BuildExceptionDetails
 		PROPAGATE TO TERMINAL 'out';
 /*=================== CALLING ERROR DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.MINI_STATEMENT_HTTP.ErrorCode,outRefer);
+			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.MINI_STATEMENT_HTTP.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		/*=================== CALLING ERROR DB RAW AUDIT LOGGING END  ==============*/
