@@ -33,6 +33,8 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_GenerateReqToT24
 		DECLARE accNo CHARACTER InputRoot.JSON.Data.fromAccount;
 		DECLARE fromDate CHARACTER InputRoot.JSON.Data.fromDate;
 		DECLARE toDate CHARACTER InputRoot.JSON.Data.toDate;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
@@ -40,7 +42,8 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_GenerateReqToT24
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
+			
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 			END IF; 
@@ -65,7 +68,7 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_GenerateReqToT24
 		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
 		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'T24  Request',ApplicationLabel,BrokerName,'','','',outRefer);
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'T24  Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF; 
