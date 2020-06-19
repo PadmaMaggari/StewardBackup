@@ -58,7 +58,7 @@ CREATE COMPUTE MODULE rtgsOutgoing_GenerateReqTo24
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Request to RTGS_OUT_SB_TCP_REQ::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',Environment.reqMsg) INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Request To T24::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
@@ -145,7 +145,7 @@ CREATE COMPUTE MODULE rtgsOutgoingT24Req_GenerateReqToPostilion
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL FieldToFieldMapping(inRef,outRef,'','');
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Response To Postilion::') INTO rc;
