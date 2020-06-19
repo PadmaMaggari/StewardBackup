@@ -46,11 +46,11 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateISOReq
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
-		SET Environment.reqMsg = reqMsg;
+		SET Environment.Variables.reqMsg = reqMsg;
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
@@ -126,7 +126,7 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_BuildExceptionDetails
 		PROPAGATE TO TERMINAL 'out';
 		------------Error  Logging in DB----------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.WTB_HTTP.ErrorCode,outRefer);
+			CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.WTB_HTTP.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
