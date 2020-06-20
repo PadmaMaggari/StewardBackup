@@ -63,7 +63,7 @@ SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchaseWithCashBack', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
@@ -123,7 +123,7 @@ DECLARE rc BOOLEAN FALSE;
 		CALL writeToLogFile(MessageFlowLabel, 'merchantPOSPurchaseWithCashBack', 'DEBUG','TCPIP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL FieldToFieldMapping(inRef,outRef,'','');
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
