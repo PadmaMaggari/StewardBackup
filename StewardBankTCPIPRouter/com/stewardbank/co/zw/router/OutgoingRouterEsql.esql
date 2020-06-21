@@ -29,11 +29,13 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE logRef REFERENCE TO InputRoot.DFDL.ISO8583_1987.PrimaryAccountNumber_002;
+		DECLARE logRef REFERENCE TO InputRoot.DFDL;
 		DECLARE jsonRef REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
-		CALL JSONLogMessage(logRef,jsonRef);
+		--CALL JSONLogMessage(logRef,jsonRef);  
+		
+		SET jsonRef = logRef;
 		SET Environment.Variables.resMsg = getPayLoad('JSON',jsonRef,encodeRef,ccidRef);
 		SET OutputRoot.JSON = NULL;
 		--SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
@@ -61,7 +63,7 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 		--JAVA procedure call to get 2 byte header
  		SET tcpHeader = Get2ByteHeader(data);
  		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Data with header') INTO rc;
- 		CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG',CAST(tcpHeader AS CHARACTER)) INTO rc;
+ 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG',CAST(tcpHeader AS CHARACTER)) INTO rc;
  		DECLARE hexBits CHARACTER SUBSTRING(CAST(tcpHeader AS CHARACTER) FROM 3 FOR 4);
  		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Hex Data of Header:'||hexBits) INTO rc;
  		DECLARE dataWithHeader CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || hexBits || SUBSTRING(CAST(data AS CHARACTER) FROM 3);
