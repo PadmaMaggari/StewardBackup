@@ -36,7 +36,7 @@
         </layout>
     </appender>
 
- <appender name="MINI_STMT_DEBUG" class="org.apache.log4j.FileAppender">
+ <appender name="MINI_STMT_DEBUG" class="org.apache.log4j.DailyRollingFileAppender">
         <param name="Threshold" value="DEBUG"/>
         <param name="File" value="/log/esb/interfaces/log4j/log/MINI_STMTDebug.log"/>
         <layout class="org.apache.log4j.PatternLayout">
@@ -44,7 +44,7 @@
         </layout>
     </appender>
 
-<appender name="POSTILION_MSGS" class="org.apache.log4j.FileAppender">
+<appender name="POSTILION_MSGS" class="org.apache.log4j.DailyRollingFileAppender">
         <param name="Threshold" value="DEBUG"/>
         <param name="File" value="/log/esb/interfaces/log4j/log/POSTILION_MSGS.log"/>
         <layout class="org.apache.log4j.PatternLayout">
@@ -60,7 +60,7 @@
         </layout>
     </appender>
 
-<appender name="BILL_PAYMENTS_DEBUG" class="org.apache.log4j.FileAppender">
+<appender name="BILL_PAYMENTS_DEBUG" class="org.apache.log4j.DailyRollingFileAppender">
         <param name="Threshold" value="DEBUG"/>
         <param name="File" value="/log/esb/interfaces/log4j/log/BILL_PAYMENTS.log"/>
         <layout class="org.apache.log4j.PatternLayout">
@@ -69,7 +69,7 @@
     </appender>
 
 
-<appender name="AIRTIME_PURCHASES_DEBUG" class="org.apache.log4j.FileAppender">
+<appender name="AIRTIME_PURCHASES_DEBUG" class="org.apache.log4j.DailyRollingFileAppender">
         <param name="Threshold" value="DEBUG"/>
         <param name="File" value="/log/esb/interfaces/log4j/log/AIRTIME_PURCHASES.log"/> 
         <layout class="org.apache.log4j.PatternLayout">
@@ -108,6 +108,49 @@
             <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/>
         </layout>
     </appender>
+
+
+	<appender name="CASH_ADVANCE" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+        <param name="File" value="/log/esb/interfaces/log4j/log/CASH_ADVANCE.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    </appender>
+
+      	<appender name="PURCHASES_WITH_CASH_BACK" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+        <param name="File" value="/log/esb/interfaces/log4j/log/PURCHASES_WITH_CASH_BACK.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    </appender>
+
+	<appender name="FULL_STATEMENT_HTTP" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+        <param name="File" value="/log/esb/interfaces/log4j/log/FULL_STATEMENT_HTTP.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    	</appender>
+	
+	 <logger name="FullStatementHTTPLogger">
+	<level value="DEBUG"/>
+	<appender-ref ref="FULL_STATEMENT_HTTP"/>
+    	</logger>
+	
+	
+	 <logger name="merchantPOSPurchaseWithCashBack">
+	<level value="DEBUG"/>
+	<appender-ref ref="PURCHASES_WITH_CASH_BACK"/>
+    </logger>
+	
+	
+	 <logger name="MerchantPosCashAdvance">
+	<level value="DEBUG"/>
+	<appender-ref ref="CASH_ADVANCE"/>
+    </logger>
+	
 
     <logger name="BToWLogger">
 		<level value="DEBUG"/>
@@ -231,5 +274,22 @@
 		<level value="DEBUG"/> 
 		<appender-ref ref="HTTPLogger"/> 
 </logger>
+
+
+
+<appender name="CurrencyConverterLogger" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="Threshold" value="DEBUG"/>
+		<param name="File" value="/log/esb/interfaces/log4j/log/CurrencyConverter.log"/>             
+		<param name="DatePattern" value="'.'dd-MM-yyyy"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%-10t] :- %m%n"/> 
+        </layout>
+</appender>
+	
+<logger name="CurrencyConverterLogger">
+		<level value="DEBUG"/> 
+		<appender-ref ref="CurrencyConverterLogger"/>   
+</logger>
+
 	
 </log4j:configuration>
