@@ -58,7 +58,7 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Request from Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'','');
+		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
@@ -111,7 +111,7 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateResToPostilion
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','T24 Response::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'','');
+		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
@@ -120,8 +120,8 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateResToPostilion
 		PROPAGATE TO TERMINAL 'out';
 		----------------------
 		SET OutputRoot.Properties = Environment.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Balance Enquiry Response To Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
