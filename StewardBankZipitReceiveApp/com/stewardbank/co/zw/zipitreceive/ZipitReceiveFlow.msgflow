@@ -3,19 +3,22 @@
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow.msgflow" nsPrefix="com_stewardbank_co_zw_zipitreceive_ZipitReceiveFlow.msgflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Users\91944\Documents\Steward\Log\Log4jConfig.xml">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="/log/log4j/Log4jConfigurationFile.xml">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.APPLICATION_NAME" name="APPLICATION_NAME" defaultValueLiteral="StewardBankZipitReceive">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_Q" name="RAW_AUDIT_Q" defaultValueLiteral="RAW_LOG_SB_REQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_LOGGING" name="RAW_AUDIT_LOGGING" defaultValueLiteral="RAW_LOG_SB_REQ">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERR_AUDIT_Q" name="ERR_AUDIT_Q" defaultValueLiteral="ERR_LOG_SB_REQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERROR_AUDIT_LOGGING" name="ERROR_AUDIT_LOGGING" defaultValueLiteral="ERR_LOG_SB_REQ">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.EXCEPTION_Q" name="EXCEPTION_Q" defaultValueLiteral="SB_EXCQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.EXCEPTION_QUEUE" name="EXCEPTION_QUEUE" defaultValueLiteral="SB_EXCQ">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.IsLogRequired" name="IsLogRequired" defaultValueLiteral="Y">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG4J_INIT_ERROR_MSG" name="LOG4J_INIT_ERROR_MSG" defaultValueLiteral="[log4j] Initialization Error">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="ZipitReceiveFlow" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
@@ -34,7 +37,7 @@
       <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_4" location="419,102">
         <translation xmi:type="utility:ConstantString" string="StewardBankT24SubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="517,280" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.zipitreceive#ZipitReceiveFlow_CaptureException.Main" computeMode="all">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="531,278" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.zipitreceive#ZipitReceiveFlow_CaptureException.Main" computeMode="all">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionDetails"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="262,96" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.zipitreceive#ZipitReceiveFlow_GenerateReqToT24.Main" computeMode="all">
@@ -60,14 +63,17 @@
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
         <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
-        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.APPLICATION_NAME">
-          <propertyName xmi:type="utility:TranslatableString" key="Property.APPLICATION_NAME" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
-          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RAW_AUDIT_LOGGING">
-            <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_LOGGING" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
-            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERROR_AUDIT_LOGGING">
-              <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_LOGGING" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
-              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.EXCEPTION_QUEUE">
-                <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_QUEUE" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RAW_AUDIT_Q">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_Q" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERR_AUDIT_Q">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.ERR_AUDIT_Q" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.EXCEPTION_Q">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_Q" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
+              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
+                <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
+                <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4J_INIT_ERROR_MSG">
+                  <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR_MSG" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
+                </propertyDescriptor>
               </propertyDescriptor>
             </propertyDescriptor>
           </propertyDescriptor>
