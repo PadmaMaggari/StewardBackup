@@ -1,10 +1,11 @@
+
 /*
 Author:Rathod Veerender
 Version:0.0.1
 Date of Creation:08-06-2020
 Date of Modification:
 Description:StewardBankPostilionSubFlow is for retrying 3 times when tcp connection is down or unavaiable with interval
-			duration 0 sec,5 sec,5 sec.
+duration 0 sec,5 sec,5 sec.
 */
 BROKER SCHEMA com.stewardbank.co.zw.common.postilioncall
 
@@ -25,7 +26,7 @@ CREATE COMPUTE MODULE StewardBankPostilionSubFlow
 			SET Environment.Variables.Log4j.ErrorMsg = INIT_LOG4J_ERROR;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',INIT_LOG4J_ERROR) INTO rc;
 		END IF;
-		IF Environment.Variables.Counter IS NULL THEN
+		IF Environment.Variables.Counter IS NULL AND Environment.Variables.Retry.Counter IS NULL THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Environment.Variables.Counter is null maybe didnt capture tcp exceptionMsg') INTO rc;
 			SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
 			SET OutputRoot.Properties = InputRoot.Properties;
@@ -33,8 +34,14 @@ CREATE COMPUTE MODULE StewardBankPostilionSubFlow
 			RETURN FALSE;
 		END IF;
 		CALL CopyEntireMessage();
-		IF Environment.Variables.Retry.Counter IS NULL THEN
-			SET Environment.Variables.Retry.Counter = 1;
+		IF Environment.Variables.RequestIdentifier IS NULL THEN
+			IF Environment.Variables.Retry.Counter IS NULL THEN
+				SET Environment.Variables.Retry.Counter = 1;
+			END IF;
+		ELSE
+			IF Environment.Variables.Retry.Counter IS NULL THEN
+				SET Environment.Variables.Retry.Counter = 1;
+			END IF;
 		END IF;
 		IF Environment.Variables.Retry.Counter <= MAX_RETRY_COUNT THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','retry count for connection:'||CAST(Environment.Variables.Retry.Counter AS CHARACTER)) INTO rc;
@@ -53,7 +60,6 @@ CREATE COMPUTE MODULE StewardBankPostilionSubFlow
 			PROPAGATE TO TERMINAL 'out1';
 			RETURN FALSE;
 		END IF;
-
 	END;
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		SET OutputRoot = InputRoot;
