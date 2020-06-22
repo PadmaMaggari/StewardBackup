@@ -12,6 +12,7 @@ DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE removeHeader
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		IF domainName = 'DFDL' THEN
 			SET OutputRoot.Properties = InputRoot.Properties;
@@ -29,6 +30,7 @@ CREATE COMPUTE MODULE removeHeader
 			DECLARE isoData CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || SUBSTRING(CAST(data AS CHARACTER) FROM 7);
 			CALL writeToLogFile(MessageFlowLabel, 'RemoveHeaderLogger', 'DEBUG','iso data after removing header:'||isoData) INTO rc;
 			SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2; 
 			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
 			PARSE(CAST(isoData AS BLOB) ENCODING encodeRef CCSID ccsidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 			DECLARE outDomainRef REFERENCE TO OutputRoot.DFDL;
@@ -38,5 +40,4 @@ CREATE COMPUTE MODULE removeHeader
 		END IF;
 		RETURN TRUE;
 	END;
-
 END MODULE;

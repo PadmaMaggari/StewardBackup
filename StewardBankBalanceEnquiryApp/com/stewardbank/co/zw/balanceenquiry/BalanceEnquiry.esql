@@ -58,7 +58,7 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Request from Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL FieldToFieldMapping(inRef,outRef,'','');
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
@@ -111,7 +111,7 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateResToPostilion
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','T24 Response::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL FieldToFieldMapping(inRef,outRef,'','');
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
