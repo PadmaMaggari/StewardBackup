@@ -77,7 +77,6 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion1
 	END;
 
 	CREATE PROCEDURE GenerateReqToPostilion() BEGIN
-		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -105,12 +104,13 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion1
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
 		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
-		SET outRef.MTI_Version = 0;
-		SET outRef.MTI_MessageClass = 2;
-		SET outRef.MTI_MessageFunction = 0;
-		SET outRef.MTI_MessageOrigin = 0;
-		SET outRef.ProcessingCode_003 = CAST(inRef.Data.proccessingCode AS INTEGER);
-		CALL UpdateMsgWithAsciiBitMap(outRef);
+--		SET outRef.MTI_Version = 0;
+--		SET outRef.MTI_MessageClass = 2;
+--		SET outRef.MTI_MessageFunction = 0;
+--		SET outRef.MTI_MessageOrigin = 0;
+--		SET outRef.ProcessingCode_003 = CAST(inRef.Data.proccessingCode AS INTEGER);
+--		CALL UpdateMsgWithAsciiBitMap(outRef);
+		SET OutputRoot.DFDL = InputRoot.DFDL;
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		SET domainName = FIELDNAME(outDomainDataRef);
@@ -137,7 +137,6 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToT24
 	END;
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
-		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -190,7 +189,6 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 	END;
 
 	CREATE PROCEDURE GenerateResToBackend() BEGIN
-		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -203,10 +201,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
-		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
-		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
+		
 		--------------DBLogging-------------------
 		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,'','','',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -218,9 +213,18 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 		END IF;
 		--field to field mapping
 		--CALL ISOToJSONMapping(inRef,outRef);
+		MOVE inRef TO InputRoot.DFDL.*.PrimaryAccountNumber_002;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('statusCode');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('message');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('responseBody');
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
+		DECLARE isoRef REFERENCE TO OutputRoot.JSON.Data.responseBody;
 		SET outRef.statusCode = '200'; 
         SET outRef.message = 'SUCCESS'; 
-		SET outRef.responseBody = '';
+		CALL JSONLogMessage(inRef,isoRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON;
 		SET Environment.jsonData = OutputRoot.JSON;
 		SET domainName = FIELDNAME(outDomainDataRef);
@@ -234,6 +238,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON = Environment.jsonData;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Response to Backend::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 	END;
