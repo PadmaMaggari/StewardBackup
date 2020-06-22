@@ -57,7 +57,7 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','Request from Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL FieldToFieldMapping(inRef,outRef,'','Environment.MQRFH2.usr.esbPcode');
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
@@ -65,7 +65,7 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateReqToT24
 		SET OutputRoot.DFDL = NULL;
 		PROPAGATE TO TERMINAL 'out1';
 		----------------------
-		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
 		CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','Request To T24::') INTO rc;
@@ -110,7 +110,7 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateResToPostilion
 		CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','Response from T24::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG',Environment.Variables.resData) INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL FieldToFieldMapping(inRef,outRef,'','Environment.MQRFH2.usr.esbPcode');
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);

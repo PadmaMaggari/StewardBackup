@@ -21,7 +21,7 @@ CREATE COMPUTE MODULE DepositFlow_GenerateReqToT24
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
-		SET Environment.usr= InputRoot.MQRFH2.usr;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -57,7 +57,7 @@ CREATE COMPUTE MODULE DepositFlow_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'DepositLogger', 'DEBUG','Request from Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'DepositLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL FieldToFieldMapping(inRef,outRef,'','Environment.MQRFH2.usr.esbPcode');
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		CALL DBLogging(Environment.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.usr.timeLocalTransaction,Environment.usr.dateLocalTransaction,Environment.usr.retrievalReferenceNumber,outRefer);
@@ -109,7 +109,7 @@ CREATE COMPUTE MODULE DepositFlow_GenerateResToPostilion
 		CALL writeToLogFile(MessageFlowLabel, 'DepositLogger', 'DEBUG','Response from T24::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'DepositLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL FieldToFieldMapping(inRef,outRef,'','Environment.MQRFH2.usr.esbPcode');
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		CALL DBLogging(Environment.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
@@ -118,7 +118,7 @@ CREATE COMPUTE MODULE DepositFlow_GenerateResToPostilion
 		PROPAGATE TO TERMINAL 'out';
 		-----------------------------
 		SET OutputRoot.Properties = Environment.Properties;
-		SET OutputRoot.MQRFH2.usr = Environment.usr;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		SET OutputRoot.MQRFH2.resData=Environment.resData;
 		SET OutputRoot.DFDL = Environment.dfdlData;
