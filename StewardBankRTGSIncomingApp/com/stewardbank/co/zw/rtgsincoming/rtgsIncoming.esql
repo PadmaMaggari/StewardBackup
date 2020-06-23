@@ -9,14 +9,14 @@ Description:Pick file from remote location and based on the account send request
 */
 BROKER SCHEMA com.stewardbank.co.zw.rtgsincoming
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,RTGS_INCOMING_SB_Q,DSN,OUTQ EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,RTGS_INCOMING_SB_Q,IsLogRequired,Url EXTERNAL CHARACTER '';
 DECLARE UUID SHARED CHARACTER '';
 
 
 CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateReqToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL CopyMessageHeaders();
+		
 		CALL BuildMT103FromRaw();
 		RETURN TRUE;
 	END;
@@ -49,19 +49,22 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateReqToPostilion
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
 		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Start RTGSIncoming logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','RTGSIncoming Request in RAW data start') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',Environment.reqMsg) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','RTGSIncoming Request in RAW data end') INTO rc;
+		END IF;
 		SET OutputRoot.Properties.MessageSet = '{MT103}';
 		SET OutputRoot.Properties.MessageType = '{}:MT103';
 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
 		parse(InputRoot.BLOB.BLOB ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+		IF IsLogRequired LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','RTGSIncoming Request Original start') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','RTGSIncoming Request Original end') INTO rc;
-		
+		END IF;
 	END;
 END MODULE;
 
@@ -83,14 +86,15 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		DECLARE sql CHARACTER;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
 		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Start RTGSIncoming  ReqToPostilion logging...........') INTO rc;
+		END IF;
 		DECLARE Response ROW;
-		DECLARE sql CHARACTER '';
-		
 		SET UUID = UUIDASCHAR;
 		SET Environment.Guid = UUID;
 		DECLARE SettlementAmt CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 10); 
@@ -140,6 +144,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
 			 --******************Updating ISAVE table with T24 Request Message ************
 			CALL updateDBwithReqMessage(reqMsg,Environment.Guid,'MT103');
+			 SET OutputLocalEnvironment.Destination.HTTP.RequestURL = Url;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming  ReqToPostilion logging...........') INTO rc;
@@ -154,7 +159,6 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
 		DECLARE inDomain REFERENCE TO InputRoot.DFDL;
-		DECLARE sql CHARACTER;
 		DECLARE rc BOOLEAN FALSE;
 --		DECLARE status CHARACTER 'SUCCESS';
 		DECLARE id CHARACTER Environment.Guid;
@@ -180,7 +184,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
 	BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
 		CALL BuildErrorMsg();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
@@ -193,7 +197,9 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Start RTGSIncoming Exception logging...........') INTO rc;
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Start RTGSIncoming Exception logging...........') INTO rc;
+		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE exe_Desc CHARACTER'';  
@@ -209,8 +215,8 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
 		CALL Error_DBLogging(Environment.Guid,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.RTGSIncoming.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
-		--PROPAGATE TO TERMINAL 'out';
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming Exception logging...........') INTO rc;
+		PROPAGATE TO TERMINAL 'out';
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............End RTGSIncoming Exception logging...........') INTO rc;
 	END;
 END MODULE;
 --*************Procedure to insert Values into SB_ISAVE_TABLE**********************************
