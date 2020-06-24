@@ -6,16 +6,19 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log\Log4jConfig.xml">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_Q" name="RAW_AUDIT_Q" defaultValueLiteral="RAW_AUDIT_Q">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_Q" name="RAW_AUDIT_Q" defaultValueLiteral="RAW_LOG_SB_REQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERROR_AUDIT_Q" name="ERROR_AUDIT_Q" defaultValueLiteral="ERROR_AUDIT_Q">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERROR_AUDIT_Q" name="ERROR_AUDIT_Q" defaultValueLiteral="ERR_LOG_SB_REQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.EXCEPTION_Q" name="EXCEPTION_Q" defaultValueLiteral="SB_EXCQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG4J_INIT_ERROR_MSG" name="LOG4J_INIT_ERROR_MSG" defaultValueLiteral="[log4j] Initialization Error">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.IsLogRequired" name="IsLogRequired" defaultValueLiteral="Y">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="DepositFlow" bundleName="com/stewardbank/co/zw/deposit/DepositFlow" pluginId="StewardBankDepositApp"/>
@@ -25,16 +28,16 @@
       <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="58,52" queueName="DP_SB_TCP_REQ" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583_1987">
         <translation xmi:type="utility:ConstantString" string="Deposit_INQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="924,170" queueName="ALL_SB_TCP_RES">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="924,170" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="Deposit_OUTQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="226,52" computeExpression="esql://routine/com.stewardbank.co.zw.deposit#DepositFlow_GenerateReqToT24.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="226,52" computeExpression="esql://routine/com.stewardbank.co.zw.deposit#DepositFlow_GenerateReqToT24.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateReqToT24"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="447,169" computeExpression="esql://routine/com.stewardbank.co.zw.deposit#DepositFlow_CaptureException.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="447,169" computeExpression="esql://routine/com.stewardbank.co.zw.deposit#DepositFlow_CaptureException.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionResponse"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="733,53" computeExpression="esql://routine/com.stewardbank.co.zw.deposit#DepositFlow_GenerateResToPostilion.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="733,53" computeExpression="esql://routine/com.stewardbank.co.zw.deposit#DepositFlow_GenerateResToPostilion.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateResToPostilion"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="395,53">
@@ -72,6 +75,9 @@
               <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_Q" bundleName="com/stewardbank/co/zw/deposit/DepositFlow" pluginId="StewardBankDepositApp"/>
               <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4J_INIT_ERROR_MSG">
                 <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR_MSG" bundleName="com/stewardbank/co/zw/deposit/DepositFlow" pluginId="StewardBankDepositApp"/>
+                <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
+                  <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/deposit/DepositFlow" pluginId="StewardBankDepositApp"/>
+                </propertyDescriptor>
               </propertyDescriptor>
             </propertyDescriptor>
           </propertyDescriptor>

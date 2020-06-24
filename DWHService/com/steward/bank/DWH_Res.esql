@@ -21,26 +21,22 @@ CREATE COMPUTE MODULE DWH_Res
 
 	CREATE PROCEDURE ConstructDWH_Response() BEGIN
 		
-		DECLARE id CHARACTER InputLocalEnvironment.HTTP.Input.QueryString.id;
+		DECLARE mobileNumber CHARACTER InputLocalEnvironment.HTTP.Input.QueryString.mobileNumber;
 		
-		IF id = '263785974144' THEN
+		IF mobileNumber = '263785974144' THEN
 			SET OutputRoot.JSON.Data.msisdn = '263785974100';
 			SET OutputRoot.JSON.Data.firstname = 'TAKUNDA';
 			SET OutputRoot.JSON.Data.lastname = 'CHAPARIRA';
 			SET OutputRoot.JSON.Data.nationalid = '38246649T38';
 			SET OutputRoot.JSON.Data.dob = '24-02-1998';
 			
-		ELSEIF id = '777788888' THEN
+		ELSEIF mobileNumber = '777788888' THEN
 			SET OutputRoot.JSON.Data.msisdn = '263785974100';
 			SET OutputRoot.JSON.Data.firstname = 'TAKUNDA';
 			SET OutputRoot.JSON.Data.lastname = 'CHAPARIRA';
 			SET OutputRoot.JSON.Data.nationalid = '38246649T38';
 			SET OutputRoot.JSON.Data.dob = '24-02-1998';
-		
 		ELSE
-			
-			
-			
 		END IF;
 		
 	END;
