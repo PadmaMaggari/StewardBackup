@@ -136,7 +136,7 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateResToPostilion
 			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','TCPIP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'','');
+		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode); 
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
