@@ -53,7 +53,7 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG','..............Start Postilion Messages logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG','Request to Postilion Msgs::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG',Environment.reqMsg) INTO rc;
-		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL FieldToFieldMapping(inRef,outRef,'','');
 		SET Environment.DFDL = OutputRoot.DFDL;
 		SET OutputRoot = NULL;
 		/* ==================== Database Logging Start ==================== */
@@ -111,7 +111,7 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_GenerateResToPostilion
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG','.........................') INTO rc;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'');
+		CALL FieldToFieldMapping(inRef,outRef,'','');
 		SET Environment.dfdlData=InputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== Database Logging Starting ==================== */
