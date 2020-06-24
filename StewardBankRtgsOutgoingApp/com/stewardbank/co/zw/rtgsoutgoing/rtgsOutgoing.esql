@@ -72,7 +72,7 @@ CREATE COMPUTE MODULE rtgsOutgoing_GenerateReqTo24
 			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		
-		IF IsLogRequired LIKE 'Y' THEN
+		IF IsLogRequired LIKE 'Y' THEN    
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','Request To T24::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
