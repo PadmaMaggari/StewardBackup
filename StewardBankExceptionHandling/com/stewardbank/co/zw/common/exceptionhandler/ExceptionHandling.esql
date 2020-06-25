@@ -1,6 +1,5 @@
-
 /*
-Author:Rathod Veerender
+Author:Rathod Veerender / Mohsin Ali
 Version:0.0.1
 Date of Creation:30-03-2020
 Date of Modification:14-04-2020,15-04-2020,16-04-2020,17-04-2020,04-05-2020,05-05-2020
@@ -42,15 +41,15 @@ CREATE COMPUTE MODULE ExceptionHandling
 		--set input properties in environment
 		SET Environment.Variables.Properties = InputRoot.Properties;
 		SET Environment.Variables.MQMD = InputRoot.MQMD;
-		SET Environment.Variables.MQRFH2 = InputRoot.MQRFH2;
 		/* ============================= THIS IS FOR DBLOGGING ***** I'M CASTING  INPUT.DFDL DATA INTO CHARACTER ========================= */
 		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
 		SET OutputRoot.MQRFH2.tcpId.Id = CAST(tcpipDetails.Id AS CHARACTER);
 		SET OutputRoot.MQRFH2.usr.Id = CAST(tcpipDetails.Id AS CHARACTER);
 		SET Environment.tcpip.Id = CAST(tcpipDetails.Id AS CHARACTER);
 		---------HTTP Router Properties----------
-		--SET Environment.HTTPInputHeader = InputRoot.HTTPInputHeader;
-		SET Environment.Variables.RequestIdentifier = InputRoot.MQRFH2.RequestIdentifier;
+		IF Environment.Variables.RequestIdentifier = NULL OR Environment.Variables.RequestIdentifier IS NULL THEN
+			SET Environment.Variables.RequestIdentifier = Environment.MQRFH2.RequestIdentifier;
+		END IF;
 		/* ==================================== DB LOGGING PROPERTIES END ===================================== */
 
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............start logging Exception...........') INTO rc;
@@ -71,8 +70,8 @@ CREATE COMPUTE MODULE ExceptionHandling
 
 		IF CONTAINS(exceptionTxt,'ParserException') THEN
 			SET inputChar = 'unable to parse the data';
-			SET systemsTraceAuditNumber = CAST(CURRENT_TIME AS TIME FORMAT 'hhmmss');
-			SET dateLocalTransaction = CAST(CURRENT_DATE AS DATE FORMAT 'MMYY');
+			SET systemsTraceAuditNumber = CAST(CURRENT_TIME AS CHAR FORMAT 'hhmmss');
+			SET dateLocalTransaction = CAST(CURRENT_DATE AS CHAR FORMAT 'MMYY');
 			SET retrievalReferenceNumber = '';
 		ELSE
 			CASE
@@ -152,16 +151,9 @@ CREATE COMPUTE MODULE ExceptionHandling
 					IF domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) THEN
 						CALL revertBackToSystem(ccidRef,encodeRef);
 					END IF;
-					IF Environment.Variables.Counter IS NULL OR Environment.Variables.Counter = NULL THEN
-						CALL LogException(encodeRef,ccidRef);
-						CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
-						RETURN FALSE;
-					ELSE
-						CALL LogException(encodeRef,ccidRef);
-						CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
-						RETURN TRUE;
-					END IF;
-
+					CALL LogException(encodeRef,ccidRef);
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;
+					RETURN TRUE;
 				END IF;
 			ELSEIF (CONTAINS(exceptionTxt,'ParserException') OR
 				CONTAINS(exceptionTxt,'Connection refused') OR
@@ -204,23 +196,19 @@ CREATE COMPUTE MODULE ExceptionHandling
 		DECLARE excpRef REFERENCE TO Environment.Variables.ExceptionData;
 		DECLARE exe_Desc CHARACTER;
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET OutputRoot.Properties = Environment.Variables.Properties;
+		SET OutputRoot.MQMD = Environment.Variables.MQMD;
+		SET OutputRoot.MQRFH2 = Environment.Variables.MQRFH2;
 		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'ExceptionDetails');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		SET OutputRoot.XMLNSC.ExceptionDetails.excpNumber = Environment.Variables.excpNumber;
 		DECLARE dominOutRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE domainName CHARACTER FIELDNAME(OutputRoot.XMLNSC);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Error Details Start::::::'||getPayLoad(domainName,dominOutRef,encodeRef,ccidRef) || ':::::Error Details End') INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTIONQ;
-		PROPAGATE TO TERMINAL 'out1';
-		SET OutputRoot.Properties = Environment.Variables.Properties;
-		SET OutputRoot.MQMD = Environment.Variables.MQMD;
-		SET OutputRoot.MQRFH2 = Environment.Variables.MQRFH2;
-		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
-		SET OutputRoot.XMLNSC.ExceptionDetails.excpNumber = Environment.Variables.excpNumber;
-		SET OutputRoot.XMLNSC.ExceptionDetails.excpText = Environment.Variables.excpText;
-		SET OutputRoot.XMLNSC.ExceptionDetails.excpType = Environment.Variables.excpType;
+		
 	END;
 
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
@@ -295,7 +283,10 @@ CREATE COMPUTE MODULE ExceptionHandling
 						CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Postilion::') INTO rc;
 						CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef)) INTO rc;
 					ELSE
+						SET OutputRoot.Properties = InputRoot.Properties;
+						SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 						CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+						MOVE outRef TO OutputRoot.JSON;
 						CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
 						CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'header';
 						CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'error';
@@ -320,12 +311,13 @@ CREATE COMPUTE MODULE ExceptionHandling
 						SET errorRef.property = '';
 						SET overrideRef.id = '';
 						SET overrideRef.description = '';
+						CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To FrontEnd::') INTO rc;
+						CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',getPayLoad(FIELDNAME(OutputRoot.JSON),outRef,encodeRef,ccidRef)) INTO rc;
 					END IF;
 				ELSE
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','No Response To Postilion Since MTI may be 0800,0220,0221,0420,0421') INTO rc;
 					RETURN;
 				END IF;
-
 			ELSE
 				DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 				IF (CONTAINS(CAST(inRef.MTI_Version AS CHARACTER)|| CAST(inRef.MTI_MessageClass AS CHARACTER)||CAST(inRef.MTI_MessageFunction AS CHARACTER)||CAST(inRef.MTI_MessageOrigin AS CHARACTER),NETWKCD)
@@ -351,7 +343,6 @@ CREATE COMPUTE MODULE ExceptionHandling
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','No Response To Postilion Since MTI may be 0800,0220,0221,0420,0421') INTO rc;
 					RETURN;
 				END IF;
-
 			END CASE;
 			--generate a error response in iso8583 to front end system in case of failure of t24
 			IF Environment.Variables.RequestIdentifier IS NULL OR Environment.Variables.RequestIdentifier = NULL THEN
@@ -365,27 +356,48 @@ CREATE COMPUTE MODULE ExceptionHandling
 				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO',ALL_SB_HTTP_RES) INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end done') INTO rc;
 			END IF;
-
 			PROPAGATE TO TERMINAL 'out1';
 
 		WHEN EXISTS(InputRoot.JSON.*[]) THEN
 			---Send error response in case of http flow
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+			DECLARE jsonRef REFERENCE TO OutputRoot.JSON;
 			CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
-			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'ErrorResponse';
-			DECLARE outRef REFERENCE TO OutputRoot.JSON.Data.ErrorResponse;
-			SET outRef.statusCode = '000';
-			SET outRef.message = 'FAILURE';
-			SET outRef.responseBody = '';
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'header';
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'error';
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.error NAME 'errorDetails';
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.error NAME 'type';
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'override';
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.override NAME 'overrideDetails';
+
+			DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.header;
+			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.error.errorDetails;
+			DECLARE overrideRef REFERENCE TO OutputRoot.JSON.Data.override;
+			SET headerRef.transactionStatus = 'FAILED';
+			SET headerRef.aaaId = '';
+			SET headerRef.id = '';
+			SET headerRef.status = 'FAILED';
+			SET headerRef.audit.T24_time = CURRENT_TIME;
+			SET headerRef.audit.versionNumber = '';
+			SET headerRef.audit.parse_time = '';
+			SET errorRef.fieldName = '';
+			SET errorRef.code = '';
+			SET errorRef.message = '';
+			SET errorRef.property = '';
+			SET overrideRef.id = '';
+			SET overrideRef.description = '';
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To FrontEnd::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',getPayLoad(FIELDNAME(OutputRoot.JSON),jsonRef,encodeRef,ccidRef)) INTO rc;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO','reponse queue:') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'INFO',ALL_SB_HTTP_RES) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Revert back to front end done') INTO rc;
 			PROPAGATE TO TERMINAL 'out1';
 		ELSE
-
 		END CASE;
 	END;
+
 	CREATE PROCEDURE getExceptionDesc(IN excpRef REFERENCE,IN insertRef REFERENCE,INOUT outRef REFERENCE)
 	BEGIN
 		DECLARE messageText CHARACTER '';

@@ -61,7 +61,7 @@ CREATE COMPUTE MODULE DepositFlow_GenerateReqToT24
 		SET Environment.Variables.ResponseQ = resQ;
 		SET Environment.Variables.TcpIp.ConnectionId = connId;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'','Environment.MQRFH2.usr.esbPcode');
+		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
@@ -117,7 +117,7 @@ CREATE COMPUTE MODULE DepositFlow_GenerateResToPostilion
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'','Environment.MQRFH2.usr.esbPcode');
+		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.sbPcode);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
@@ -133,9 +133,8 @@ CREATE COMPUTE MODULE DepositFlow_GenerateResToPostilion
 		SET OutputRoot.Properties = Environment.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
-		SET OutputRoot.MQRFH2.resData=Environment.resData;
+		SET OutputRoot.MQRFH2.resData = Environment.resData;
 		SET OutputRoot.DFDL = Environment.dfdlData;
-
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
 	END;
 END MODULE;

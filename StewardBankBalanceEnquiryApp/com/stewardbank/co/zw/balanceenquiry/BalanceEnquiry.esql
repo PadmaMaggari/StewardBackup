@@ -118,7 +118,7 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateResToPostilion
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'','');
+		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.sbPcode);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
@@ -143,7 +143,7 @@ CREATE COMPUTE MODULE BalanceEnquiryFlowCaptureException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL BuildErrorMsg();
-		RETURN FALSE;
+		RETURN TRUE;
 	END;
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE rc BOOLEAN FALSE;
@@ -176,7 +176,6 @@ CREATE COMPUTE MODULE BalanceEnquiryFlowCaptureException
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
 	END;
 END MODULE;
