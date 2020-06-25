@@ -151,6 +151,7 @@ CREATE COMPUTE MODULE BalanceEnquiryFlowCaptureException
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		SET Environment.Variables.Id = COALESCE(InputRoot.MQRFH2.usr.Id,Environment.MQRFH2.usr.Id,'');
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
@@ -171,7 +172,7 @@ CREATE COMPUTE MODULE BalanceEnquiryFlowCaptureException
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.BalanceEnquiry.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.BalanceEnquiry.ErrorCode,outRefer);
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		END IF;

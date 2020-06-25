@@ -39,8 +39,8 @@ CREATE COMPUTE MODULE ExceptionHandling
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE systemsTraceAuditNumber,dateLocalTransaction,retrievalReferenceNumber CHARACTER '';
 		--set input properties in environment
-		SET Environment.Variables.Properties = InputRoot.Properties;
-		SET Environment.Variables.MQMD = InputRoot.MQMD;
+		SET Environment.Properties = InputRoot.Properties;
+		SET Environment.MQMD = InputRoot.MQMD;
 		/* ============================= THIS IS FOR DBLOGGING ***** I'M CASTING  INPUT.DFDL DATA INTO CHARACTER ========================= */
 		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
 		SET OutputRoot.MQRFH2.tcpId.Id = CAST(tcpipDetails.Id AS CHARACTER);
@@ -196,9 +196,8 @@ CREATE COMPUTE MODULE ExceptionHandling
 		DECLARE excpRef REFERENCE TO Environment.Variables.ExceptionData;
 		DECLARE exe_Desc CHARACTER;
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		SET OutputRoot.Properties = Environment.Variables.Properties;
-		SET OutputRoot.MQMD = Environment.Variables.MQMD;
-		SET OutputRoot.MQRFH2 = Environment.Variables.MQRFH2;
+		SET OutputRoot.Properties = Environment.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		CREATE LASTCHILD Of OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD Of OutputRoot.XMLNSC NAME 'ExceptionDetails';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
@@ -227,8 +226,8 @@ CREATE COMPUTE MODULE ExceptionHandling
 	BEGIN
 		/* details like tcpip id and systemTraceNumber and dateLocalTransaction and retrievalRefarenceNumber */
 		SET Environment.Variables.Counter = NULL;
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+	--	SET OutputRoot.Properties = InputRoot.Properties;
+		--SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
@@ -271,6 +270,8 @@ CREATE COMPUTE MODULE ExceptionHandling
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','iso data after removing header:'||isoData) INTO rc;
 					SET OutputRoot = NULL;
 					IF Environment.Variables.RequestIdentifier IS NULL OR Environment.Variables.RequestIdentifier = NULL THEN
+						SET OutputRoot.Properties = InputRoot.Properties;
+						SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 						SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
 						SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
 						CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')

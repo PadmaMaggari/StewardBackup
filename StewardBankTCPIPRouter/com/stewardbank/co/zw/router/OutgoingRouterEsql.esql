@@ -40,7 +40,7 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 		SET OutputRoot.JSON = NULL;
 		--SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Input.ConnectionDetails;
-		SET Environment.Variables.Id = COALESCE(tcpipDetails.Id,InputRoot.MQRFH2.usr.Id,'');
+		SET Environment.Variables.Id = COALESCE(tcpipDetails.Id,InputRoot.MQRFH2.usr.Id,Environment.MQRFH2.usr.Id,'');
 		DECLARE req CHARACTER;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -71,7 +71,7 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
  		
 		IF MTI LIKE MTI_Version||MTI_MessageClass||MTI_MessageFunction||MTI_MessageOrigin THEN
 			DECLARE outRefer REFERENCE TO OutputRoot;
-			CALL DBLogging(InputRoot.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Router Response Zss',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+			CALL DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Router Response Zss',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
 			SET OutputRoot = InputRoot;
@@ -82,7 +82,7 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 		ELSE
 			-- =================== CALLING DB RAW AUDIT LOGGING ==============
 			DECLARE outRefer REFERENCE TO OutputRoot;
-			CALL DBLogging(InputRoot.MQRFH2.usr.Id,Environment.Variables.resMsg,'Router Response',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+			CALL DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Router Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
 			SET OutputLocalEnvironment.Destination.TCPIP.Output.Id = InputRoot.MQRFH2.usr.Id;
