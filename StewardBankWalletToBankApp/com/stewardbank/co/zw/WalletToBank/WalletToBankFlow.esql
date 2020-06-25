@@ -2,7 +2,7 @@
 Author:Swathi
 Version:0.0.1
 Date of Creation:30-03-2020
-Date of Modification:6-05-2020
+Date of Modification:24-05-2020
 Description:Business flow pick Request from WTB_SB_TCP_REQ queue and Generate request in ACE and send to t24
 and validate the response
 and send it to outgoing router queue(ALL_SB_TCP_RES).
@@ -72,18 +72,18 @@ CREATE COMPUTE MODULE WalletToBankFlow_GenerateReqToT24
 		CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel, 'WToBLogger', 'DEBUG','Request To T24::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'WToBLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'WToBLogger', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
+		END IF;
 		SET OutputRoot.DFDL = NULL;
 		PROPAGATE TO TERMINAL 'out1';
 		----------------------
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
-		IF IsLogRequired LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'WToBLogger', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'WToBLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'WToBLogger', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
-		END IF;
-	END;
+		END;
 END MODULE;			
 		
 
