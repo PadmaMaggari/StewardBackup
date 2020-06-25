@@ -1,5 +1,7 @@
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -18,86 +20,35 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_VerifyRequest
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		SET Environment.MQMD = InputRoot.MQMD;
 		DECLARE rc BOOLEAN FALSE;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE accountOpeningCheck CHAR inRef.Data.header.accountOpeningCheck;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;			
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Request from Frontend------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		END IF;
---		IF CONTAINS(InputRoot.BLOB.BLOB,'XMLNSC') THEN
---			CREATE LASTCHILD OF OutputRoot DOMAIN('XMLNSC') PARSE(InputRoot.BLOB.BLOB);
---			DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
---			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
---			DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
---			DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
---			DECLARE domainName CHARACTER FIELDNAME(InputBody);
---			DECLARE outRefer REFERENCE TO OutputRoot;
---			SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
---			IF IsLogRequired = 'Y' THEN
---				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Request from Frontend------') INTO rc;
---				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
---			END IF;
---			------------DBLogging-------------------
---			SET Environment.inputData = InputRoot.XMLNSC;
---			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
---			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
---			PROPAGATE TO TERMINAL 'out1';
---			---------------------------
---			SET OutputRoot.Properties = InputRoot.Properties;
---			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
---			SET OutputRoot.XMLNSC = Environment.inputData;
---			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'KYC';
---		ELSEIF CONTAINS(InputRoot.BLOB.BLOB,'mobileNumber') THEN
---			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(InputRoot.BLOB.BLOB);
---			DECLARE inRef REFERENCE TO InputRoot.JSON;
---			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
---			DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
---			DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
---			DECLARE domainName CHARACTER FIELDNAME(InputBody);
---			DECLARE outRefer REFERENCE TO OutputRoot;
---			SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
---			IF IsLogRequired = 'Y' THEN
---				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Request from Frontend------') INTO rc;
---				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
---			END IF;
---			------------DBLogging-------------------
---			SET Environment.inputData = InputRoot.JSON;
---			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
---			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
---			PROPAGATE TO TERMINAL 'out1';
---			---------------------------
---			SET OutputRoot.Properties = InputRoot.Properties;
---			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
---			SET OutputRoot.JSON = Environment.inputData;
---			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'KYC';
---		ELSEIF CONTAINS(InputRoot.BLOB.BLOB,'JSON') THEN
---			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(InputRoot.BLOB.BLOB);
-			DECLARE inRef REFERENCE TO InputRoot.JSON;
-			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
-			DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-			DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
-			DECLARE domainName CHARACTER FIELDNAME(InputBody);
-			DECLARE outRefer REFERENCE TO OutputRoot;
-			SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-			IF IsLogRequired = 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Request from Frontend------') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-			END IF;
-			------------DBLogging-------------------
-			SET OutputRoot.JSON = InputRoot.JSON;
-			SET Environment.inputData = OutputRoot.JSON;
-			SET OutputRoot.JSON = NULL;
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out1';
-			---------------------------
-			SET OutputRoot.Properties = InputRoot.Properties;
-			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-			--SET OutputRoot.JSON = Environment.inputData;
-			SET OutputRoot.JSON = InputRoot.JSON;
+		------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(CURRENT_TIME AS TIME FORMAT 'hhmmss'),CAST(CURRENT_DATE AS DATE FORMAT 'DDMM'),'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		---------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = InputRoot.JSON;
+		IF accountOpeningCheck = 'KYC_CHECK' THEN
 			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'KYC';
---		ELSEIF CONTAINS(InputRoot.BLOB.BLOB,'DFDL') THEN
---			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(InputRoot.BLOB.BLOB);
---			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'Update_ACC';
---		END IF;		 			 
+		ELSEIF accountOpeningCheck = 'T24_CHECK' THEN
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'T24';
+		END IF;
 	END;
 END MODULE;
 
@@ -146,7 +97,7 @@ END MODULE;
 CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateKYCResponse
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL GenerateKYCResponse();
+		CALL GenerateKYCResponse();
 		RETURN TRUE;
 	END;
 
@@ -161,8 +112,8 @@ END MODULE;
 CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateFCMResponse
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL CopyMessageHeaders();
-		 CALL CopyEntireMessage();
+		CALL CopyMessageHeaders();
+		CALL CopyEntireMessage();
 		RETURN TRUE;
 	END;
 
@@ -185,7 +136,7 @@ END MODULE;
 CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL GenerateReqToT24();
+		CALL GenerateReqToT24();
 		RETURN TRUE;
 	END;
 
