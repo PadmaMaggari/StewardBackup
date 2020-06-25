@@ -40,9 +40,9 @@ CREATE COMPUTE MODULE DepositFlow_GenerateReqToT24
 		--------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'DepositLogger', 'DEBUG','..............Initializing Deposit logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'DepositLogger', 'DEBUG','..............ISO Message parsed successfully...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'DepositLogger', 'WARN','..............ISO Message parsed successfully...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'DepositLogger', 'DEBUG','Request from Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'DepositLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'DepositLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,
 			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -74,7 +74,7 @@ CREATE COMPUTE MODULE DepositFlow_GenerateReqToT24
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		----------------------
-		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
 	END;
@@ -133,7 +133,6 @@ CREATE COMPUTE MODULE DepositFlow_GenerateResToPostilion
 		SET OutputRoot.Properties = Environment.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
-		SET OutputRoot.MQRFH2.resData = Environment.resData;
 		SET OutputRoot.DFDL = Environment.dfdlData;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
 	END;
@@ -144,7 +143,7 @@ CREATE COMPUTE MODULE DepositFlow_CaptureException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL BuildErrorMsg();
-		RETURN FALSE;
+		RETURN TRUE;
 	END;
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE rc BOOLEAN FALSE;
@@ -158,6 +157,7 @@ CREATE COMPUTE MODULE DepositFlow_CaptureException
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE Id CHARACTER CAST(Environment.usr.Id AS CHARACTER);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'Deposit';
@@ -167,14 +167,13 @@ CREATE COMPUTE MODULE DepositFlow_CaptureException
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.Variables.Id,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedException.Deposit.ErrorCode,outRefer);
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
+		CALL Error_DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedException.Deposit.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
 	END;
 END MODULE;
