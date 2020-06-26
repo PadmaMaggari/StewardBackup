@@ -60,7 +60,12 @@ CREATE COMPUTE MODULE CashAdvanceFlow_GenerateReqToT24
 			CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode);
+		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
+		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode,posRef);
+		SET Environment.DFDL = OutputRoot.DFDL;
+		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		CALL remove127(removeRefPointer);
+
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
@@ -121,7 +126,8 @@ CREATE COMPUTE MODULE CashAdvanceFlow_GenerationResToPostilion
 			CALL writeToLogFile(MessageFlowLabel, 'billPaymentsDebug', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'','');
+		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
+		CALL FieldToFieldMapping(inRef,outRef,'','',posRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
