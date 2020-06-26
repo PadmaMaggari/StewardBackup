@@ -262,7 +262,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 					DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583WithHeader;
 					SET outRef.TCPHeaderBitmap[] = inRef.TCPHeaderBitmap[];
 					DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
-					CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED,'',posRef);
+					CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED,InputRoot.MQRFH2.usr.postilionPCode,posRef);
 					DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 					DECLARE isoData CHARACTER getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainDataRef,encodeRef,ccidRef); --ASBITSTREAM(OutputRoot.DFDL ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader');
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','iso data with header:'||isoData) INTO rc;
@@ -333,7 +333,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 					CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
 					DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 					DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
-					CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED,'',posRef);
+					CALL FieldToFieldMapping(inRef,outRef,IS_ERROR_RESPONSE_REQUIRED,InputRoot.MQRFH2.usr.postilionPCode,posRef);
 					CALL MTIResponse(CAST(inRef.MTI_Version AS CHARACTER),CAST(inRef.MTI_MessageClass AS CHARACTER),CAST(inRef.MTI_MessageFunction AS CHARACTER),CAST(inRef.MTI_MessageOrigin AS CHARACTER)) into mtiRes;
 					SET outRef.MTI_Version = SUBSTRING(mtiRes FROM 1 FOR 1);
 					SET outRef.MTI_MessageClass = SUBSTRING(mtiRes FROM 2 FOR 1);
