@@ -67,6 +67,7 @@ CREATE COMPUTE MODULE InternalFundTransferFlow_GenerateReqTo24
 		--field to field mapping
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
 		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode,posRef);
+		SET Environment.DFDL = OutputRoot.DFDL;
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
 		SET Environment.dfdlData = OutputRoot.DFDL;
