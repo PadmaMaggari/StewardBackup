@@ -53,10 +53,11 @@ DECLARE ISO EXTERNAL CHARACTER '';
 		DECLARE procCodeData CHARACTER;
 		DECLARE DBDetails ROW;
 		DECLARE QueueName CHARACTER;
-		DECLARE refProcessingCode CHARACTER inRef.ProcessingCode_003;
+	--	DECLARE refProcessingCode CHARACTER inRef.ProcessingCode_003; 
 		DECLARE channel CHARACTER inRef.RoutingInformationPostilionPrivate_127_3;
 		DECLARE tcpipDetails REFERENCE TO InputLocalEnvironment.TCPIP.Receive.ConnectionDetails;
 		DECLARE procCode,reqMsg CHARACTER InputRoot.DFDL.ISO8583_1987.ProcessingCode_003;
+		
 		SET procCodeData = SUBSTRING(procCode FROM 1 FOR 2);
 		-- ==================== TCPIP DETAILS AND ISO8583 DETAILS =========================
 		Set OutputRoot.MQRFH2.usr.Type = tcpipDetails.Type;
@@ -70,6 +71,7 @@ DECLARE ISO EXTERNAL CHARACTER '';
 		Set OutputRoot.MQRFH2.usr.dateLocalTransaction = inRef.DateLocalTransaction_013;
 		Set OutputRoot.MQRFH2.usr.retrievalReferenceNumber = inRef.RetrievalReferenceNumber_037;
 		Set OutputRoot.MQRFH2.usr.sbPcode = inRef.ProcessingCode_003;
+		SET OutputRoot.MQRFH2.usr.postilionPCode = procCode; 
 		SET Environment.MQRFH2 = OutputRoot.MQRFH2;
 		SET Environment.Variables.Id = tcpipDetails.Id;
 		SET Environment.Variables.systemsTraceAuditNumber = CAST(inRef.SystemsTraceAuditNumber_011 AS CHARACTER);
