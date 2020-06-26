@@ -31,6 +31,7 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE logRef REFERENCE TO InputRoot.DFDL;
 		DECLARE jsonRef REFERENCE TO OutputRoot;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
 		--CALL JSONLogMessage(logRef,jsonRef);  
@@ -161,10 +162,10 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_LogSentData
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','..............Start Logging after sending msg...........') INTO rc;
 		SET OutputRoot.Properties = InputRoot.Properties;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG',getPayLoad(FIELDNAME(InputRoot.DFDL.ISO8583WithHeader),inDomainDataRef,encodeRef,ccidRef)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG',getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccidRef)) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','local environemnt::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Hostname:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Hostname) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Port:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Port AS CHARACTER)) INTO rc;
+	--	CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Port:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Port AS CHARACTER)) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Client Address:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.ClientDetails.Address) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Client Hostname:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.ClientDetails.Hostname) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','id:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Id) INTO rc;
