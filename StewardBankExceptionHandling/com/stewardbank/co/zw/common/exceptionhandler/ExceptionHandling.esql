@@ -203,11 +203,10 @@ CREATE COMPUTE MODULE ExceptionHandling
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'ExceptionDetails');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
-		SET OutputRoot.XMLNSC.ExceptionDetails.excpNumber = Environment.Variables.excpNumber;
+		SET OutputRoot.XMLNSC.ExceptionDetails = Environment.Variables.ExceptionData; 
 		DECLARE dominOutRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE domainName CHARACTER FIELDNAME(OutputRoot.XMLNSC);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Error Details Start::::::'||getPayLoad(domainName,dominOutRef,encodeRef,ccidRef) || ':::::Error Details End') INTO rc;
-		
 	END;
 
 	CREATE PROCEDURE CopyMessageHeaders() BEGIN
