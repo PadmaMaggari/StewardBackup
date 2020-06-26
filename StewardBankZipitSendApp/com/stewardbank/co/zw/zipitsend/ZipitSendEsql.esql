@@ -66,7 +66,11 @@ CREATE COMPUTE MODULE ZipitSendFlow_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode);
+		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
+		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode,posRef);
+		SET Environment.DFDL = OutputRoot.DFDL;
+		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		CALL remove127(removeRefPointer);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
@@ -139,7 +143,8 @@ CREATE COMPUTE MODULE ZipitSendFlow_GenerateResToPostilion
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','TCPIP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'','');
+		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
+		CALL FieldToFieldMapping(inRef,outRef,'','',posRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
@@ -183,6 +188,7 @@ CREATE COMPUTE MODULE ZipitSendFlow_CaptureException
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
+		SET Environment.Variables.Id = COALESCE(InputRoot.MQRFH2.usr.Id,Environment.MQRFH2.usr.Id,'');
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
@@ -205,7 +211,7 @@ CREATE COMPUTE MODULE ZipitSendFlow_CaptureException
 		PROPAGATE TO TERMINAL 'out';
 		------------Error  Logging in DB----------
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ZipitSend.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ZipitSend.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q; 
