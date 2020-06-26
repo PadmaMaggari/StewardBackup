@@ -62,8 +62,12 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateReqToT24
 		SET Environment.Variables.ResponseQ = resQ;
 		SET Environment.Variables.TcpIp.ConnectionId = connId;
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode);
+		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
+		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode,posRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
+		SET Environment.DFDL = OutputRoot.DFDL;
+		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		CALL remove127(removeRefPointer);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired = 'Y' THEN
@@ -118,7 +122,8 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateResToPostilion
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		--field to field mapping
-		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.sbPcode);
+		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
+		CALL FieldToFieldMapping(inRef,outRef,'','',posRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
