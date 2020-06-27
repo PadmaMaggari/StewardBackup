@@ -28,7 +28,6 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateReqToT24
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
@@ -96,7 +95,6 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateResToPostilion
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		SET Environment.Properties = InputRoot.Properties;

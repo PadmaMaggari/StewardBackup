@@ -2,12 +2,15 @@
 
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_VerifyRequest
@@ -18,6 +21,8 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_VerifyRequest
 	END;
 	CREATE PROCEDURE VerifyRequest() BEGIN
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		SET Environment.MQRFH2.usr.localDate = CAST(CURRENT_DATE AS CHAR FORMAT 'DDMM');
+		SET Environment.MQRFH2.usr.localTime = CAST(CURRENT_TIME AS CHAR FORMAT 'hhmmss');
 		SET Environment.MQMD = InputRoot.MQMD;
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
@@ -31,15 +36,15 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_VerifyRequest
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
-		END IF;			
-		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Request from Frontend------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		END IF;
 		------------DBLogging-------------------
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(CURRENT_TIME AS TIME FORMAT 'hhmmss'),CAST(CURRENT_DATE AS DATE FORMAT 'DDMM'),'',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Request from Frontend------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;		
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.localTime,Environment.MQEFH2.usr.localDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
 		---------------------------
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
@@ -70,7 +75,36 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToDWH
 	END;
 
 	CREATE PROCEDURE GenerateReqToDWH() BEGIN
-		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE mobileNumber CHARACTER InputRoot.JSON.Data.body.mobileNumber;
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Calling DWH Service ------') INTO rc;
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://localhost:7080/ecocash/?mobileNumber='||mobileNumber;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT24
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateReqToT24();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -84,15 +118,13 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToDWH
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Econet Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.EconetResponseMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Calling T24 Service ------') INTO rc;
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://localhost:7080/ecocash/?mobileNumber='||mobileNumber;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		SET OutputRoot.JSON = InputRoot.JSON;
 	END;
 END MODULE;
-
 
 CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateKYCResponse
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -102,10 +134,43 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateKYCResponse
 	END;
 
 	CREATE PROCEDURE GenerateKYCResponse() BEGIN
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Response from DWH ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'DWH Response',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.localTime,Environment.MQEFH2.usr.localDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
 		SET OutputRoot.JSON = InputRoot.JSON;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
+		SET Environment.outputData = OutputRoot.JSON;
+		SET OutputRoot.JSON = NULL;
+		SET domainName = FIELDNAME(OutputRoot.JSON);
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload(domainName,domainDataRef,encodeRef,ccidRef); 
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Response to FrontEnd ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' Response QueueName :  '||ALL_SB_HTTP_RES) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Response to FrontEnd',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.localTime,Environment.MQEFH2.usr.localDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.outputData;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 	END;
 END MODULE;
 
@@ -133,19 +198,6 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateFCMResponse
 END MODULE;
 
 
-CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT24
-	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
-		CALL GenerateReqToT24();
-		RETURN TRUE;
-	END;
-
-	CREATE PROCEDURE GenerateReqToT24() BEGIN
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
-		SET OutputRoot.JSON = InputRoot.JSON;
-	END;
-END MODULE;
 
 CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT241
 	CREATE FUNCTION Main() RETURNS BOOLEAN
