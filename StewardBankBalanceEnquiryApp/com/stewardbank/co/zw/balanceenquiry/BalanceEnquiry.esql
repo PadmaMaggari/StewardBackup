@@ -121,7 +121,7 @@ CREATE COMPUTE MODULE BalanceEnquiryFlow_GenerateResToPostilion
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		--field to field mapping
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
-		CALL FieldToFieldMapping(inRef,outRef,'','',posRef);
+		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.sbPcode,posRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
