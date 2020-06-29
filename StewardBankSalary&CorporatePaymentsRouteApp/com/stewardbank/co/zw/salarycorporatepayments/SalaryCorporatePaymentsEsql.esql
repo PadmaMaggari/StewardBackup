@@ -1,0 +1,150 @@
+BROKER SCHEMA com.stewardbank.co.zw.salarycorporatepayments
+
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
+DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE IsLogRequired EXTERNAL CHARACTER'';
+DECLARE UUID SHARED CHARACTER ''; 
+CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		CASE
+		WHEN domainName LIKE 'DFDL' THEN
+			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+			--DECLARE inRef REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
+			SET Environment.MQRFH2= InputRoot.MQRFH2;
+		SET Environment.Variable.data = InputRoot.DFDL; 
+		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inRef REFERENCE TO InputRoot; 
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
+		DECLARE Response ROW;
+		DECLARE sql CHARACTER '';
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.DFDL,encodeRef,ccsid);
+		SET UUID = UUIDASCHAR;
+		SET Environment.Variables.UID = UUID;  
+		SET Environment.Variables.FileName = InputLocalEnvironment.File.Name; 
+		SET Environment.MQRFH2.UID = UUID;  
+		SET Environment.MQRFH2.FileName = InputLocalEnvironment.File.Name;  
+		-- SET DBLogging Properties ==============
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.Variables.UID,reqMsg,'FTP Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.DFDL.stewardBank_CSV.record.CREDIT_THEIR_REFERENCE,outRefer); 
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
+		/*=================== CALLING LOG4j LOGGING ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG','..............Start T24 or Zss logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG','Incoming Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG',reqMsg) INTO rc;
+		END IF;
+		/*=================== CALLING LOG4J LOGGING END ==============*/
+		/* ============== CALL ISAVE DB LOOKUP ===================== */
+		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
+		--DECLARE CreditAccount CHARACTER InputRoot.DFDL.stewardBank_CSV.CREDIT_ACCOUNT;
+		DECLARE CreditAccount CHARACTER InputRoot.DFDL.stewardBank_CSV.record.CREDIT_ACCOUNT;
+		CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',CreditAccount) INTO rc;
+		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(CreditAccount));
+		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
+
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG','..............Start Sending Data To ZSS ...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG','ZSS Request::') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG',reqMsg) INTO rc; 
+			END IF;
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.Variables.UID,reqMsg,'ZSS Flow Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.DFDL.stewardBank_CSV.record.CREDIT_THEIR_REFERENCE,outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+				PROPAGATE TO TERMINAL 'out';
+			END IF;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputRoot.DFDL = Environment.Variable.data;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SCP_ZSS_REQ';
+			PROPAGATE TO TERMINAL 'out';
+
+		ELSE
+
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG','..............Start Sending Data To T24 ...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG','ZSS Request::') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG',reqMsg) INTO rc;
+			END IF;
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.Variables.UID,reqMsg,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.DFDL.stewardBank_CSV.record.CREDIT_THEIR_REFERENCE,outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+				PROPAGATE TO TERMINAL 'out';
+			END IF;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputRoot.DFDL = Environment.Variable.data;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SCP_T24_REQ'; 
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
+
+			RETURN FALSE;
+		ELSE
+			RETURN FALSE; 
+		END CASE;
+	END; 
+END MODULE;
+
+
+CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_BuildException
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL BuildException();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE BuildException() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SalaryCorporatePayments';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'SalaryCorporatePayments');
+		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+		------------Error Logging in DB----------
+		IF IsLogRequired LIKE 'Y' THEN
+			-- CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.CurrencyConvertor.ErrorCode,outRefer);
+			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePayments.ErrorCode,outRefer);
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
+
+	END;
+END MODULE;
