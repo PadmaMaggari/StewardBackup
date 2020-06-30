@@ -1,0 +1,247 @@
+BROKER SCHEMA com.stewardbank.co.zw.salarycorporatepaymentst24call
+
+PATH  com.stewardbank.co.zw.common.esql; 
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE resQueueName EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE IsLogRequired EXTERNAL CHARACTER''; 
+DECLARE URL EXTERNAL CHARACTER''; 
+
+CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL RequestToT24();
+		RETURN FALSE;
+	END;
+
+	
+	CREATE PROCEDURE RequestToT24() BEGIN
+SET Environment.MQRFH2= InputRoot.MQRFH2;
+		DECLARE reqMsg,T24URL CHARACTER '';  
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inRef REFERENCE TO InputRoot;
+		DECLARE inRefer REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
+		DECLARE debitAccountId  CHARACTER inRefer.DEBIT_ACCOUNT; 
+		DECLARE debitCurrency  CHARACTER inRefer.CURRENNCY; 
+		DECLARE orderingCustomerName  CHARACTER inRefer.COMPANY; 
+		DECLARE paymentCurrency   CHARACTER inRefer.CURRENNCY; 
+		DECLARE transactionAmount   CHARACTER inRefer.AMOUNT; 
+		DECLARE executionDate   CHARACTER inRefer.DEBIT_DATE; 
+		DECLARE invoiceReference   CHARACTER inRefer.CREDIT_THEIR_REFERENCE; 
+		DECLARE creditAccountId    CHARACTER inRefer.CREDIT_ACCOUNT;  
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
+		DECLARE csvDate DATE CAST(inRefer.DEBIT_DATE AS DATE FORMAT 'yyyyMMdd'); 
+		SET Environment.Variables.FileName = InputRoot.MQRFH2.FileName;
+		SET Environment.Variables.Fields = 'TRANSACTION_TYPE, DEBIT_ACCOUNT, CURRENNCY, AMOUNT, CREDIT_ACCOUNT, COMPANY, DEBIT_DATE, CREDIT_DATE, CREDIT_THEIR_REFERENCE, NARRATION';
+		SET Environment.Variables.Amount = inRefer.AMOUNT;
+		SET Environment.Variables.Dbt_Acc = inRefer.DEBIT_ACCOUNT;
+		SET Environment.Variables.Crt_Acc = inRefer.CREDIT_ACCOUNT;
+		SET Environment.Variables.CsvDate = CAST(csvDate AS CHARACTER);
+		SET Environment.Variables.CreationDate = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
+		SET Environment.Variables.RRN = inRefer.CREDIT_THEIR_REFERENCE; 
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.DFDL,encodeRef,ccsid);
+		-- SET DBLogging Properties ==============
+		SET Environment.Variables.reqMsg = reqMsg;
+		SET Environment.Variables.UID = InputRoot.MQRFH2.UID; 
+		DECLARE Env REFERENCE TO Environment.Variables; 
+		SET Env.FileNameCheck = SUBSTRING(Environment.Variables.FileName FROM 1 FOR 2); 
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET T24URL  = URL||debitAccountId||'/'||debitCurrency||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||invoiceReference||'/'||creditAccountId; 
+		-- =================== CALLING DB RAW AUDIT LOGGING ==============
+		IF IsLogRequired LIKE 'Y' THEN
+			
+		CALL DBLogging(Environment.Variables.UID,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRefer.CREDIT_THEIR_REFERENCE,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q; 
+		PROPAGATE TO TERMINAL 'out1';
+			END IF; 
+			
+			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+			/* =================== CALLING LOG4J LOGGING  ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		SET Environment.Variables.data = InputRoot.DFDL; 
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','..............Start Salary & Corporate Payments T24 logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','Incoming Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG',reqMsg) INTO rc;
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','Generate T24 URL POST Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG',T24URL) INTO rc; 
+		END IF;
+		
+		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+		/*================DB Update=======================*/
+		IF Env.FileNameCheck LIKE 'PO' THEN
+			CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','',Environment.Variables.reqMsg,'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+			'','','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+		ELSE
+			CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','',Environment.Variables.reqMsg,'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+			'','','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+		END IF;
+		/*=============End===============*/
+		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Env.UID,T24URL,'T24  Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRefer.CREDIT_THEIR_REFERENCE,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;   
+		PROPAGATE TO TERMINAL 'out1'; 
+		END IF; 
+		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.DFDL = Environment.Variables.data;
+		--SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||debitAccountId||'/'||debitCurrency||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||invoiceReference||'/'||creditAccountId;   
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://192.168.1.233:8080/stwbc/api/v1.0.0/stwb/payments/salaries/1000000918/ZWL/ADAMS JAMES/ZWL/500.99/20200625/SALARYPAY/1000000805'; 
+		PROPAGATE TO TERMINAL 'out';  
+	END;
+END MODULE;
+CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChannel
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL GenereateResponseToChannel();
+		RETURN TRUE;
+	END;
+
+	
+
+	CREATE PROCEDURE GenereateResponseToChannel() BEGIN
+			DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		SET OutputRoot.Properties=InputRoot.Properties;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data; 
+		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data; 
+		DECLARE Env REFERENCE TO Environment.Variables;
+		SET Env.resMsg = getPayLoad(FIELDNAME(InputRoot.JSON.Data),domainDataRef,encodeRef,ccidRef); 
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;  
+		SET Env.data = inRef;  
+		CASE
+		WHEN inRef.header.status LIKE 'success' THEN 
+			---Success Case---
+			IF Env.FileNameCheck LIKE 'PO' THEN
+				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,'00','SUCCESS','','TRUE'); 
+			ELSE
+				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,'00','SUCCESS','','FALSE');
+			END IF;
+			---DB Logging---
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Env.UID,Env.resMsg,'T24 Success Response',ApplicationLabel,BrokerName,inRef.body.executionDate,inRef.body.executionDate,inRef.body.endToEndReference,outRefer);
+			END IF;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q; 
+			PROPAGATE TO TERMINAL 'out';
+			----------------------
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','..........Logging generated Response...............') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','T24 Response::') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+			END IF;
+			SET outRef = Env.data; 
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName; 
+			PROPAGATE TO TERMINAL 'out';
+		ELSE
+			---Failure Case---
+			IF Env.FileNameCheck LIKE 'PO' THEN
+				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,'','','','','FAILURE','','TRUE');
+			ELSE
+				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,'','','','','FAILURE','','FALSE');
+			END IF;
+			---Error DB Logging---
+			DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+			SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+			DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+			DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+			SET Environment.Variables.Date_Time = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
+			DECLARE Env REFERENCE TO Environment.Variables;
+			SET Env.data = InputRoot.JSON.Data; 
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL Error_DBLogging(Env.UID,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),
+				CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+			END IF;
+			SET OutputRoot.JSON.Data = NULL;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q; 
+			PROPAGATE TO TERMINAL 'out';
+			-------------------------------------
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','T24 Response:: FAILURE') INTO rc;
+			END IF;
+			SET OutputRoot.JSON.Data = Env.data;  
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName; 
+			PROPAGATE TO TERMINAL 'out'; 
+		END CASE;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
+	CREATE FUNCTION Main() RETURNS BOOLEAN 
+	BEGIN
+			DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SalaryCorporatePaymentsT24';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'SalaryCorporatePaymentsT24');
+		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+		------------Error Logging in DB----------
+		DECLARE Env REFERENCE TO Environment.Variables;
+		SET Environment.Variables.Date_Time = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsT24.ErrorCode,outRefer);
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q; 
+		PROPAGATE TO TERMINAL 'out'; 
+		----------------------------------
+		RETURN FALSE;
+	END;
+END MODULE;
+
+
+
+CREATE PROCEDURE INSERT_SB_ISAVE_PAYNET_TRX_TRACKING (IN PAYNET_GUID CHARACTER,IN PAYNET_STAN_NUM CHARACTER, IN PAYNET_STANDATE CHARACTER
+,IN PAYNET_RRN_REF CHARACTER,IN PAYNET_ISO_REQUEST_MSG CHARACTER,IN PAYNET_ISO_RESPONSE_CODE CHARACTER,IN PAYNET_CSV_FILENAME CHARACTER,IN PAYNET_CSV_FIELDS CHARACTER,IN PAYNET_CSV_AMOUNT CHARACTER,
+IN PAYNET_CSV_DTACCOUNT CHARACTER,IN PAYNET_CSV_CRACCOUNT CHARACTER,IN PAYNET_CSV_DTDATE CHARACTER,IN PAYNET_ISO_MSG CHARACTER,
+IN PAYNET_ISO_FT CHARACTER,IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_CSV_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP,IN PAYNET_TAXABLE CHARACTER)
+LANGUAGE DATABASE
+EXTERNAL NAME "INSERT_SB_ISAVE_PAYNET_TRX_TRACKING";
+
+
+
+CREATE PROCEDURE UPDATE_STATUS_SB_ISAVE(IN PAYNET_ID CHARACTER,IN PAYNET_STAN_NUM CHARACTER,IN PAYNET_STANDATE CHARACTER,IN PAYNET_RRN_REF CHARACTER,
+IN PAYNET_ISO_RESPONSE_CODE CHARACTER,IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_TAXABLE CHARACTER)
+LANGUAGE DATABASE
+EXTERNAL NAME "UPDATE_SB_ISAVE_STATUS";
