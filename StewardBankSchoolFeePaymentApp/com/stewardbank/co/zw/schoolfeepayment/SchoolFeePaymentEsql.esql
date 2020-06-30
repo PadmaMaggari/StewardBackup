@@ -1,23 +1,21 @@
-
-
-BROKER SCHEMA com.stewardbank.co.zw.currencyconverter
+BROKER SCHEMA com.stewardbank.co.zw.schoolfeepayment
 
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
-DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
-DECLARE URL EXTERNAL CHARACTER '';
-DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
-DECLARE IsLogRequired EXTERNAL CHARACTER'';
-CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER ''; 
+DECLARE IsLogRequired EXTERNAL CHARACTER '';
+DECLARE resQueueName EXTERNAL CHARACTER '';
+DECLARE URL EXTERNAL CHARACTER ''; 
+CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24 
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL GenerateReqToT24();
-		RETURN TRUE;
+		CALL CopyEntireMessage();
+		RETURN TRUE; 
 	END;
-	CREATE PROCEDURE GenerateReqToT24() BEGIN
-		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+	CREATE PROCEDURE CopyEntireMessage() BEGIN 
+				SET Environment.MQRFH2 = InputRoot.MQRFH2; 
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE rc BOOLEAN FALSE;
@@ -60,10 +58,10 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
 		SET Environment.Variables.ResponseQ = resQ;
 		SET Environment.Variables.HttpIp.ConnectionId = connId;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','..............Initializing CurrencyConverter logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','Request from Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','..............Initializing School Fee Payment logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','Request from Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		----------------------------------------------------------------
 		SET outRef = inRef;
@@ -82,21 +80,23 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
 		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
 		MOVE outRef TO OutputRoot.JSON;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','Request To T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','Request To T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL; 
 	END;
 END MODULE;
 
-CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
+
+
+CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion 
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL GenerateResToPostilion();
+		CALL CopyEntireMessage();
 		RETURN TRUE;
 	END;
-	CREATE PROCEDURE GenerateResToPostilion() BEGIN
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -115,7 +115,8 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE OutRef REFERENCE TO OutputRoot;
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
-		DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+			DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code"; 
+
 		SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot = NULL;
 		---------DBLogging------------
@@ -127,54 +128,26 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 		PROPAGATE TO TERMINAL 'out';
 		------------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','T24 Response::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','T24 Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
 		DECLARE OutRefer REFERENCE to OutputRoot.JSON.Data;
 		DECLARE Inrefer REFERENCE to InputRoot.JSON.Data.body;
-		IF domainName LIKE 'JSON' OR responceCode LIKE '200' THEN
+		IF domainName LIKE 'JSON' OR  responceCode LIKE  '200' THEN   
 			SET OutRefer.statusCode = '200';
 			SET OutRefer.message = 'SUCCESS';
 			SET OutRefer.responseBody.source = 'ESB';
-			SET OutRefer.responseBody.applicationName = 'Currency Converter';
-			DECLARE inRefData REFERENCE TO InputRoot.JSON.Data.body.Item;
-			DECLARE I INTEGER 1;
-			DECLARE mrksRef,mrkRef REFERENCE TO InputRoot.JSON.Data.body.Item[I];
-			CREATE LASTCHILD OF OutputRoot.JSON.Data.responseBody IDENTITY(JSON.Array)exchangeRatesResponses;
-			WHILE LASTMOVE(mrksRef) DO
-				IF EXISTS(mrksRef.markets.Item[])THEN
-					MOVE mrkRef TO mrksRef.markets.Item[1];
-					WHILE LASTMOVE(mrkRef) DO
-						IF mrkRef.buyRate <> '' OR mrkRef.buyRate IS NOT NULL THEN
-							SET OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item[I].currency = mrksRef.currencyId;
-							SET OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item[I].ccyname = mrksRef.displayName;
-							SET OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item[I].buyrate = mrkRef.buyRate;
-							SET OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item[I].sellrate = mrkRef.sellRate;
-							SET I = I + 1;
-						ELSE
-							SET OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item[I].currency = mrksRef.currencyId;
-							SET OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item[I].ccyname = mrksRef.displayName;
-							SET I = I + 1;
-						END IF;
-						MOVE mrkRef NEXTSIBLING;
-					END WHILE;
-				ELSE
-					SET OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item[I].currency = mrksRef.currencyId;
-					SET OutputRoot.JSON.Data.responseBody.exchangeRatesResponses.Item[I].ccyname = mrksRef.displayName;
-					SET I = I + 1;
-				END IF;
-				MOVE mrksRef NEXTSIBLING;
-			END WHILE;
+			SET OutRefer.responseBody.applicationName = 'SchoolFeePayment';
 		ELSE
 			SET OutRefer.statusCode = '000';
 			SET OutRefer.message = 'FAILURE';
 			SET OutRefer.responseBody.source = 'ESB';
-			SET OutRefer.responseBody.applicationName = 'Currency Converter';
+			SET OutRefer.responseBody.applicationName = 'SchoolFeePayment';
 		END IF;
 		DECLARE envref REFERENCE TO Environment.JSON.Data;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
@@ -187,70 +160,84 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 			CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',OutRef);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-
 		PROPAGATE TO TERMINAL 'out';
 		----------------------
 		SET OutputRoot.Properties=InputRoot.Properties;
-		SET OutputRoot.Properties = Environment.Properties;
+		SET OutputRoot.Properties = Environment.Properties; 
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
 		SET OutputRoot.JSON.Data=envref;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','CurrencyConvertor Response To Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',Environment.jsonData) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','CurrencyConvertor Response To Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',Environment.jsonData) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 	END;
 END MODULE;
 
 
-
-CREATE COMPUTE MODULE CurrencyConverter_CaptureException
+CREATE COMPUTE MODULE SchoolFeePaymentFlow_CaptureException 
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL BuildErrorMsg();
-
-		RETURN FALSE;
+		 CALL BuildErrorMsg();
+		RETURN TRUE;
 	END;
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;     
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'CurrencyConverter';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SchoolFeePayment';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'CurrencyConverter');
+		CALL BuildExceptionDetails(excpRef,outRef,'SchoolFeePayment');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-		SET Environment.MQRFH2.usr.Id = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER);
-		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
+		/* =================== CALLING LOG4J LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
-		------------Error Logging in DB----------
+		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+		/* =================== CALLING DB LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),
-			CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.CurrencyConverter.ErrorCode,outRefer);
+			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SchoolFeePayment.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;   
 		PROPAGATE TO TERMINAL 'out';
+		/* =================== CALLING DB LOGGING ENDING  ==============*/
 		----------------------------------
-	END;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		DECLARE outJsonRef REFERENCE TO OutputRoot.JSON.Data;
+		SET outJsonRef.statusCode = '000';
+		SET outJsonRef.message = 'FAILURE';
+		SET outJsonRef.responseBody.source = 'ESB';
+		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.SchoolFeePayment);
+		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.SchoolFeePayment.ErrorCode;
+		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.SchoolFeePayment.ErrorType;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+		/* =================== CALLING LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','End of Logging Application Related Exception') INTO rc;
+		END IF;
+		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+		PROPAGATE TO TERMINAL 'out1';
+		----------------------------------
+		END;
 END MODULE;
