@@ -129,7 +129,7 @@ CREATE COMPUTE MODULE AirtimePurchase_GenerateResToPostilion
 		--field to field mapping
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
 		CALL FieldToFieldMapping(inRef,outRef,'','',posRef);
-		SET Environment.dfdlData = OutputRoot.DFDL;
+		SET Environment.dfdlData = OutputRoot.DFDL;  
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
