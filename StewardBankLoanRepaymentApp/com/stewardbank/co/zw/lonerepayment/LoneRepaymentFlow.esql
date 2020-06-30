@@ -7,15 +7,17 @@ DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
-CREATE COMPUTE MODULE LoneRepaymentFlow_T24_Zss
+DECLARE ZSS_Q EXTERNAL CHARACTER'';
+DECLARE T24_Q EXTERNAL CHARACTER'';
+CREATE COMPUTE MODULE LoneRepaymentFlow_AccountAvalilabilityCheck
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL T24_ZssRequest();
+		CALL AccountAvalilabilityCheck();
 		RETURN FALSE;
 	END;
 
 
-	CREATE PROCEDURE T24_ZssRequest() BEGIN
+	CREATE PROCEDURE AccountAvalilabilityCheck() BEGIN
 		SET Environment.MQRFH2= InputRoot.MQRFH2;
 		SET Environment.Variable.data = InputRoot.JSON.Data;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
@@ -68,7 +70,7 @@ CREATE COMPUTE MODULE LoneRepaymentFlow_T24_Zss
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 			SET OutputRoot.JSON.Data = Environment.Variable.data;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SB_LRP_ZSS_REQ';
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ZSS_Q;
 			PROPAGATE TO TERMINAL 'out';
 
 		ELSE
@@ -86,7 +88,7 @@ CREATE COMPUTE MODULE LoneRepaymentFlow_T24_Zss
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 			SET OutputRoot.JSON.Data = Environment.Variable.data;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SB_LRP_T24_REQ';
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = T24_Q;
 			PROPAGATE TO TERMINAL 'out';
 		END IF;
 
