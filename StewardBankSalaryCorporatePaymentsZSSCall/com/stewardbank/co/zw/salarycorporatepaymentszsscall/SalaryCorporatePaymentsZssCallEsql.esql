@@ -1,9 +1,5 @@
 BROKER SCHEMA com.stewardbank.co.zw.salarycorporatepaymentszsscall
-
-
-
 PATH com.stewardbank.co.zw.common.esql;
-
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE resQueueName EXTERNAL CHARACTER '';
@@ -12,15 +8,12 @@ DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
-
 CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL RequestToZss();
 		RETURN FALSE;
 	END;
-
-
 	CREATE PROCEDURE RequestToZss() BEGIN
 		SET Environment.MQRFH2= InputRoot.MQRFH2;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
@@ -34,8 +27,6 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		DECLARE destinationPhone CHARACTER 'DestinationPhone';
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
-		-- SET UUID = UUIDASCHAR;
-		--SET Environment.Variables.UID = UUID;
 		SET Environment.Variables.UID = InputRoot.MQRFH2.UID;
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccsid);
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
@@ -44,8 +35,8 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.Variables.UID,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.CREDIT_THEIR_REFERENCE,outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			CALL DBLogging(Environment.Variables.UID,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q; 
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
@@ -71,11 +62,10 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		SET Environment.Variables.RRN = inRef.CREDIT_THEIR_REFERENCE;
 		DECLARE Env REFERENCE TO Environment.Variables;
 		SET Env.FileNameCheck = SUBSTRING(Environment.Variables.FileName FROM 1 FOR 2);
-
 		DECLARE tiime CHARACTER;
 		DECLARE str CHARACTER;
 		DECLARE CREDIT_DATE TIME;
-		SET tiime = CURRENT_TIME;
+		SET tiime = CURRENT_TIME;---yyyy-MM-dd HH:mm:ss----
 		SET str = SUBSTRING(tiime FROM 7 FOR 2)||SUBSTRING(tiime FROM 10 FOR 2)||SUBSTRING(tiime FROM 13 FOR 2);
 		SET CREDIT_DATE = CAST(str AS TIME FORMAT 'HHmmss');
 		--mapping field to field CSV to ISO8583
@@ -91,21 +81,21 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		SET outRef.MTI_MessageFunction='0';
 		SET outRef.MTI_MessageOrigin='0';
 		IF Env.FileNameCheck LIKE 'PM' THEN
-			SET outRef.ProcessingCode_003 = '410000';
+			SET outRef.ProcessingCode_003 = '410000'; 
 		ELSE
 			SET outRef.ProcessingCode_003 = '420000';
 		END IF;
-		SET outRef.AmountTransaction_004 = inRef.AMOUNT; --4
-		SET outRef.TransmissionDatetime_007 = inRef.DEBIT_DATE||debitDate; -- CSV Field 7
-		SET outRef.TimeLocalTransaction_012 = CREDIT_DATE; -- CSV Field 8
-		--SET outRef.DateLocalTransaction_013 = SUBSTRING(inRef.CREDIT_DATE FROM 5 FOR 4); -- CSV Field 8
-		--SET outRef.DateSettlement_015 = SUBSTRING(inRef.CREDIT_DATE FROM 5 FOR 4); -- CSV Field 8
-		SET outRef.RetrievalReferenceNumber_037 = SUBSTRING(inRef.CREDIT_THEIR_REFERENCE FROM 1 FOR 12); -- CSV Field 9
-		SET outRef.CardAcceptorNameLocation_043 = inRef.NARRATION||narration; -- CSV Field 10
-		SET outRef.CurrencyCodeTransaction_049 = inRef.CURRENNCY; -- CSV Field 3
-		SET outRef.AccountIdentification1_102 = inRef.CREDIT_ACCOUNT; -- CSV Field 5
-		SET outRef.AccountIdentification2_103 = inRef.DEBIT_ACCOUNT; -- CSV Field 2
-		SET outRef.TransactionDescription_104 = inRef.TRANSACTION_TYPE; -- CSV Field 1
+		SET outRef.AmountTransaction_004 = inRef.Amount; 
+		--SET outRef.TransmissionDatetime_007 = inRef.Date||debitDate; 
+		SET outRef.TransmissionDatetime_007 = inRef.Date; 
+		SET outRef.DateLocalTransaction_013 = SUBSTRING(inRef.Date FROM 5 FOR 4); --29-06-2020
+		SET outRef.CurrencyCodeTransaction_049 = inRef.Currency; 
+		SET outRef.AccountIdentification1_102 = inRef.Remitter_Account_Number; 
+		SET outRef.AccountIdentification2_103 = inRef.Beneficiary_Account_Number;
+		SET outRef.TransactionDescription_104 = inRef.Tran_ID; 
+		SET outRef.ReservedPrivate_127 = inRef.Purpose||','||inRef.Remitter_Name; 
+		--SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.destinationPhone;
+		SET outRef.SwitchKeyPostilionPrivate_127_2 = inRef.Beneficiary_Bank_Name||','||inRef.Beneficiary_Bank_Code||','||inRef.Beneficiary_Account_Number||','||inRef.Beneficiary_Name; 
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);
@@ -113,7 +103,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		SET OutputRoot.DFDL = NULL;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.Variables.UID,Environment.Variables.resMsg,'ZSS Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),outRef.RetrievalReferenceNumber_037,outRefer);
+			CALL DBLogging(Environment.Variables.UID,Environment.Variables.resMsg,'ZSS Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;

@@ -37,7 +37,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.Variables.UID,reqMsg,'FTP Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.DFDL.stewardBank_CSV.record.CREDIT_THEIR_REFERENCE,outRefer); 
+			CALL DBLogging(Environment.Variables.UID,reqMsg,'FTP Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.DFDL.stewardBank_CSV.record.Purpose,outRefer); 
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out';
 		END IF;
@@ -45,7 +45,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 		/*=================== CALLING LOG4j LOGGING ==============*/
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG; 
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG','..............Start T24 or Zss logging...........') INTO rc;
@@ -56,7 +56,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 		/* ============== CALL ISAVE DB LOOKUP ===================== */
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
 		--DECLARE CreditAccount CHARACTER InputRoot.DFDL.stewardBank_CSV.CREDIT_ACCOUNT;
-		DECLARE CreditAccount CHARACTER InputRoot.DFDL.stewardBank_CSV.record.CREDIT_ACCOUNT;
+		DECLARE CreditAccount CHARACTER InputRoot.DFDL.stewardBank_CSV.record.Beneficiary_Account_Number; 
 		CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',CreditAccount) INTO rc;
 		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(CreditAccount));
 		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
@@ -67,7 +67,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG',reqMsg) INTO rc; 
 			END IF;
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(Environment.Variables.UID,reqMsg,'ZSS Flow Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.DFDL.stewardBank_CSV.record.CREDIT_THEIR_REFERENCE,outRefer);
+				CALL DBLogging(Environment.Variables.UID,reqMsg,'ZSS Flow Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.DFDL.stewardBank_CSV.record.Purpose,outRefer);
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 				PROPAGATE TO TERMINAL 'out';
 			END IF;
@@ -85,7 +85,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG',reqMsg) INTO rc;
 			END IF;
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(Environment.Variables.UID,reqMsg,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.DFDL.stewardBank_CSV.record.CREDIT_THEIR_REFERENCE,outRefer);
+				CALL DBLogging(Environment.Variables.UID,reqMsg,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.DFDL.stewardBank_CSV.record.Purpose,outRefer);
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 				PROPAGATE TO TERMINAL 'out';
 			END IF;
