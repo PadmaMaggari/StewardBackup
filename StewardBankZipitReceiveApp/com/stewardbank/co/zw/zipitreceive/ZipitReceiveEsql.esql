@@ -22,7 +22,7 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateReqToT24
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
-		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+				SET Environment.MQRFH2 = InputRoot.MQRFH2; 
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -56,7 +56,7 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateReqToT24
 		SET Environment.Variables.ResponseQ = resQ;
 		SET Environment.Variables.TcpIp.ConnectionId = connId;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','..............Initializing ZipitReceive  logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','..............Initializing Zipit Receive logging...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','..............ISO Message parsed successfully...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Request from Postilion::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
@@ -73,6 +73,7 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateReqToT24
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
+		
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Request To T24::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
@@ -104,10 +105,10 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateResToPostilion
 	END;
 	CREATE PROCEDURE GenerateResToPostilion() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		SET Environment.Properties = InputRoot.Properties;
 		SET Environment.MQMD = InputRoot.MQMD;
@@ -117,31 +118,31 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateResToPostilion
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		SET Environment.Variables.resData	= getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET Environment.Variables.resData = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		-----------DBLogging------------
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.resData,'T24 Response',ApplicationLabel,BrokerName,inRef.SystemsTraceAuditNumber_011,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
+			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.resData,'T24 Response',ApplicationLabel,BrokerName,inRef.SystemsTraceAuditNumber_011,inRef.DateLocalTransaction_013,inRef.RetrievalReferenceNumber_037,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.resData = OutputRoot.JSON.Data;
 		PROPAGATE TO TERMINAL 'out';
-		-------------------- 
+		--------------------
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','T24 Response::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','TCPIP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','T24 Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','TCPIP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		--field to field mapping
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
 		CALL FieldToFieldMapping(inRef,outRef,'','',posRef);
-		SET Environment.dfdlData = OutputRoot.DFDL;
+		SET Environment.dfdlData = OutputRoot.DFDL;  
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET OutputRoot.DFDL = NULL;
@@ -152,9 +153,9 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateResToPostilion
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		SET OutputRoot.DFDL = Environment.dfdlData;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Bill Payments Response To Postilion::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','TCPIP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Airtieme Purchase Response To Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','TCPIP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 		PROPAGATE TO TERMINAL 'out';
@@ -177,11 +178,11 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_CaptureException
 	END;
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE rc BOOLEAN FALSE;
+		SET Environment.Variables.Id = COALESCE(InputRoot.MQRFH2.usr.Id,Environment.MQRFH2.usr.Id,'');
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		SET Environment.Variables.Id = COALESCE(InputRoot.MQRFH2.usr.Id,Environment.MQRFH2.usr.Id,'');
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
@@ -195,20 +196,20 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_CaptureException
 		CALL BuildExceptionDetails(excpRef,outRef,'ZipitReceive');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
-		------------Error  Logging in DB----------
+		------------Error Logging in DB----------
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL Error_DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ZipitReceive.ErrorCode,outRefer);
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+			CALL Error_DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ZipitReceive.ErrorCode,outRefer);
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q; 
-		PROPAGATE TO TERMINAL 'out'; 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;  
+		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
-		END;
+	END;
 END MODULE;

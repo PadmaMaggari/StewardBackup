@@ -258,7 +258,7 @@ CREATE COMPUTE MODULE CurrencyConverter_CaptureException
 		SET outJsonRef.responseBody.source = 'ESB';
 		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.CurrencyConverter);
 		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CurrencyConverter.ErrorCode;
-		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.CurrencyConverter.ErrorType;
+		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.CurrencyConverter.ErrorType; 
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 		/* =================== CALLING LOG4J LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
