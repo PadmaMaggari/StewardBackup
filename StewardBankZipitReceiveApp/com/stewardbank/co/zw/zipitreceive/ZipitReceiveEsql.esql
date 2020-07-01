@@ -60,7 +60,7 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','..............ISO Message parsed successfully...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Request from Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc; 
 		END IF;
 		--field to field mapping
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
@@ -75,9 +75,9 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateReqToT24
 		CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.resMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','Request To T24::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc; 
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Request To T24::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc; 
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
