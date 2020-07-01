@@ -30,12 +30,23 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		SET Environment.Variables.UID = InputRoot.MQRFH2.UID;
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccsid);
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
+		DECLARE csvDate DATE CAST(inRef.DEBIT_DATE AS DATE FORMAT 'yyyyMMdd');
+		SET Environment.Variables.FileName = InputRoot.MQRFH2.FileName;
+		SET Environment.Variables.Fields = 'TRANSACTION_TYPE, DEBIT_ACCOUNT, CURRENNCY, AMOUNT, CREDIT_ACCOUNT, COMPANY, DEBIT_DATE, CREDIT_DATE, CREDIT_THEIR_REFERENCE, NARRATION';
+		SET Environment.Variables.Amount = inRef.AMOUNT;
+		SET Environment.Variables.Dbt_Acc = inRef.DEBIT_ACCOUNT;
+		SET Environment.Variables.Crt_Acc = inRef.CREDIT_ACCOUNT;
+		SET Environment.Variables.CsvDate = CAST(csvDate AS CHARACTER);
+		SET Environment.Variables.CreationDate = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
+		SET Environment.Variables.RRN = inRef.Purpose;
+		DECLARE Env REFERENCE TO Environment.Variables;
+		SET Env.FileNameCheck = SUBSTRING(Environment.Variables.FileName FROM 1 FOR 2); 
 		-- SET DBLogging Properties ==============
 		SET Environment.Variables.reqMsg = reqMsg;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.Variables.UID,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+			CALL DBLogging(Environment.Variables.UID,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),Env.RRN,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q; 
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -51,17 +62,6 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
-		DECLARE csvDate DATE CAST(inRef.DEBIT_DATE AS DATE FORMAT 'yyyyMMdd');
-		SET Environment.Variables.FileName = InputRoot.MQRFH2.FileName;
-		SET Environment.Variables.Fields = 'TRANSACTION_TYPE, DEBIT_ACCOUNT, CURRENNCY, AMOUNT, CREDIT_ACCOUNT, COMPANY, DEBIT_DATE, CREDIT_DATE, CREDIT_THEIR_REFERENCE, NARRATION';
-		SET Environment.Variables.Amount = inRef.AMOUNT;
-		SET Environment.Variables.Dbt_Acc = inRef.DEBIT_ACCOUNT;
-		SET Environment.Variables.Crt_Acc = inRef.CREDIT_ACCOUNT;
-		SET Environment.Variables.CsvDate = CAST(csvDate AS CHARACTER);
-		SET Environment.Variables.CreationDate = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
-		SET Environment.Variables.RRN = inRef.CREDIT_THEIR_REFERENCE;
-		DECLARE Env REFERENCE TO Environment.Variables;
-		SET Env.FileNameCheck = SUBSTRING(Environment.Variables.FileName FROM 1 FOR 2);
 		DECLARE tiime CHARACTER;
 		DECLARE str CHARACTER;
 		DECLARE CREDIT_DATE TIME;
@@ -86,14 +86,14 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 			SET outRef.ProcessingCode_003 = '420000';
 		END IF;
 		SET outRef.AmountTransaction_004 = inRef.Amount; 
-		--SET outRef.TransmissionDatetime_007 = inRef.Date||debitDate; 
-		SET outRef.TransmissionDatetime_007 = inRef.Date; 
-		SET outRef.DateLocalTransaction_013 = SUBSTRING(inRef.Date FROM 5 FOR 4); --29-06-2020
+		SET outRef.TransmissionDatetime_007 = inRef.Date||debitDate; 
+		--SET outRef.TransmissionDatetime_007 = inRef.Date; 
+		SET outRef.DateLocalTransaction_013 = SUBSTRING(inRef.Date FROM 5 FOR 4); --29-06-2020 
 		SET outRef.CurrencyCodeTransaction_049 = inRef.Currency; 
 		SET outRef.AccountIdentification1_102 = inRef.Remitter_Account_Number; 
 		SET outRef.AccountIdentification2_103 = inRef.Beneficiary_Account_Number;
 		SET outRef.TransactionDescription_104 = inRef.Tran_ID; 
-		SET outRef.ReservedPrivate_127 = inRef.Purpose||','||inRef.Remitter_Name; 
+		SET outRef.ReservedPrivate_127 = SUBSTRING(inRef.Purpose||','||inRef.Remitter_Name FROM 1 FOR 6);  
 		--SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.destinationPhone;
 		SET outRef.SwitchKeyPostilionPrivate_127_2 = inRef.Beneficiary_Bank_Name||','||inRef.Beneficiary_Bank_Code||','||inRef.Beneficiary_Account_Number||','||inRef.Beneficiary_Name; 
 		CALL UpdateMsgWithAsciiBitMap(outRef);
@@ -103,7 +103,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		SET OutputRoot.DFDL = NULL;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.Variables.UID,Environment.Variables.resMsg,'ZSS Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+			CALL DBLogging(Environment.Variables.UID,Environment.Variables.resMsg,'ZSS Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),Env.RRN,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -139,7 +139,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GenereateResponseToChannel();
-		RETURN FALSE;
+		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenereateResponseToChannel() BEGIN
 		DECLARE rc BOOLEAN FALSE;
@@ -170,7 +170,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel
 			END IF;
 			---DB Logging---
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(Env.UID,Env.resMsg,'ZSS Success Response',ApplicationLabel,BrokerName,inRef.DateSettlement_015,inRef.TransmissionDatetime_007,inRef.RetrievalReferenceNumber_037,outRefer);
+				CALL DBLogging(Env.UID,Env.resMsg,'ZSS Success Response',ApplicationLabel,BrokerName,inRef.DateSettlement_015,inRef.TransmissionDatetime_007,Env.RRN,outRefer);
 			END IF;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
@@ -182,8 +182,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 			END IF;
 			SET OutputRoot.DFDL = Env.data; 
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
-			PROPAGATE TO TERMINAL 'out';
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName; 
 		ELSE
 			---Failure Case---
 			IF Env.FileNameCheck LIKE 'PO' THEN
@@ -213,8 +212,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','T24 Response:: FAILURE') INTO rc;
 			END IF;
 			SET OutputRoot.DFDL = Env.data; 
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
-			PROPAGATE TO TERMINAL 'out';
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName; 
 		END CASE;
 	END;
 END MODULE;
@@ -255,10 +253,9 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_BuildException
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
-		RETURN FALSE;
+		RETURN FALSE; 
 	END;
 END MODULE;
-
 
 
 
