@@ -52,7 +52,7 @@ CREATE COMPUTE MODULE LoneRepaymentFlow_AccountAvalilabilityCheck
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 		/* ============== CALL ISAVE DB LOOKUP ===================== */
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
-		DECLARE CreditAccount CHARACTER InputRoot.JSON.Data.creditAccountNumbe;
+		DECLARE CreditAccount CHARACTER InputRoot.JSON.Data.creditAccountNumber;
 
 		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(CreditAccount));
 		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
