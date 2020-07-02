@@ -152,7 +152,6 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		SET OutputRoot.Properties=InputRoot.Properties;
@@ -164,7 +163,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		DECLARE Env REFERENCE TO Environment.Variables;
-		SET Env.resMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccidRef);
+		SET Env.resMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		SET Env.data = InputRoot.DFDL;
 		CASE
@@ -186,7 +185,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','ZSS Response::') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG',Env.resMsg) INTO rc;
 			END IF;
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
@@ -213,7 +212,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL Error_DBLogging(Env.UID,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),
 				CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
-				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 			END IF;
 			SET OutputRoot.DFDL = NULL;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
@@ -252,7 +251,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_BuildException
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';

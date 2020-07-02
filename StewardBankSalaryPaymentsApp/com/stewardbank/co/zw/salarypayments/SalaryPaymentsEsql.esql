@@ -164,7 +164,7 @@ CREATE COMPUTE MODULE csv_Compute
 			END IF;
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..............End SALARYPAYMENTS  ReqToT24 logging...........') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',Environment.Variables.msg) INTO rc;
 			END IF;
 			PROPAGATE TO TERMINAL 'out1';
 			-- IF EXISTS (Env.FileNameCheck LIKE 'PO') OR (Env.FileNameCheck LIKE 'PM') THEN
@@ -188,7 +188,6 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		SET OutputRoot.Properties=InputRoot.Properties;
@@ -227,10 +226,11 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 				----------------------
 				CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987') ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 				DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+				SET Environment.Variables.resMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..........Logging generated Response...............') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','ZSS Response::') INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 				END IF;
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 				PROPAGATE TO TERMINAL 'out';
@@ -252,7 +252,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),
 					CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
-					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 				END IF;
 				SET OutputRoot.DFDL = NULL;
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
@@ -286,7 +286,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','..........Logging generated Response...............') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG','T24 Response::') INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryPayments', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 				END IF;
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 				PROPAGATE TO TERMINAL 'out';
@@ -308,7 +308,7 @@ CREATE COMPUTE MODULE ZSSorT24_StatusUpdate_Compute
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),
 					CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
-					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 				END IF;
 				SET OutputRoot.DFDL = NULL;
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
@@ -347,7 +347,7 @@ CREATE COMPUTE MODULE SalaryPaymentsFlow_ExceptionCapture
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
@@ -356,7 +356,7 @@ CREATE COMPUTE MODULE SalaryPaymentsFlow_ExceptionCapture
 		SET Environment.Variables.Date_Time = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryPayments.ErrorCode,outRefer);
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
