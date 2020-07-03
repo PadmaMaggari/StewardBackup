@@ -36,7 +36,7 @@ CREATE PROCEDURE t24ResponseFrame() BEGIN
 		IF version||class||funct||origin = '0800' OR version||class||funct||origin = '0801' THEN
 			SET sql= 'SELECT RESPONSE FROM T24RESPONSE WHERE PCODE=80'; 
 		ELSE
-			SET sql= 'SELECT RESPONSE FROM T24RESPONSE WHERE PCODE='||refProcessingCode; 
+			SET sql= 'SELECT RESPONSE FROM T24RESPONSE WHERE PCODE='''||refProcessingCode||''''; 
 		END IF;
 		 SET OutputRoot.Properties = InputRoot.Properties;
 		 SET Response.ROW[]=PASSTHRU(sql); 
