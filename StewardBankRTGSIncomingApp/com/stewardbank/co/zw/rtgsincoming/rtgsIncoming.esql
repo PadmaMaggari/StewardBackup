@@ -2,14 +2,14 @@
 Author:Swathi
 Version:0.0.1
 Date of Creation:16-05-2020
-Date of Modification:6-06-2020
+Date of Modification:3-07-2020
 Description:Pick file from remote location and based on the account send request to t24 or zss.
 			If it is t24 account then send MT103 else send ISO8583 to ZSS.
  			
 */
 BROKER SCHEMA com.stewardbank.co.zw.rtgsincoming
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,RTGS_INCOMING_SB_Q,IsLogRequired,Url EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,RTGS_INCOMING_SB_Q,IsLogRequired,BackendT24Url EXTERNAL CHARACTER '';
 DECLARE UUID SHARED CHARACTER '';
 
 
@@ -82,7 +82,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 	*/
 	CREATE PROCEDURE GeneratingReqToT24orZSS() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-		DECLARE reqMsg,Str CHARACTER ;
+		DECLARE reqMsg,RtgsIncomingUrlPathparameters CHARACTER ;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
@@ -155,11 +155,11 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 		  SET outRef.narrative = narrative;
 		  SET outRef.invoiceReference = invoiceReference;
 		 -- Appending path parameters to stiring--
-		  SET Str = drAcctId||'/'||debitCurrency||'/'||ordCustomerName||'/'||debitCurrency||'/'||transactionAmount||'/'||exeDate||'/'||narrative||'/'||invoiceReference;
+		  SET RtgsIncomingUrlPathparameters = drAcctId||'/'||debitCurrency||'/'||ordCustomerName||'/'||debitCurrency||'/'||transactionAmount||'/'||exeDate||'/'||narrative||'/'||invoiceReference;
 		  SET reqMsg = getPayLoad(FIELDNAME(outRef),outRef,encodeRef,ccidRef);
 		 --******************Insertingvalues into ISAVE table with T24 Request Message ************
 			CALL insertIntoSbIsaveTable(UUID,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',Environment.File.Name,'',transactionAmount,drAcctId,crAcctId,exeDate,reqMsg,'','','',Environment.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'');
-			 SET OutputLocalEnvironment.Destination.HTTP.RequestURL = Url||Str ;
+			 SET OutputLocalEnvironment.Destination.HTTP.RequestURL = BackendT24Url||RtgsIncomingUrlPathparameters ;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming  ReqToPostilion logging...........') INTO rc;
@@ -173,27 +173,28 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
 	END;
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
+		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader.{'X-Original-HTTP-Status-Code'};
 		--DECLARE inDomain REFERENCE TO InputRoot.DFDL;
 		DECLARE rc BOOLEAN FALSE;
 --		DECLARE status CHARACTER 'SUCCESS';
-		DECLARE id CHARACTER Environment.Guid;
+		DECLARE Guid CHARACTER Environment.Guid;
+		
 		
 		--***************Updating Database with Zss/T24 Status and Response codes***********************
 		CASE
 		WHEN FIELDNAME(InputRoot.JSON) IS NOT NULL THEN
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
---			 IF (InputRoot.HTTPResponseHeader.X-Original-HTTP-Status-Code = 200) THEN
---			 	CALL UpdateDBStatus(id,'SUCCESS',' ',' ','T24');
---			 ELSE
---			 	CALL UpdateDBStatus(id,'FALUIRE',' ',' ','T24');
---			 END IF;
-			CALL UpdateDBStatus(id,'SUCCESS',' ',' ','T24');
-		WHEN FIELDNAME(InputRoot.DFDL.ISO8583_1987) IS NOT NULL THEN
+			 IF (Environment.Variables.Statuscode = 200) THEN
+			 	CALL UpdateDBStatus(Guid,'SUCCESS',Environment.Variables.Statuscode,' ','T24');
+			 ELSE
+			 	CALL UpdateDBStatus(Guid,'FALUIRE',Environment.Variables.Statuscode,' ','T24');
+			 END IF;
+			WHEN FIELDNAME(InputRoot.DFDL.ISO8583_1987) IS NOT NULL THEN
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating ZSS Status in Database**********') INTO rc;
 			IF(InputRoot.ISO8583_1987.ResponseCode_039 LIKE '00')  THEN
-				CALL UpdateDBStatus(id,'SUCCESS',CAST(InputRoot.DFDL.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(InputRoot.DFDL.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ISO');
+				CALL UpdateDBStatus(Guid,'SUCCESS',CAST(InputRoot.DFDL.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(InputRoot.DFDL.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS');
 			ELSE
-				CALL UpdateDBStatus(id,'FAILURE',CAST(InputRoot.DFDL.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(InputRoot.DFDL.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ISO');
+				CALL UpdateDBStatus(Guid,'FAILURE',CAST(InputRoot.DFDL.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(InputRoot.DFDL.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS');
 			END IF;
 		END CASE;
 		SET OutputRoot = InputRoot;
