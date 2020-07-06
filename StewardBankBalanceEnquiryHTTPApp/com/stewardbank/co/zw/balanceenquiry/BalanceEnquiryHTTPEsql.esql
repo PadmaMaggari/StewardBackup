@@ -201,7 +201,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 		--------------DBLogging-------------------
 		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,'','','',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
+		PROPAGATE TO TERMINAL 'out';
 		-----------------------------
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Postilion Response::') INTO rc;
