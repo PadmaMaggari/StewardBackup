@@ -204,7 +204,7 @@ BEGIN
 			SET is127FieldExists = TRUE;
 		END IF;
 		IF FIELDVALUE(field127Ref1)= '1' THEN
-			SET outRef.SecondaryBitmap.Bit127 = 1;
+			SET outRef.SecondaryBitmap.Bit127 = 0;
 		END IF;
 	END IF;
 	IF FIELDNAME(inputRef.PrimaryAccountNumber_002) is NOT NULL THEN
@@ -592,7 +592,7 @@ BEGIN
 		SET outRef.ReservedPrivate_126= inputRef.ReservedPrivate_126;
 	END IF;
 	IF EXISTS(posRef.PostilionBitmap.*[]) AND STARTSWITH(FIELDNAME(posRef.PostilionBitmap.*[1]),'Bit') THEN
-		CALL postilionDataMapping(is127FieldExists,posRef,outRef,errCode,inParam);
+		--CALL postilionDataMapping(is127FieldExists,posRef,outRef,errCode,inParam);
 	ELSE
 		CALL postilionDataMapping(is127FieldExists,inputRef,outRef,errCode,inParam);
 	END IF;
