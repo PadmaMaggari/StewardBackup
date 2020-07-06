@@ -1,0 +1,115 @@
+BROKER SCHEMA com.stewardbank.co.zw.rtgsincoming
+PATH com.stewardbank.co.zw.common.esql;
+
+CREATE COMPUTE MODULE rtgsIncomingZssFlow_GeneratingReqToZss
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET OutputRoot.Properties = InputRoot.Properties;
+		 CALL GeneratingZssReq();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE GeneratingZssReq()
+	 BEGIN
+		DECLARE rc BOOLEAN ;
+		SET Environment.Variables = InputRoot.MQRFH2 ;
+		 DECLARE envRef REFERENCE TO Environment.Variables;
+		DECLARE reqMsg CHARACTER ;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF (rc = FALSE) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Framing Zss Request...........') INTO rc;
+		END IF;
+		--mapping mt103 to iso8583
+			SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
+			SET OutputRoot.Properties.MessageType = '{}: ISO8583_1987';
+			CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
+			CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+			SET outRef.MTI_Version = 0;
+			SET outRef.MTI_MessageClass = 2;
+			SET outRef.MTI_MessageFunction = 0;
+			SET outRef.MTI_MessageOrigin = 0;
+			SET outRef.AmountTransaction_004 = CAST(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 10) AS DECIMAL);
+			SET outRef.CurrencyCodeTransaction_049 = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 1 FOR 3);
+			SET outRef.AccountIdentification1_102 = envRef.drAcctId;
+			SET outRef.AccountIdentification2_103 = envRef.crAcctId;
+			CALL UpdateMsgWithAsciiBitMap(outRef);
+			SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef);
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Account Exixts in ZSS **********') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','**************Zss Request Message **********') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
+			 --******************Inserting ISAVE table with ZSS Request Message ************
+				CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'');
+		END;
+		END MODULE;
+CREATE COMPUTE MODULE rtgsIncomingZssFlow_UpdateDatabaseStatus
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL UpdateDatabaseStatus();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
+		SET OutputRoot.Properties = InputRoot.Properties;
+		DECLARE inDomain REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE Guid CHARACTER Environment.Variables.Guid;
+		--***************Updating Database with Zss/T24 Status and Response codes***********************
+		IF FIELDNAME(inDomain) IS NOT NULL THEN
+			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating ZSS Status in Database**********') INTO rc;
+			IF(inDomain.ResponseCode_039 LIKE '00')  THEN
+				CALL UpdateDBStatus(Guid,'SUCCESS',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS');
+			ELSE
+				CALL UpdateDBStatus(Guid,'FAILURE',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS');
+			END IF;
+		END IF;
+		SET OutputRoot = InputRoot;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RTGS_INCOMING_SB_Q;
+	END;
+END MODULE;
+CREATE COMPUTE MODULE rtgsIncomingZssFlow_GenerateExceptionDetails
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET OutputRoot.Properties = InputRoot.Properties;
+		CALL BuildErrorMsg();
+		RETURN FALSE;
+	END;
+	CREATE PROCEDURE BuildErrorMsg() BEGIN
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF (rc = FALSE) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Start RTGSIncoming Exception logging...........') INTO rc;
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE exe_Desc CHARACTER'';  
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'RTGSIncoming';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;    
+		CALL BuildExceptionDetails(excpRef,outRef,'RTGSIncoming');
+		SET Environment.userDefineError = OutputRoot.XMLNSC;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SB_EXCQ ;
+		PROPAGATE TO TERMINAL 'out';
+				-- DB Logging===================
+		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
+		CALL Error_DBLogging(Environment.Variables.Guid,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.RTGSIncoming.ErrorCode,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............End RTGSIncoming Exception logging...........') INTO rc;
+	END;
+END MODULE;
+
+	
