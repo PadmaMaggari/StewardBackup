@@ -229,7 +229,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 		--------------DBLogging-------------------
 		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Response to Backend',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
+		PROPAGATE TO TERMINAL 'out';
 		-----------------------------
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
