@@ -21,14 +21,14 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.IsLogRequired" name="IsLogRequired" defaultValueLiteral="Y">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.Url" name="Url">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.BackendT24Url" name="BackendT24Url" defaultValueLiteral="http://192.168.1.233:8080/stwbc/api/v1.0.0/stwb/payments/incoming/rtgs/returns/">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="rtgsIncomingFlow" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRTGSIncomingApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankRTGSIncomingApp/icons/full/obj16/rtgsIncomingFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankRTGSIncomingApp/icons/full/obj30/rtgsIncomingFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="2,110" inputDirectory="C:\vee\STEWARD_Bank\ACE" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtp="true" fileFtpServer="localhost:21" fileFtpUser="ftp">
+      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="2,110" inputDirectory="C:\STEWARD_Bank\ACE" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtpServer="localhost:21" fileFtpUser="ftp">
         <translation xmi:type="utility:ConstantString" string="FetchMT103FromZetts"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="66,34" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingFlow_GenerateReqToPostilion.Main" computeMode="destinationAndMessage">
@@ -58,7 +58,7 @@
       <nodes xmi:type="com_stewardbank_co_zw_common_zsscall_StewardBankZssCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="456,9">
         <translation xmi:type="utility:ConstantString" string="StewardBankZssCall"/>
       </nodes>
-      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="374,98" URLSpecifier="http://" httpVersion="1.1" protocol="TLS" messageDomainProperty="DFDL" messageSetProperty="{MT103}" messageTypeProperty="{}:MT103">
+      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="374,98" URLSpecifier="http://local" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON">
         <translation xmi:type="utility:ConstantString" string="T24Call"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
@@ -88,8 +88,8 @@
                 <propertyName xmi:type="utility:TranslatableString" key="Property.RTGS_INCOMING_SB_Q" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRTGSIncomingApp"/>
                 <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
                   <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRTGSIncomingApp"/>
-                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.Url">
-                    <propertyName xmi:type="utility:TranslatableString" key="Property.Url" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRTGSIncomingApp"/>
+                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.BackendT24Url">
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.BackendT24Url" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRTGSIncomingApp"/>
                   </propertyDescriptor>
                 </propertyDescriptor>
               </propertyDescriptor>

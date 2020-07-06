@@ -2,14 +2,14 @@
 Author:Swathi
 Version:0.0.1
 Date of Creation:16-05-2020
-Date of Modification:6-06-2020
+Date of Modification:3-07-2020
 Description:Pick file from remote location and based on the account send request to t24 or zss.
 			If it is t24 account then send MT103 else send ISO8583 to ZSS.
  			
 */
 BROKER SCHEMA com.stewardbank.co.zw.rtgsincoming
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,RTGS_INCOMING_SB_Q,IsLogRequired,Url EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,RTGS_INCOMING_SB_Q,IsLogRequired,BackendT24Url EXTERNAL CHARACTER '';
 DECLARE UUID SHARED CHARACTER '';
 
 
@@ -73,20 +73,20 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
-		CALL LogRequestAndBuildISO8583OrMT103Req();
+		CALL GeneratingReqToT24orZSS();
 		RETURN FALSE;
 	END;
 	/*
 	Log Incoming Request i.e MT103 in RTGS_INCOMING_DETAILS Table and form ISO8583 if account is in T24 or
 	else form MT103 
 	*/
-	CREATE PROCEDURE LogRequestAndBuildISO8583OrMT103Req() BEGIN
+	CREATE PROCEDURE GeneratingReqToT24orZSS() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-		DECLARE reqMsg CHARACTER ;
+		DECLARE reqMsg,RtgsIncomingUrlPathparameters CHARACTER ;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
-		DECLARE sql CHARACTER;
+		DECLARE sql,invoiceReference CHARACTER;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
@@ -95,25 +95,28 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Start RTGSIncoming  ReqToPostilion logging...........') INTO rc;
 		END IF;
 		DECLARE Response ROW;
+		DECLARE CRLF CHARACTER CAST(X'0D0A' AS CHARACTER CCSID 1208);
 		SET UUID = UUIDASCHAR;
-		SET Environment.Guid = UUID;
-		DECLARE SettlementAmt CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 10); 
-		DECLARE Amt CHARACTER LTRIM(SettlementAmt); 
-		DECLARE CR CHARACTER CAST(CAST('X''0A''' AS BLOB) AS CHARACTER CCSID ccidRef);
-		DECLARE LF CHARACTER CAST(CAST('X''0D''' AS BLOB) AS CHARACTER CCSID ccidRef);
-		DECLARE MT50Data CHARACTER SUBSTRING(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField BEFORE CR) BEFORE LF) FROM 2);
-		DECLARE MT59Data CHARACTER SUBSTRING(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField BEFORE CR) BEFORE LF) FROM 2);
-		
-		--***************Inserting values in RTGSIncoming ISAVE table ***************************
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Inserting Values into SB_ISAVE_PAYNET_TRX_TRACKING table*************') INTO rc;
-		CALL insertIntoSbIsaveTable(UUID,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',Environment.File.Name,'',Amt,MT50Data,MT59Data,'','','','',Environment.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
-		
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Checking for the Account'||MT59Data||' belongs to ZSS or T24**********') INTO rc;
+		SET Environment.Variables.Guid = UUID;
+		DECLARE Mt50DataAdd CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField AFTER CRLF);
+		DECLARE exeDate CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 1 FOR 6);
+		DECLARE transactionAmount CHARACTER LTRIM(SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 10)) ; 
+		DECLARE debitCurrency CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 7 FOR 3); 
+		DECLARE ordCustomerName CHARACTER SUBSTRING(Mt50DataAdd BEFORE CRLF);
+		DECLARE narrative CHARACTER LTRIM(inDomainDataRef.MT103.body.MT20);
+		DECLARE mtField70 CHARACTER inDomainDataRef.MT103.body.MT70 ;
+		IF ( mtField70 NOT LIKE ' ' ) THEN
+			SET invoiceReference = SUBSTRING(mtField70 BEFORE CRLF);
+		ELSE
+			SET invoiceReference ='NOTPROVIDED';
+		END IF;
+		DECLARE drAcctId CHARACTER SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField AFTER '/')BEFORE CRLF);
+		DECLARE crAcctId CHARACTER SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField AFTER '/')BEFORE CRLF);
 		--get account details from db to check weather Account belongs to Zss or T24
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
-		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(MT59Data));
+		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(crAcctId));
 		--*************If Account Exist in Isave table or it starts with 2 then it is ZSS Account**********
-		IF EXISTS(Response.accountEnquiry.*[]) OR STARTSWITH(MT59Data,'2') THEN
+		IF EXISTS(Response.accountEnquiry.*[]) OR STARTSWITH(crAcctId,'2') THEN
 			--mapping mt103 to iso8583
 			SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
 			SET OutputRoot.Properties.MessageType = '{}: ISO8583_1987';
@@ -126,25 +129,37 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_ReqToPostilion
 			SET outRef.MTI_MessageOrigin = 0;
 			SET outRef.AmountTransaction_004 = CAST(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 10) AS DECIMAL);
 			SET outRef.CurrencyCodeTransaction_049 = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 1 FOR 3);
-			SET outRef.AccountIdentification1_102 = MT50Data;
-			SET outRef.AccountIdentification2_103 = MT59Data;
+			SET outRef.AccountIdentification1_102 = drAcctId;
+			SET outRef.AccountIdentification2_103 = crAcctId;
 			CALL UpdateMsgWithAsciiBitMap(outRef);
-			 SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef);
-			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Account Exixts in ZSS **********') INTO rc;
-			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','**************Zss Request Message **********') INTO rc;
-			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
-			 --******************Updating ISAVE table with ZSS Request Message ************
-			CALL updateDBwithReqMessage(reqMsg,Environment.Guid,'ISO');
+			SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef);
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Account Exixts in ZSS **********') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','**************Zss Request Message **********') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
+			 --******************Inserting ISAVE table with ZSS Request Message ************
+				CALL insertIntoSbIsaveTable(UUID,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),reqMsg,'',Environment.File.Name,'',transactionAmount,drAcctId,crAcctId,exeDate,'','','','',Environment.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'');
 			  PROPAGATE TO TERMINAL 'out';
 		ELSE
-			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{MT103}' TYPE '{}:MT103')  ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
-			SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),inDomainDataRef,encodeRef,ccidRef);
-			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Account Exixts in T24 **********') INTO rc;
-			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','**************T24 Request Message **********') INTO rc;
-			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
-			 --******************Updating ISAVE table with T24 Request Message ************
-			CALL updateDBwithReqMessage(reqMsg,Environment.Guid,'MT103');
-			 SET OutputLocalEnvironment.Destination.HTTP.RequestURL = Url;
+--			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{MT103}' TYPE '{}:MT103')  ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+--			SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),inDomainDataRef,encodeRef,ccidRef);
+			 --Framing Rest Request To T24 Url--------
+			 CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
+		 DECLARE outRef REFERENCE TO OutputRoot.JSON;
+		 CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
+		  SET outRef.debitAccountId = drAcctId;
+		  SET outRef.debitCurrency = debitCurrency;
+		  SET outRef.orderingCustomerName = ordCustomerName;
+		  SET outRef.paymentCurrency = debitCurrency ;
+		  SET outRef.transactionAmount = transactionAmount ;
+		  SET outRef.executionDate = exeDate;
+		  SET outRef.narrative = narrative;
+		  SET outRef.invoiceReference = invoiceReference;
+		 -- Appending path parameters to stiring--
+		  SET RtgsIncomingUrlPathparameters = drAcctId||'/'||debitCurrency||'/'||ordCustomerName||'/'||debitCurrency||'/'||transactionAmount||'/'||exeDate||'/'||narrative||'/'||invoiceReference;
+		  SET reqMsg = getPayLoad(FIELDNAME(outRef),outRef,encodeRef,ccidRef);
+		 --******************Insertingvalues into ISAVE table with T24 Request Message ************
+			CALL insertIntoSbIsaveTable(UUID,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',Environment.File.Name,'',transactionAmount,drAcctId,crAcctId,exeDate,reqMsg,'','','',Environment.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'');
+			 SET OutputLocalEnvironment.Destination.HTTP.RequestURL = BackendT24Url||RtgsIncomingUrlPathparameters ;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming  ReqToPostilion logging...........') INTO rc;
@@ -158,21 +173,28 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
 	END;
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
-		DECLARE inDomain REFERENCE TO InputRoot.DFDL;
+		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader.{'X-Original-HTTP-Status-Code'};
+		--DECLARE inDomain REFERENCE TO InputRoot.DFDL;
 		DECLARE rc BOOLEAN FALSE;
 --		DECLARE status CHARACTER 'SUCCESS';
-		DECLARE id CHARACTER Environment.Guid;
+		DECLARE Guid CHARACTER Environment.Guid;
+		
+		
 		--***************Updating Database with Zss/T24 Status and Response codes***********************
 		CASE
-		WHEN FIELDNAME(inDomain.MT103) IS NOT NULL THEN
+		WHEN FIELDNAME(InputRoot.JSON) IS NOT NULL THEN
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
-			CALL UpdateDBStatus(id,'SUCCESS',' ',' ','MT103');
-		WHEN FIELDNAME(inDomain.ISO8583_1987) IS NOT NULL THEN
+			 IF (Environment.Variables.Statuscode = 200) THEN
+			 	CALL UpdateDBStatus(Guid,'SUCCESS',Environment.Variables.Statuscode,' ','T24');
+			 ELSE
+			 	CALL UpdateDBStatus(Guid,'FALUIRE',Environment.Variables.Statuscode,' ','T24');
+			 END IF;
+			WHEN FIELDNAME(InputRoot.DFDL.ISO8583_1987) IS NOT NULL THEN
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating ZSS Status in Database**********') INTO rc;
-			IF(inDomain.ISO8583_1987.ResponseCode_039 LIKE '00')  THEN
-				CALL UpdateDBStatus(id,'SUCCESS',CAST(inDomain.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(inDomain.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ISO');
+			IF(InputRoot.ISO8583_1987.ResponseCode_039 LIKE '00')  THEN
+				CALL UpdateDBStatus(Guid,'SUCCESS',CAST(InputRoot.DFDL.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(InputRoot.DFDL.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS');
 			ELSE
-				CALL UpdateDBStatus(id,'FAILURE',CAST(inDomain.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(inDomain.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ISO');
+				CALL UpdateDBStatus(Guid,'FAILURE',CAST(InputRoot.DFDL.ISO8583_1987.ResponseCode_039 AS CHARACTER),CAST(InputRoot.DFDL.ISO8583_1987.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS');
 			END IF;
 		END CASE;
 		SET OutputRoot = InputRoot;
@@ -213,7 +235,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
 				-- DB Logging===================
 		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
-		CALL Error_DBLogging(Environment.Guid,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.RTGSIncoming.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Variables.Guid,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.RTGSIncoming.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............End RTGSIncoming Exception logging...........') INTO rc;
@@ -222,16 +244,11 @@ END MODULE;
 --*************Procedure to insert Values into SB_ISAVE_TABLE**********************************
 	CREATE PROCEDURE insertIntoSbIsaveTable(IN PAYNET_GUID CHARACTER,IN PAYNET_STAN_NUM CHARACTER, IN PAYNET_STANDATE CHARACTER
 ,IN PAYNET_RRN_REF CHARACTER,IN PAYNET_ISO_REQUEST_MSG CHARACTER,IN PAYNET_ISO_RESPONSE_CODE CHARACTER,IN PAYNET_MT103_FILENAME CHARACTER,IN PAYNET_MT103_FIELDS CHARACTER,IN PAYNET_MT103_AMOUNT CHARACTER,
-IN PAYNET_MT103_DTACCOUNT CHARACTER,IN PAYNET_MT103_CRACCOUNT CHARACTER,IN PAYNET_MT103_DTDATE CHARACTER,IN PAYNET_MT103_T24_MSG CHARACTER,
-IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_MT103_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP)
+IN PAYNET_MT103_DTACCOUNT CHARACTER,IN PAYNET_MT103_CRACCOUNT CHARACTER,IN PAYNET_MT103_DTDATE CHARACTER,IN PAYNET_MT103_T24_MSG CHARACTER,IN PAYNET_ISO_FT CHARACTER,
+IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_MT103_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP,IN TAXABLE CHARACTER)
 	LANGUAGE DATABASE
-	EXTERNAL NAME "INSERT_SB_ISAVE_TABLE";
-		--*********************Procedure To Update SB_ISAVE_TABLE with ZSS/T24 Request Message********************
-	CREATE PROCEDURE updateDBwithReqMessage (IN REQMSG CHARACTER,IN ISAVEID CHARACTER,IN STR CHARACTER)
-	LANGUAGE DATABASE
-	EXTERNAL NAME "UPDATE_REQMSG_SB_ISAVE";
-	
-	--*********************Procedure to Update Database Status***************
+	EXTERNAL NAME "INSERT_SB_ISAVE_PAYNET";
+		--*********************Procedure to Update Database Status***************
 	CREATE PROCEDURE UpdateDBStatus (IN PAYNET_ID CHARACTER,IN PAYNET_STATUS CHARACTER,IN PAYNET_RESPONSE_CODE CHARACTER,IN PAYNET_REFNUM CHARACTER,IN STR CHARACTER)
 	LANGUAGE DATABASE
 	EXTERNAL NAME "UPDATE_STASUS_SB_ISAVE";
