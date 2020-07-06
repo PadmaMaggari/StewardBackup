@@ -10,6 +10,7 @@ This HTTP Router would be triggered whenever Frontend initiates the request to E
 BROKER SCHEMA com.stewardbank.co.zw.httprouters
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE getDBDetailsCache SHARED ROW;
+DECLARE esbPcode SHARED ROW;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
@@ -44,6 +45,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			(InputRoot.JSON.Data.header.processingCode IS NOT NULL) OR
 			(InputRoot.JSON.Data.header.processingCode <> '') THEN
 			SET Environment.Variables.processingCode = COALESCE(InputRoot.JSON.Data.processingCode,InputRoot.JSON.Data.header.processingCode,'');
+			Set Environment.MQRFH2.usr.sbPcode = Environment.Variables.processingCode;
 		END IF;
 		IF (InputRoot.JSON.Data.channel IS NOT NULL) OR
 			(InputRoot.JSON.Data.channel <> '') OR
