@@ -27,12 +27,18 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 	END;
 
 	CREATE PROCEDURE RouteToInterfaceBasedOnProcessingCode() BEGIN
+		DECLARE inRef REFERENCE TO InputRoot;
+		DECLARE procCodeData,QueueName,channel CHARACTER '';
+		DECLARE DBDetails ROW;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		SET Environment.MQRFH2.RequestIdentifier = InputLocalEnvironment.Destination.HTTP.RequestIdentifier;
 		SET Environment.MQRFH2.usr = InputRoot.HTTPInputHeader;
 		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
 		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
 		SET Environment.Variables.messageID = CAST(Environment.MQRFH2.RequestIdentifier AS CHAR);
-		SET Environment.Variables.reqMsg = CAST(InputRoot.JSON AS CHAR);
+		SET Environment.Variables.reqMsg = CAST(InputRoot.JSON AS CHAR CCSID ccidRef);
 		IF (InputRoot.JSON.Data.processingCode IS NOT NULL) OR
 			(InputRoot.JSON.Data.processingCode <> '') OR
 			(InputRoot.JSON.Data.header.processingCode IS NOT NULL) OR
@@ -45,12 +51,6 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			(InputRoot.JSON.Data.header.channel <> '') THEN
 			SET Environment.Variables.channel = COALESCE(InputRoot.JSON.Data.channel,InputRoot.JSON.Data.header.channel,'');
 		END IF;
-		DECLARE inRef REFERENCE TO InputRoot;
-		DECLARE procCodeData,QueueName,channel CHARACTER '';
-		DECLARE DBDetails ROW;
-		DECLARE outRefer REFERENCE TO OutputRoot;
-		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
-		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
@@ -223,7 +223,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_BuildExceptionDetails
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.HTTP_REQROUTER.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.HTTP_REQROUTER.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
