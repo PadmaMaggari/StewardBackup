@@ -215,7 +215,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_BuildExceptionDetails
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'HTTP_REQROUTER');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
-		SET Environment.MQRFH2.usr.Id = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER);
+		SET Environment.MQRFH2.usr.Id = CAST(COALESCE(InputLocalEnvironment.Destination.HTTP.RequestIdentifier,Environment.MQRFH2.RequestIdentifier,'') AS CHARACTER);
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Start Logging Application Related Exception ...........') INTO rc;
