@@ -13,7 +13,7 @@ DECLARE getDBDetailsCache SHARED ROW;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
-DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER;
+DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE DSN EXTERNAL CHARACTER '';
@@ -23,27 +23,37 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL RouteToInterfaceBasedOnProcessingCode();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE RouteToInterfaceBasedOnProcessingCode() BEGIN
-		DECLARE inRef REFERENCE TO InputRoot;
-		DECLARE procCodeData,QueueName,channel CHARACTER '';
-		DECLARE DBDetails ROW;
-		DECLARE rc BOOLEAN;
-		DECLARE outRefer REFERENCE TO OutputRoot;
-		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
-		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
-		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.MQRFH2.RequestIdentifier = InputLocalEnvironment.Destination.HTTP.RequestIdentifier;
 		SET Environment.MQRFH2.usr = InputRoot.HTTPInputHeader;
 		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
 		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
 		SET Environment.Variables.messageID = CAST(Environment.MQRFH2.RequestIdentifier AS CHAR);
+		SET Environment.Variables.reqMsg = CAST(InputRoot.JSON AS CHAR);
+		IF (InputRoot.JSON.Data.processingCode IS NOT NULL) OR
+			(InputRoot.JSON.Data.processingCode <> '') OR
+			(InputRoot.JSON.Data.header.processingCode IS NOT NULL) OR
+			(InputRoot.JSON.Data.header.processingCode <> '') THEN
+			SET Environment.Variables.processingCode = COALESCE(InputRoot.JSON.Data.processingCode,InputRoot.JSON.Data.header.processingCode,'');
+		END IF;
+		IF (InputRoot.JSON.Data.channel IS NOT NULL) OR
+			(InputRoot.JSON.Data.channel <> '') OR
+			(InputRoot.JSON.Data.header.channel IS NOT NULL) OR
+			(InputRoot.JSON.Data.header.channel <> '') THEN
+			SET Environment.Variables.channel = COALESCE(InputRoot.JSON.Data.channel,InputRoot.JSON.Data.header.channel,'');
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot;
+		DECLARE procCodeData,QueueName,channel CHARACTER '';
+		DECLARE DBDetails ROW;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		SET Environment.Variables.processingCode = COALESCE(InputRoot.JSON.Data.processingCode,InputRoot.JSON.Data.header.processingCode,'');
-		SET Environment.Variables.channel = COALESCE(InputRoot.JSON.Data.channel,InputRoot.JSON.Data.header.channel,'');
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
@@ -56,6 +66,11 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
 			----------------------------------
+		END IF;
+		IF (Environment.Variables.processingCode IS NULL OR Environment.Variables.processingCode = '')
+			AND (Environment.Variables.channel IS NULL OR Environment.Variables.channel = '') THEN
+			CALL errorResponse('no key[proccessingCode & Channel] in the request');
+			RETURN;
 		END IF;
 		IF Environment.Variables.processingCode IS NOT NULL OR Environment.Variables.processingCode <> '' THEN
 			SET procCodeData = SUBSTRING(Environment.Variables.processingCode FROM 1 FOR 2);
@@ -105,6 +120,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============Business QUEUENAME=============='' '||QueueName||'') INTO rc ;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;
 		CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Incoming Router End ==============') INTO rc ;
+		PROPAGATE TO TERMINAL 'out';
 	END;
 	/*Retrieve application related queues from database or cache*/
 	CREATE PROCEDURE STORE_CACHE (IN procCodeData CHARACTER,IN channel CHARACTER)
@@ -125,6 +141,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		SET outJsonRef.message = 'FAILURE';
 		SET outJsonRef.responseBody.source = 'ESB';
 		SET outJsonRef.responseBody.details = msg;
+		SET Environment.Variables.jsonData = OutputRoot.JSON;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 		PROPAGATE TO TERMINAL 'out1';
 	END;
