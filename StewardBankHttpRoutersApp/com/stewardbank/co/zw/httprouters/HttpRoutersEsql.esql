@@ -67,32 +67,30 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			PROPAGATE TO TERMINAL 'out';
 			----------------------------------
 		END IF;
-		IF (Environment.Variables.processingCode IS NULL OR Environment.Variables.processingCode = '')
-			AND (Environment.Variables.channel IS NULL OR Environment.Variables.channel = '') THEN
+		IF (FIELDNAME(Environment.Variables.processingCode) IS NULL) AND (FIELDNAME(Environment.Variables.channel) IS NULL) THEN
 			CALL errorResponse('no key[proccessingCode & Channel] in the request');
 			RETURN;
-		END IF;
-		IF Environment.Variables.processingCode IS NOT NULL OR Environment.Variables.processingCode <> '' THEN
-			SET procCodeData = SUBSTRING(Environment.Variables.processingCode FROM 1 FOR 2);
-			IF LENGTH(Environment.Variables.processingCode) = 6 THEN
-			ELSE
-				CALL errorResponse('processing code length must be = 6');
-				RETURN;
-			END IF;
-		ELSE
-			CALL errorResponse('no key[proccessingCode] in the request');
+		ELSEIF (FIELDVALUE(Environment.Variables.processingCode) = '' AND FIELDVALUE(Environment.Variables.channel) = '') THEN
+			CALL errorResponse('channel & processingCode  must be specified');
 			RETURN;
-		END IF;
-		IF Environment.Variables.channel IS NOT NULL OR Environment.Variables.channel <> '' THEN
-			SET channel = Environment.Variables.channel;
-			IF LENGTH(channel) > 0 THEN
-			ELSE
-				CALL errorResponse('channel name not specified');
-				RETURN;
-			END IF;
-		ELSE
+		ELSEIF FIELDNAME(Environment.Variables.channel) IS NULL THEN
 			CALL errorResponse('no key[channel] in the request');
 			RETURN;
+		ELSEIF FIELDVALUE(Environment.Variables.channel) = '' THEN
+			CALL errorResponse('channel name must be specified');
+			RETURN;
+		ELSEIF FIELDNAME(Environment.Variables.processingCode) IS NULL THEN
+			CALL errorResponse('no key[proccessingCode] in the request');
+			RETURN;
+		ELSEIF FIELDVALUE(Environment.Variables.processingCode) = '' THEN
+			CALL errorResponse('proccessingCode must be specified');
+			RETURN;
+		ELSEIF NOT LENGTH(FIELDVALUE(Environment.Variables.processingCode)) = 6 THEN
+			CALL errorResponse('processing code length must be = 6');
+			RETURN;
+		ELSE
+			SET procCodeData = SUBSTRING(Environment.Variables.processingCode FROM 1 FOR 2);
+			SET channel = Environment.Variables.channel;
 		END IF;
 
 		IF EXISTS(getDBDetailsCache.Values[]) THEN
@@ -100,7 +98,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			IF FIELDVALUE(getDBDetailsCache.Values.HTTP_REQ) IS NOT NULL THEN
 				SET QueueName = getDBDetailsCache.Values.HTTP_REQ;
 			ELSE
-				CALL errorResponse('no Queues based on processingCode and channel');
+				CALL errorResponse('Invalid processingCode or Channel Name');
 				RETURN;
 			END IF;
 		ELSE
@@ -109,7 +107,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			IF FIELDVALUE(getDBDetailsCache.Values.HTTP_REQ) IS NOT NULL THEN
 				SET QueueName = getDBDetailsCache.Values.HTTP_REQ;
 			ELSE
-				CALL errorResponse('no Queues based on processingCode and channel');
+				CALL errorResponse('Invalid processingCode or Channel Name');
 				RETURN;
 			END IF;
 		END IF;
@@ -125,7 +123,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 	/*Retrieve application related queues from database or cache*/
 	CREATE PROCEDURE STORE_CACHE (IN procCodeData CHARACTER,IN channel CHARACTER)
 	BEGIN
-		SET getDBDetailsCache.Values[] = SELECT A.HTTP_REQ,A.HTTP_RES FROM Database.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData AND A.CHANNEL = channel AND A.MSGDOMAIN = 'JSON';
+		SET getDBDetailsCache.Values[] = SELECT A.HTTP_REQ,A.HTTP_RES,A.CHANNEL FROM Database.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData AND A.CHANNEL = channel AND A.MSGDOMAIN = 'JSON';
 		IF getDBDetailsCache.Values IS NOT NULL OR getDBDetailsCache.Values <> '' THEN
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Retrieved values from Database')INTO rc;
 		ELSE
