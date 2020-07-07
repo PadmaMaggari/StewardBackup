@@ -80,6 +80,7 @@ DECLARE ISO EXTERNAL CHARACTER '';
 		DECLARE req CHARACTER;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','ISO Request: '|| Environment.Variables.reqMsg) INTO rc ;
+			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','ISO Incoming RAW Request: '|| getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc ;
 			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','TCPIP ID: '|| tcpipDetails.Id)INTO rc;
 		END IF;
 		--==========================START OF RAW AUDIT DB LOGGING ======================
