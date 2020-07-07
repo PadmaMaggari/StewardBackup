@@ -14,6 +14,10 @@ DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE BAcct EXTERNAL CHARACTER'';
+DECLARE BBCode EXTERNAL CHARACTER'';
+DECLARE BName EXTERNAL CHARACTER'';
+DECLARE BRef EXTERNAL CHARACTER'';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
 CREATE COMPUTE MODULE rtgsOutgoing_GenerateReqTo24
@@ -65,8 +69,18 @@ CREATE COMPUTE MODULE rtgsOutgoing_GenerateReqTo24
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSLogger', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		--field to field mapping
+		DECLARE envUsrRef REFERENCE TO Environment.MQRFH2.usr;
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
-		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode,posRef);
+		IF FIELDNAME(inRef.StructuredDataPostilionPrivate_127_22) is NOT NULL AND LENGTH(inRef.StructuredDataPostilionPrivate_127_22) > 5 THEN
+			CALL keyValuePair127_22(envUsrRef,inRef);
+			IF EXISTS(envUsrRef.structuredData127_22.value[]) THEN
+				 CALL getValueByKey(envUsrRef,BAcct);
+				 CALL getValueByKey(envUsrRef,BBCode) ;
+				 CALL getValueByKey(envUsrRef,BName);
+				 CALL getValueByKey(envUsrRef,BRef);
+			END IF;
+		END IF;
+		CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef);
 		SET Environment.DFDL = OutputRoot.DFDL;
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
@@ -183,7 +197,7 @@ CREATE COMPUTE MODULE rtgsOutgoingT24Req_GenerateReqToPostilion
 		END IF;
 		--field to field mapping
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
-		CALL FieldToFieldMapping(inRef,outRef,'','',posRef);
+		CALL FieldToFieldMapping(inRef,outRef,'',posRef,posRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		----- Database Logging ------------

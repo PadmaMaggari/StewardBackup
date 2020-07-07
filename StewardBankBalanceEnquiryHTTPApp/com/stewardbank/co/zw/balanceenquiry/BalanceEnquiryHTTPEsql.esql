@@ -168,7 +168,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToT24
 		SET domainName = FIELDNAME(outDomainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Request To Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','T24 Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
@@ -235,7 +235,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
 			-----------------------------
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Response to Backend::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Application Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
 		SET OutputRoot.Properties=InputRoot.Properties;
@@ -260,6 +260,18 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlowCaptureException
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE errMsg CHARACTER;
+		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') THEN
+			SET errMsg = 'T24 Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
+			SET errMsg = 'Postilion Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN 
+			SET errMsg = 'No Response from T24 Server';
+		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN 
+			SET errMsg = 'No Response from Postilion Server';	
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
@@ -272,6 +284,19 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlowCaptureException
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		MOVE outRef TO OutputRoot.JSON.Data;
+		SET outRef.statusCode = '000';
+		SET outRef.status = 'FAILED';
+		SET outRef.message = errMsg;
+		SET outRef.responseBody.source = 'ESB';
+		SET outRef.responseBody.applicationName = ApplicationLabel;
+		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.BalanceEnquiry.ErrorCode;
+ 		SET OutputRoot.XMLNSC = NULL;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
