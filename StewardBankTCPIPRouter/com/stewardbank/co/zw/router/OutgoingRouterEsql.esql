@@ -48,10 +48,10 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','=====================================  OUTGOING ROUTER =================================') INTO rc ;
-		CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ISO Request: '||Environment.Variables.resMsg) INTO rc ;
-		CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','TCPIP ID: '||InputRoot.MQRFH2.usr.Id)INTO rc;
-		CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','=====================================  OUTGOING ROUTER END =================================') INTO rc ;
+		CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','=====================================  OUTGOING ROUTER =================================') INTO rc ;
+		CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','ISO Request: '||Environment.Variables.resMsg) INTO rc ;
+		CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','TCPIP ID: '||InputRoot.MQRFH2.usr.Id)INTO rc;
+		CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','=====================================  OUTGOING ROUTER END =================================') INTO rc ;
 		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		/* =================================== ZSS NOTIFICATION =================================*/
 		DECLARE mtiDetails CHARACTER'';
@@ -63,12 +63,12 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
  		DECLARE tcpHeader BLOB ;
 		--JAVA procedure call to get 2 byte header
  		SET tcpHeader = Get2ByteHeader(data);
- 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Data with header') INTO rc;
- 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG',CAST(tcpHeader AS CHARACTER)) INTO rc;
+ 		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','Data with header') INTO rc;
+ 		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG',CAST(tcpHeader AS CHARACTER)) INTO rc;
  		DECLARE hexBits CHARACTER SUBSTRING(CAST(tcpHeader AS CHARACTER) FROM 3 FOR 4);
- 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Hex Data of Header:'||hexBits) INTO rc;
+ 		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','Hex Data of Header:'||hexBits) INTO rc;
  		DECLARE dataWithHeader CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || hexBits || SUBSTRING(CAST(data AS CHARACTER) FROM 3);
- 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Data with Header'||dataWithHeader) INTO rc;
+ 		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','Data with Header'||dataWithHeader) INTO rc;
  		
 		IF MTI LIKE MTI_Version||MTI_MessageClass||MTI_MessageFunction||MTI_MessageOrigin THEN
 			DECLARE outRefer REFERENCE TO OutputRoot;
@@ -77,8 +77,8 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 			PROPAGATE TO TERMINAL 'out1';
 			SET OutputRoot = InputRoot;
 			SET req = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response: '||req) INTO rc ;
-			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','ZSS Response TCPIP ID: '||tcpipDetails.Id)INTO rc;
+			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','ZSS Response: '||req) INTO rc ;
+			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','ZSS Response TCPIP ID: '||tcpipDetails.Id)INTO rc;
 			PROPAGATE TO TERMINAL 'out2';
 		ELSE
 			-- =================== CALLING DB RAW AUDIT LOGGING ==============
@@ -91,8 +91,8 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 	 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
 	 		PARSE(CAST(dataWithHeader AS BLOB)  ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader');
 	 		DECLARE outDomainRef REFERENCE TO OutputRoot.DFDL;
-	 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','OutputRoot:') INTO rc;
-	 		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainRef,encodeRef,ccidRef)) INTO rc;
+	 		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','OutputRoot:') INTO rc;
+	 		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainRef,encodeRef,ccidRef)) INTO rc;
  		
 			PROPAGATE TO TERMINAL 'out';
 		END IF;
@@ -160,19 +160,19 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_LogSentData
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','..............Start Logging after sending msg...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','..............Start Logging after sending msg...........') INTO rc;
 		SET OutputRoot.Properties = InputRoot.Properties;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG',getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccidRef)) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','local environemnt::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Hostname:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Hostname) INTO rc;
-	--	CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Port:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Port AS CHARACTER)) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Client Address:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.ClientDetails.Address) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','Client Hostname:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.ClientDetails.Hostname) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','id:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Id) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','seq number:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.SequenceNumber AS CHARACTER)) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','open time:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.OpenTimestamp AS CHARACTER)) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','close time:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.CloseTimestamp AS CHARACTER)) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'Log', 'DEBUG','..............end Logging after sending msg...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG',getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccidRef)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','local environemnt::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','Hostname:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Hostname) INTO rc;
+	--	CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','Port:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Port AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','Client Address:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.ClientDetails.Address) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','Client Hostname:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.ClientDetails.Hostname) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','id:'||InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.Id) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','seq number:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.SequenceNumber AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','open time:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.OpenTimestamp AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','close time:'||CAST(InputLocalEnvironment.WrittenDestination.TCPIP.Output.ConnectionDetails.CloseTimestamp AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','..............end Logging after sending msg...........') INTO rc;
 		RETURN FALSE;
 	END;
 END MODULE;
