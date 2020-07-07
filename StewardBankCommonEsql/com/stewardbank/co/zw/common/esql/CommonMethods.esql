@@ -3,7 +3,7 @@
 Author:Rathod Veerender/Mohsin Ali
 Version:0.0.1
 Date of Creation:30-03-2020
-Date of Modification:16-04-2020,20-05-2020
+Date of Modification:16-04-2020,20-05-2020,7-7-2020
 Description: Common Procedure and function used by all flows i.e Incoming,outgoing router and
 Business flow.
 --do not delete this file at any cost,modification can be done--
@@ -47,7 +47,7 @@ BEGIN
 	END WHILE;
 END;
 
-CREATE PROCEDURE postilionDataMapping(IN is127FieldExists BOOLEAN,IN inputRef REFERENCE,IN outRef REFERENCE,IN errCode CHARACTER,IN inParam CHARACTER)
+CREATE PROCEDURE postilionDataMapping(IN is127FieldExists BOOLEAN,IN inputRef REFERENCE,IN outRef REFERENCE,IN errCode CHARACTER)
 BEGIN
 	IF FIELDNAME(inputRef.ReservedPrivate_127) is NOT NULL THEN
 		SET outRef.ReservedPrivate_127= inputRef.ReservedPrivate_127;
@@ -175,12 +175,16 @@ BEGIN
 	END IF;
 END;
 
-CREATE PROCEDURE FieldToFieldMapping(IN inputRef REFERENCE,IN outRef REFERENCE,IN errCode CHARACTER,IN inParam CHARACTER,IN posRef REFERENCE)
+CREATE PROCEDURE FieldToFieldMapping(IN inputRef REFERENCE,IN outRef REFERENCE,IN errCode CHARACTER,IN inParam REFERENCE,IN posRef REFERENCE)
 BEGIN
 	/*
 	removed header from iso mapping
 	*/
 	--SET outRef.TCPHeaderBitmap[]=inputRef.TCPHeaderBitmap[];
+	/*start of key variables related to processing code and setting beneficiary details*/
+	DECLARE iso CHARACTER 'ISO8583_1987';
+	DECLARE sbPcode CHARACTER 'sbPcode';
+	/*end of key variables related to processing code and setting beneficiary details*/
 	SET outRef.MTI_Version=inputRef.MTI_Version;
 	SET outRef.MTI_MessageClass=inputRef.MTI_MessageClass;
 	SET outRef.MTI_MessageFunction=inputRef.MTI_MessageFunction;
@@ -203,20 +207,37 @@ BEGIN
 		IF FIELDVALUE(field127Ref)= '1' OR FIELDVALUE(field127Ref1)= '1' THEN
 			SET is127FieldExists = TRUE;
 		END IF;
-		IF FIELDVALUE(field127Ref1)= '1' THEN
+		IF FIELDVALUE(field127Ref1)= '1' OR FIELDNAME(inParam) = sbPcode THEN
 			SET outRef.SecondaryBitmap.Bit127 = 0;
 		END IF;
 	END IF;
 	IF FIELDNAME(inputRef.PrimaryAccountNumber_002) is NOT NULL THEN
 		SET outRef.PrimaryAccountNumber_002= inputRef.PrimaryAccountNumber_002;
 	END IF;
+	/*
+	ProcessingCode is fetched from database based on postilion processing code and we name it as esb 
+	processing code(esbPcode).when error occurs then we send processing code which postilion sent 
+	initially.when we receive it from t24 we copy processing code as it is to output root.
+	*/
 	IF FIELDNAME(inputRef.ProcessingCode_003) is NOT NULL THEN
-		IF inParam <> '' AND LENGTH(inParam) = 6 THEN
-			SET outRef.ProcessingCode_003= inParam;
-		ELSE
+		DECLARE fldName CHARACTER FIELDNAME(inParam);
+		IF fldName = iso THEN 
 			SET outRef.ProcessingCode_003= inputRef.ProcessingCode_003;
+		ELSEIF fldName = sbPcode THEN
+			IF inParam <> '' AND LENGTH(inParam) = 6 THEN 
+					SET outRef.ProcessingCode_003= inParam;
+			END IF;
+		ELSE 
+			IF FIELDNAME(inParam.esbPcode) IS NOT NULL THEN
+				IF inParam.esbPcode <> '' AND LENGTH(inParam.esbPcode) = 6 THEN 
+					SET outRef.ProcessingCode_003= inParam.esbPcode;
+				END IF;
+			ELSE
+				SET outRef.ProcessingCode_003= inputRef.ProcessingCode_003;
+			END IF;
 		END IF;
 	END IF;
+	/* Processing code end*/
 	IF FIELDNAME(inputRef.AmountTransaction_004) is NOT NULL THEN
 		SET outRef.AmountTransaction_004= inputRef.AmountTransaction_004;
 	END IF;
@@ -392,14 +413,50 @@ BEGIN
 	IF FIELDNAME(inputRef.AdviceReasonCode_060) is NOT NULL THEN
 		SET outRef.AdviceReasonCode_060= inputRef.AdviceReasonCode_060;
 	END IF;
+	/*61,62,63,120 are used for beneficiary deails.If fields exists in environment then 
+	set to output root.Before sending it to postilion reset the output root.
+	key names like 
+	BeneficiaryAccount,
+	BeneficiaryBankCode,
+	BeneficiaryName,
+	BeneficiaryReference
+	are mandatory to set beneficiary deails
+	*/
 	IF FIELDNAME(inputRef.ReservedPrivate_061) is NOT NULL THEN
-		SET outRef.ReservedPrivate_061= inputRef.ReservedPrivate_061;
+		IF FIELDNAME(inParam) = iso  THEN 
+			SET outRef.PrimaryBitmap.Bit061=0;
+		ELSE 
+			SET outRef.ReservedPrivate_061= inRef.ReservedPrivate_061;
+		END IF;
+	ELSE
+		IF FIELDNAME(inParam.BeneficiaryAccount) IS NOT NULL THEN
+			SET outRef.ReservedPrivate_061= inParam.BeneficiaryAccount;
+			SET outRef.PrimaryBitmap.Bit061=1;
+		END IF;
 	END IF;
 	IF FIELDNAME(inputRef.ReservedPrivate_062) is NOT NULL THEN
-		SET outRef.ReservedPrivate_062= inputRef.ReservedPrivate_062;
+		IF FIELDNAME(inParam) = iso  THEN 
+			SET outRef.PrimaryBitmap.Bit062=0;
+		ELSE 
+			SET outRef.ReservedPrivate_062= inRef.ReservedPrivate_062;
+		END IF;
+	ELSE
+		IF FIELDNAME(inParam.BeneficiaryBankCode) IS NOT NULL THEN
+			SET outRef.ReservedPrivate_062= inParam.BeneficiaryBankCode;
+			SET outRef.PrimaryBitmap.Bit062=1;
+		END IF;
 	END IF;
 	IF FIELDNAME(inputRef.ReservedPrivate_063) is NOT NULL THEN
-		SET outRef.ReservedPrivate_063= inputRef.ReservedPrivate_063;
+		IF FIELDNAME(inParam) = iso  THEN 
+			SET outRef.PrimaryBitmap.Bit063=0;
+		ELSE 
+			SET outRef.ReservedPrivate_063= inRef.ReservedPrivate_063;
+		END IF;
+	ELSE
+		IF FIELDNAME(inParam.BeneficiaryName) IS NOT NULL THEN
+			SET outRef.ReservedPrivate_063= inParam.BeneficiaryName;
+			SET outRef.PrimaryBitmap.Bit063=1;
+		END IF;
 	END IF;
 	IF FIELDNAME(inputRef.MessageAuthenticationCode_064) is NOT NULL THEN
 		SET outRef.MessageAuthenticationCode_064= inputRef.MessageAuthenticationCode_064;
@@ -571,7 +628,16 @@ BEGIN
 		SET outRef.ReservedNational_119= inputRef.ReservedNational_119;
 	END IF;
 	IF FIELDNAME(inputRef.ReservedPrivate_120) is NOT NULL THEN
-		SET outRef.ReservedPrivate_120= inputRef.ReservedPrivate_120;
+		IF FIELDNAME(inParam) = iso  THEN 
+			SET outRef.SecondaryBitmap.Bit120= 0;
+		ELSE 
+			SET outRef.ReservedPrivate_120= inRef.ReservedPrivate_120;
+		END IF;
+	ELSE
+		IF FIELDNAME(inParam.BeneficiaryReference) IS NOT NULL THEN
+			SET outRef.ReservedPrivate_120= inParam.BeneficiaryReference;
+			SET outRef.SecondaryBitmap.Bit120= 1;
+		END IF;
 	END IF;
 	IF FIELDNAME(inputRef.ReservedPrivate_121) is NOT NULL THEN
 		SET outRef.ReservedPrivate_121= inputRef.ReservedPrivate_121;
@@ -592,9 +658,11 @@ BEGIN
 		SET outRef.ReservedPrivate_126= inputRef.ReservedPrivate_126;
 	END IF;
 	IF EXISTS(posRef.PostilionBitmap.*[]) AND STARTSWITH(FIELDNAME(posRef.PostilionBitmap.*[1]),'Bit') THEN
-		--CALL postilionDataMapping(is127FieldExists,posRef,outRef,errCode,inParam);
+		--CALL postilionDataMapping(is127FieldExists,posRef,outRef,errCode);
 	ELSE
-		CALL postilionDataMapping(is127FieldExists,inputRef,outRef,errCode,inParam);
+		IF FIELDNAME(inParam) <> sbPcode THEN
+			CALL postilionDataMapping(is127FieldExists,inputRef,outRef,errCode);
+		END IF;
 	END IF;
 	IF FIELDNAME(inputRef.MessageAuthenticationCode_128) is NOT NULL THEN
 		SET outRef.MessageAuthenticationCode_128= inputRef.MessageAuthenticationCode_128;
@@ -1467,4 +1535,63 @@ BEGIN
 	SET outRef.DBLogging.BORKER_ERROR_CODE=BORKER_ERROR_CODE;
 	SET outRef.DBLogging.USER_DEFINE_ERROR_CODE=USER_DEFINE_ERROR_CODE;
 
+END;
+
+/*
+procedure finds the key in a array, if exists then set that key as field name
+to the output root with next element in that array as the value.
+*/ 
+CREATE PROCEDURE getValueByKey(IN dataRef REFERENCE,IN key CHARACTER)
+BEGIN
+	DECLARE outDataRef ROW dataRef;
+	DECLARE outRef REFERENCE TO outDataRef.structuredData127_22.value[1];
+	DECLARE exs BOOLEAN FALSE;
+	WHILE LASTMOVE(outRef) DO 
+		IF CONTAINS(key,outRef) THEN
+			SET exs = true;
+		END IF;
+		MOVE outRef NEXTSIBLING;
+		IF exs THEN 
+			SET dataRef.{key} = outRef ;
+			SET exs = FALSE;
+		END IF;
+	END WHILE;
+END;
+
+/* 
+Implementation logic of the field is as follows:
+• 1 byte length indicator of the key length indicator
+• Length indicator of the key
+• Key
+• 1 byte length indicator of the value length indicator
+• Length indicator of the value
+• Value 
+here we set key and value in environment as a Array by picking it from structuredData127_22 field.
+In this Array first element is key and followed by value and it is repeated.
+Minimum input data length should be 6 due to the Implementation logic of the procedure.
+--Additional numeric check can be implemented for casting errors.Just in case of data is not valid.
+*/
+CREATE PROCEDURE keyValuePair127_22(IN outRef REFERENCE,IN inRef REFERENCE)
+BEGIN
+	DECLARE structuredData ROW outRef;
+	DECLARE structuredDataRef REFERENCE TO outRef;
+	CREATE LASTCHILD OF structuredDataRef AS structuredDataRef NAME 'structuredData127_22';
+	DECLARE in127_22Data CHARACTER inRef.StructuredDataPostilionPrivate_127_22;
+	DECLARE in127_22Len INTEGER LENGTH(in127_22Data);
+	DECLARE I INTEGER 1;
+	WHILE(in127_22Len >= 1) DO
+		DECLARE lenOfkeyLenStr CHARACTER SUBSTRING(in127_22Data FROM 1 FOR 1);
+		DECLARE lenOfkeyLen INTEGER CAST(lenOfkeyLenStr AS INTEGER);
+		SET in127_22Len = in127_22Len - LENGTH(lenOfkeyLenStr);
+		DECLARE keyLenStr CHARACTER SUBSTRING(in127_22Data FROM 2 FOR lenOfkeyLen);
+		DECLARE keyLen INTEGER CAST(keyLenStr AS INTEGER);
+		SET in127_22Len = in127_22Len - lenOfkeyLen;
+		DECLARE posKey INTEGER LENGTH(lenOfkeyLenStr) +  LENGTH(keyLenStr) + 1;
+		DECLARE keyval CHARACTER SUBSTRING(in127_22Data FROM posKey FOR keyLen);
+		SET structuredDataRef.value[I] = keyval;
+		SET in127_22Len = in127_22Len - keyLen;
+		DECLARE nextVal INTEGER posKey + keyLen;
+		SET in127_22Data = SUBSTRING(in127_22Data FROM nextVal);
+		SET I = I + 1;
+	END WHILE;
 END;
