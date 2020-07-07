@@ -137,7 +137,7 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
 		DECLARE OutRefer REFERENCE to OutputRoot.JSON.Data;
 		DECLARE Inrefer REFERENCE to InputRoot.JSON.Data.body;
-		IF domainName LIKE 'JSON' OR responceCode LIKE '200' THEN 
+		IF responceCode LIKE '200' THEN  
 			SET OutRefer.statusCode = '200';
 			SET OutRefer.message = 'SUCCESS';
 			SET OutRefer.responseBody.source = 'ESB';

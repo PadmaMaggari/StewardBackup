@@ -1,3 +1,5 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.salarycorporatepaymentst24call
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -10,11 +12,11 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
 DECLARE URL EXTERNAL CHARACTER'';
 
-CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24 
+CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL RequestToT24();
-		RETURN FALSE;
+		RETURN TRUE;
 	END;
 	CREATE PROCEDURE RequestToT24() BEGIN
 		SET Environment.MQRFH2= InputRoot.MQRFH2;
@@ -85,6 +87,12 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','Incoming Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG',reqMsg) INTO rc;
 		END IF;
+		SET Environment.Variables.data = InputRoot.DFDL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		SET OutputRoot.JSON.Data = InputRoot.DFDL;
+		SET Environment.Variables.jsonData = OutputRoot.JSON.Data;
+		SET OutputRoot = NULL;
 		/* =================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Env.UID,T24URL,'T24  Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRefer.Purpose,outRefer);
@@ -107,13 +115,12 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 			'','','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
 		END IF;
 		/*=============End===============*/
-		-- SET OutputRoot.Properties = InputRoot.Properties;
-		-- SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		-- SET OutputRoot.DFDL = NULL;
-		SET OutputRoot = NULL;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
+		MOVE outRefer TO OutputRoot.JSON;    
 		--http://192.168.1.233:8080/stwbc/api/v1.0.0/stwb/payments/salaries/{batchId}/{debitCurrency}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{invoiceReference}/{creditAccountId}/{customer}
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://192.168.1.233:8080/stwbc/api/v1.0.0/stwb/payments/salaries'||'/'||batchId||'/'||debitCurrency||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||invoiceReference||'/'||creditAccountId||'/'||customer;
-		PROPAGATE TO TERMINAL 'out';
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||'/'||batchId||'/'||debitCurrency||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||invoiceReference||'/'||creditAccountId||'/'||customer;
 	END;
 END MODULE;
 
@@ -141,8 +148,9 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
 		SET Env.data = inRef;
+		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader.{'X-Original-HTTP-Status-Code'}; 
 		CASE
-		WHEN inRef.header.status LIKE 'success' THEN
+		WHEN  Env.Statuscode LIKE  '200' OR inRef.header.status LIKE 'success' THEN 
 			---Success Case---
 			IF Env.FileNameCheck LIKE 'PO' THEN
 				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,'00','SUCCESS','','TRUE');
@@ -183,16 +191,16 @@ END MODULE;
 
 
 CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
-		CREATE FUNCTION Main() RETURNS BOOLEAN
+	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
- CALL BuildErrorMsg();
+		CALL BuildErrorMsg();
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -200,34 +208,34 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;     
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SalaryCorporatePaymentsT24';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'SalaryCorporatePaymentsT24'); 
+		CALL BuildExceptionDetails(excpRef,outRef,'SalaryCorporatePaymentsT24');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
-			DECLARE inRefer REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		DECLARE inRefer REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
 		SET Environment.Variables.RRN = inRef.Purpose;
 		SET Environment.Variables.UID = InputRoot.MQRFH2.UID;
-		DECLARE Env REFERENCE TO Environment.Variables; 
-		/* =================== CALLING LOG4J LOGGING   ==============*/
+		DECLARE Env REFERENCE TO Environment.Variables;
+		/* =================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
-		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
-		/* =================== CALLING DB LOGGING  ==============*/
-		IF IsLogRequired LIKE 'Y' THEN  
+		/* =================== CALLING LOG4J LOGGING ENDING ==============*/
+		/* =================== CALLING DB LOGGING ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
 			CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsT24.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;   
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
-		/* =================== CALLING DB LOGGING ENDING  ==============*/
+		/* =================== CALLING DB LOGGING ENDING ==============*/
 		----------------------------------
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
@@ -237,17 +245,17 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
 		SET outJsonRef.responseBody.source = 'ESB';
 		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsT24);
 		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsT24.ErrorCode;
-		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsT24.ErrorType;  
+		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsT24.ErrorType;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
-		/* =================== CALLING LOG4J LOGGING   ==============*/
+		/* =================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','End of Logging Application Related Exception') INTO rc;
 		END IF;
-		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+		/* =================== CALLING LOG4J LOGGING ENDING ==============*/
 		PROPAGATE TO TERMINAL 'out1';
 		----------------------------------
-		END;
+	END;
 END MODULE;
 
 

@@ -34,7 +34,16 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		--SET Environment.Variables.usr.Id = InputRoot.MQRFH2.RequestIdentifier;
 		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-		SET Environment.MQRFH2.usr.Id = InputRoot.MQRFH2.RequestIdentifier;
+		SET Environment.MQRFH2.usr.Id = InputRoot.MQRFH2.RequestIdentifier; 
+		DECLARE debitAccountId CHARACTER;
+		DECLARE debitCurrency CHARACTER;
+		DECLARE creditAccountId CHARACTER;
+		DECLARE orderingCustomerName CHARACTER;
+		DECLARE paymentCurrency CHARACTER;
+		DECLARE transactionAmount CHARACTER;
+		DECLARE executionDate CHARACTER;
+		DECLARE narrative CHARACTER;
+		DECLARE invoiceReference CHARACTER; 
 		--------------DBLogging-------------------
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),
@@ -84,9 +93,10 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL; 
+		--{debitAccountId}/{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}"
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||'/'||debitAccountId||'/'||debitCurrency||'/'||creditAccountId||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||narrative||'/'||invoiceReference; 
 	END;
-END MODULE;
+END MODULE; 
 
 
 
@@ -169,9 +179,9 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
 		SET OutputRoot.JSON.Data=envref;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','CurrencyConvertor Response To Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','SchoolFeePayment Response To Postilion::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',Environment.jsonData) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc; 
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 	END;
