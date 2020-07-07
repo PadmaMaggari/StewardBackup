@@ -67,8 +67,8 @@ CREATE COMPUTE MODULE ZipitHttpFlow_GenerateIsoReq
 		SET outRef.ProcessingCode_003 = CAST(inRef.JSON.Data.processingCode AS INTEGER); 
 		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.amount AS INTEGER);
 		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.debitAccountNumber AS INTEGER);
-		SET outRef.AccountIdentification2_103 = CAST(inRef.JSON.Data.accountIdentification2 AS INTEGER);
-		SET outRef.ReservedPrivate_127 = '000000';
+		SET outRef.AccountIdentification2_103 = CAST(inRef.JSON.Data.destinationAccount AS INTEGER); 
+		SET outRef.ReservedPrivate_127 = '000000'; 
 		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.destinationPhone;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;

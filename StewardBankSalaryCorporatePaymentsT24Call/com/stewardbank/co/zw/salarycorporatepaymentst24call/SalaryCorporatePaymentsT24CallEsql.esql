@@ -9,7 +9,6 @@ DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
 DECLARE URL EXTERNAL CHARACTER'';
-
 CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -49,10 +48,10 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		SET str = SUBSTRING(tiime FROM 7 FOR 4)||SUBSTRING(tiime FROM 4 FOR 2)||SUBSTRING(tiime FROM 1 FOR 2); --'YYYYMMDD');--20200629
 		SET executionDate = CAST(str AS CHARACTER FORMAT 'YYYYMMDD');
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;  
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE UrlPathparameters CHARACTER;
 		SET UrlPathparameters = inRefer.Tran_ID||'/'||inRefer.Currency||'/'||inRefer.Remitter_Name||'/'||inRefer.Currency||'/'||inRefer.Amount||'/'||executionDate||'/'||inRefer.Purpose||'/'||inRefer.Beneficiary_Account_Number||'/'||inRefer.Beneficiary_Name;
-		-- =================== CALLING DB RAW AUDIT LOGGING ==============
+		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/ 
 		-- IF IsLogRequired LIKE 'Y' THEN
 		-- CALL DBLogging(Environment.Variables.UID,Environment.Variables.reqMsg,'T24 Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRefer.Purpose,outRefer);
 		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -62,16 +61,16 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','..............Start Salary & Corporate Payments T24 logging...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','Incoming Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG',reqMsg) INTO rc;
-		END IF; 
-		DECLARE csvDate CHARACTER; 
+		END IF;
+		DECLARE csvDate CHARACTER;
 		DECLARE pattern CHARACTER 'yyyyMMdd';
-		SET csvDate = CAST(str AS CHARACTER FORMAT pattern); 
-		SET Env.CsvDate = CAST(csvDate AS CHARACTER); 
+		SET csvDate = CAST(str AS CHARACTER FORMAT pattern);
+		SET Env.CsvDate = CAST(csvDate AS CHARACTER);
 		CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
 		DECLARE outRef REFERENCE TO OutputRoot.JSON;
 		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
-		SET outRef.batchId = inRefer.Tran_ID;
-		SET outRef.debitCurrency = inRefer.Currency;
+		SET outRef.batchId = inRefer.Tran_ID; 
+		SET outRef.debitCurrency = inRefer.Currency; 
 		SET outRef.orderingCustomerName = inRefer.Remitter_Name;
 		SET outRef.paymentCurrency = inRefer.Currency;
 		SET outRef.transactionAmount = inRefer.Amount;
@@ -81,36 +80,36 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		SET outRef.customer = inRefer.Beneficiary_Name;
 		SET Environment.Variables.jsonData = OutputRoot.JSON.Data;
 		-- SET OutputRoot = NULL;
-		-- /* =================== CALLING DB RAW AUDIT LOGGING ==============*/
+		/* =================== CALLING DB RAW AUDIT LOGGING ==============*/
 		-- IF IsLogRequired LIKE 'Y' THEN
 		-- CALL DBLogging(Env.UID,T24URL,'T24  Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRefer.Purpose,outRefer);
 		-- END IF;
 		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		-- PROPAGATE TO TERMINAL 'out1';
-		-- /* ===================  RAW AUDIT LOGGING END ==============*/  
-		SET T24URL = URL||UrlPathparameters; 
-		 IF IsLogRequired LIKE 'Y' THEN
-		 CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','Generate T24 URL POST Request::') INTO rc;
-		 CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG',T24URL) INTO rc;
-		 END IF; 
-		 	/*=============End===============*/
-		-- /*================DB Update=======================*/ 
-		IF Env.FileNameCheck LIKE 'PO' THEN
-				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-				Environment.Variables.reqMsg,'','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
-			ELSE
-				CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-				Environment.Variables.reqMsg,'','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
-			END IF;
+		/* =================== RAW AUDIT LOGGING END ==============*/
+		SET T24URL = URL||UrlPathparameters;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','Generate T24 URL POST Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG',T24URL) INTO rc;
+		END IF;
 		/*=============End===============*/
-		--SET OutputRoot.Properties = InputRoot.Properties; 
+		/*================DB Update=======================*/
+		IF Env.FileNameCheck LIKE 'PO' THEN
+			CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+			Environment.Variables.reqMsg,'','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+		ELSE
+			CALL INSERT_SB_ISAVE_PAYNET_TRX_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+			Environment.Variables.reqMsg,'','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+		END IF;
+		/*=============End===============*/
+		--SET OutputRoot.Properties = InputRoot.Properties;
 		--SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		--SET OutputRoot.JSON.Data = Environment.Variables.jsonData; 
+		--SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||UrlPathparameters;
 	END;
 END MODULE;
----------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChannel
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -137,12 +136,12 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 		DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		CASE
 		WHEN responceCode LIKE '200' OR inRef.header.status LIKE 'success' THEN
-			---Success Case--- 
+			---Success Case---
 			IF Env.FileNameCheck LIKE 'PO' THEN
-					CALL UPDATE_STATUS_SB_ISAVE(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,'00','','SUCCESS','TRUE');
-				ELSE
-					CALL UPDATE_STATUS_SB_ISAVE(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,'00','','SUCCESS','FALSE');
-				END IF;
+				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,'00','','SUCCESS','TRUE');
+			ELSE
+				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,'00','','SUCCESS','FALSE');
+			END IF;
 			---DB Logging---
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL DBLogging(Env.UID,Env.resMsg,'T24 Success Response',ApplicationLabel,BrokerName,inRef.body.executionDate,inRef.body.executionDate,inRef.body.endToEndReference,outRefer);
@@ -163,7 +162,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 			IF Env.FileNameCheck LIKE 'PO' THEN
 				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,'','','','','','FAILURE','TRUE');
 			ELSE
-				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,'','','','','','FAILURE','FALSE'); 
+				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,'','','','','','FAILURE','FALSE');
 			END IF;
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','T24 Response:: FAILURE') INTO rc;
@@ -244,17 +243,12 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
 	END;
 END MODULE;
 
-
-
-
 CREATE PROCEDURE INSERT_SB_ISAVE_PAYNET_TRX_TRACKING (IN PAYNET_GUID CHARACTER,IN PAYNET_STAN_NUM CHARACTER, IN PAYNET_STANDATE CHARACTER
 ,IN PAYNET_RRN_REF CHARACTER,IN PAYNET_ISO_REQUEST_MSG CHARACTER,IN PAYNET_ISO_RESPONSE_CODE CHARACTER,IN PAYNET_CSV_FILENAME CHARACTER,IN PAYNET_CSV_FIELDS CHARACTER,IN PAYNET_CSV_AMOUNT CHARACTER,
 IN PAYNET_CSV_DTACCOUNT CHARACTER,IN PAYNET_CSV_CRACCOUNT CHARACTER,IN PAYNET_CSV_DTDATE CHARACTER,IN PAYNET_ISO_MSG CHARACTER,
 IN PAYNET_ISO_FT CHARACTER,IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_CSV_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP,IN PAYNET_TAXABLE CHARACTER)
 LANGUAGE DATABASE
 EXTERNAL NAME "INSERT_SB_ISAVE_PAYNET_TRX_TRACKING";
-
-
 
 CREATE PROCEDURE UPDATE_STATUS_SB_ISAVE(IN PAYNET_ID CHARACTER,IN PAYNET_STAN_NUM CHARACTER,IN PAYNET_STANDATE CHARACTER,IN PAYNET_RRN_REF CHARACTER,
 IN PAYNET_ISO_RESPONSE_CODE CHARACTER,IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_TAXABLE CHARACTER)
