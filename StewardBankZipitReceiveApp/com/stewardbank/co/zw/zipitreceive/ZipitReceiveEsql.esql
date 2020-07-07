@@ -27,6 +27,7 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateReqToT24
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
@@ -56,7 +57,7 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateReqToT24
 		SET Environment.Variables.ResponseQ = resQ;
 		SET Environment.Variables.TcpIp.ConnectionId = connId;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','..............Initializing ZipitReceive  logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','..............Initializing Zipit Receive  logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','..............ISO Message parsed successfully...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Request from Postilion::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
@@ -68,8 +69,8 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateReqToT24
 		SET Environment.DFDL = OutputRoot.DFDL;
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
-		SET Environment.Variables.resMsg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
+		SET Environment.Variables.resMsg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
 		CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.resMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
@@ -111,6 +112,7 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateResToPostilion
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
 		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
 		SET Environment.Properties = InputRoot.Properties;
@@ -157,14 +159,15 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateResToPostilion
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		SET OutputRoot.DFDL = Environment.dfdlData;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Response To Postilion::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','Response To Postilion::') INTO rc; 
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','TCPIP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ZipitReceiveLogger', 'DEBUG','TCPIP ID::'|| Environment.MQRFH2.usr.Id) INTO rc; 
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
+
 /*==================================================================================================================
 Application Name : ZIPIT RECEIVE.
 Description :
@@ -176,7 +179,7 @@ Author : G Raghavender.
 CREATE COMPUTE MODULE ZipitReceiveFlow_CaptureException
 CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL BuildErrorMsg();
+	CALL BuildErrorMsg();
 		RETURN FALSE;
 	END;
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
@@ -191,7 +194,6 @@ CREATE FUNCTION Main() RETURNS BOOLEAN
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'ZipitReceive';
@@ -211,8 +213,8 @@ CREATE FUNCTION Main() RETURNS BOOLEAN
 		CALL Error_DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ZipitReceive.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;      
-		PROPAGATE TO TERMINAL 'out';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;     
+		PROPAGATE TO TERMINAL 'out'; 
 		----------------------------------
 		END;
 END MODULE;
