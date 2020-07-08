@@ -110,8 +110,7 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
+		
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
@@ -125,7 +124,7 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 		SET Environment.dfdlData = InputRoot.DFDL;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.Variables.Data.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -152,8 +151,7 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_reqToPostilion
 	END;
 	CREATE PROCEDURE reqToPostilion() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
+		
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
@@ -167,7 +165,7 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_reqToPostilion
 		SET Environment.dfdlData = InputRoot.DFDL;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.Variables.Data.MQRFH2.RequestIdentifier,Environment.Variables.resISOMsg,'T24 Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resISOMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -316,7 +314,7 @@ CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
 		--CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.BILL_PAYMENT_HTTP.ErrorCode,outRefer);
-		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.BILL_PAYMENT_HTTP.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 		----------------------------------
