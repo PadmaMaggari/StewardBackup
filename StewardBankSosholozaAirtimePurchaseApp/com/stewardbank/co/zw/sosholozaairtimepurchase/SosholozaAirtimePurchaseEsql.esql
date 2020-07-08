@@ -29,9 +29,6 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_GenerateIsoReq
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.Variable.reqMsg = reqMsg;
-		
-		
-		
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
@@ -39,6 +36,33 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_GenerateIsoReq
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF;
+		
+--		DECLARE dataLength INTEGER LENGTH(InputRoot.JSON.Data.billProvider);
+--		DECLARE billProvider CHARACTER  InputRoot.JSON.Data.billProvider;
+--		DECLARE i INTEGER 1;
+--		DECLARE dataSpace CHARACTER;
+--		IF dataLength < 25 THEN
+--		WHILE dataLength < 25 DO
+--			SET  billProvider = billProvider||' ';
+--			SET  dataLength = dataLength + 1;
+--		END WHILE;
+--		ELSEIF dataLength > 25 THEN
+--			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+--		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+--		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+--		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
+--		SET outRef.statusCode = '000';
+--		SET outRef.status = 'FAILED';
+--		SET outRef.message = 'Airtime Purchase Length Exceds';
+--		SET outRef.responseBody.source = 'ESB';
+--		SET outRef.responseBody.applicationName = ApplicationLabel;
+--		SET outRef.responseBody.applicationErrorCode = 'Airtime_001';
+--		
+--		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
+--		PROPAGATE TO TERMINAL 'out1';
+--		RETURN;
+--		END IF; 
+--		
 		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
 		/*=================== CALLING LOG4j  LOGGING   ==============*/
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
@@ -50,8 +74,10 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_GenerateIsoReq
 			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG','Incoming Request::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG',reqMsg) INTO rc;
 		END IF;
+		
+		
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
-	--	DECLARE billProviderLength INTEGER LENGTH(inRef.JSON.Data.billProvider);
+		
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
@@ -65,24 +91,17 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_GenerateIsoReq
 		SET outRef.MTI_MessageOrigin = 0;
 		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
 		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.billAmount AS INTEGER);
---		IF billProviderLength  < 25  THEN
---			CALL errorResponse('length must be 25 [debitCurrency] in the request');
---		ELSE
---			
---		END IF;
+		
 		 SET outRef.CurrencyCodeTransaction_049 = inRef.JSON.Data.debitCurrency;
 		 
---		 DECLARE billProviderLength INTEGER LENGTH(inRef.JSON.Data.billProvider);
---		 IF billProviderLength > 25 THEN
---			SET OutputRoot.JSON.Data.billProviderLength ='BILL PROVIDER LENGTH MORE THEN ';
---		ELSE
---			
---		END IF;
-		 SET outRef.Payee_098 = inRef.JSON.Data.billProvider;
+
+         SET outRef.Payee_098 = inRef.JSON.Data.billProvider;
+ 
 		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.debitAccountNumber AS INTEGER);
 		SET outRef.AccountIdentification2_103 = CAST(inRef.JSON.Data.billAccount AS INTEGER);
 		SET outRef.ReservedPrivate_127 = '000000';
 		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel;
+		SET OutputRoot.JSON= NULL;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);        
@@ -108,19 +127,7 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_GenerateIsoReq
 		SET OutputRoot.DFDL = Environment.dfdlData;
 		
 	END;
---	CREATE PROCEDURE errorResponse (IN msg CHARACTER)
---	BEGIN
---		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
---		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
---		DECLARE outJsonRef REFERENCE TO OutputRoot.JSON.Data;
---		SET outJsonRef.statusCode = '000';
---		SET outJsonRef.message = 'FAILURE';
---		SET outJsonRef.responseBody.source = 'ESB';
---		SET outJsonRef.responseBody.details = msg;
---		SET Environment.Variables.jsonData = OutputRoot.JSON;
---		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
---		PROPAGATE TO TERMINAL 'out1';
---	END;
+
 END MODULE;
 
 
@@ -348,7 +355,7 @@ CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
 		--CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.AIRTIME_PURCHASE_HTTP.ErrorCode,outRefer);
-		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.AIRTIME_PURCHASE_HTTP.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 		----------------------------------
