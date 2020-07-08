@@ -37,11 +37,14 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GeneratingT24Request
 		  SET outRef.narrative = envRef.narrative;
 		  SET outRef.invoiceReference = envRef.invoiceReference;
 		 -- Appending path parameters to stiring--
-		  SET RtgsIncomingUrlPathparameters = envRef.drAcctId||'/'||envRef.debitCurrency||'/'||envRef.ordCustomerName||'/'||envRef.debitCurrency||'/'||envRef.transactionAmount||'/'||envRef.exeDate||'/'||envRef.narrative||'/'||envRef.invoiceReference;
-		  SET reqMsg = getPayLoad(FIELDNAME(outRef),outRef,encodeRef,ccidRef);
+		  SET RtgsIncomingUrlPathparameters =envRef.drAcctId||'/'||envRef.debitCurrency||'/'||envRef.ordCustomerName||'/'||envRef.debitCurrency||'/'||envRef.transactionAmount||'/'||envRef.exeDate||'/'||envRef.narrative||'/'||envRef.invoiceReference;
+		  DECLARE fieldName CHARACTER FIELDNAME(OutputRoot.JSON);
+		  SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.JSON),outRef,encodeRef,ccidRef);
 		 --******************Insertingvalues into ISAVE table with T24 Request Message ************
-			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'');
+--		    SET OutputRoot = NULL;
+			 SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 			 SET OutputLocalEnvironment.Destination.HTTP.RequestURL = BackendT24Url||RtgsIncomingUrlPathparameters ;
+			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'') IN Database.ORADSN.{'SYSTEM'};
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End of RTGSIncoming  ReqToT24 logging...........') INTO rc;
 		END;
 		END MODULE;
@@ -51,6 +54,7 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_UpdateDatabaseStatus
 		 CALL UpdateDatabaseStatus();
 		RETURN TRUE;
 	END;
+	
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader.{'X-Original-HTTP-Status-Code'};
@@ -59,10 +63,10 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_UpdateDatabaseStatus
 		--***************Updating Database with Zss/T24 Status and Response codes***********************
 		IF FIELDNAME(InputRoot.JSON) IS NOT NULL THEN
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
-			 IF (Environment.Variables.Statuscode = 200) THEN
-			 	CALL UpdateDBStatus(Guid,'SUCCESS',Environment.Variables.Statuscode,' ','T24');
+			 IF CONTAINS(Environment.Variables.Statuscode,'200') THEN
+			 	CALL UpdateDBStatus(Guid,'SUCCESS',Environment.Variables.Statuscode,' ','T24')IN Database.ORADSN.{'SYSTEM'};
 			 ELSE
-			 	CALL UpdateDBStatus(Guid,'FALUIRE',Environment.Variables.Statuscode,' ','T24');
+			 	CALL UpdateDBStatus(Guid,'FALUIRE',Environment.Variables.Statuscode,' ','T24')IN Database.ORADSN.{'SYSTEM'};
 			 END IF;
 		END IF;	
 		SET OutputRoot = InputRoot;
@@ -103,7 +107,7 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GenerateExceptionDetails
 				-- DB Logging===================
 		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
-		CALL Error_DBLogging(Environment.Variables.Guid,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.RTGSIncoming.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Variables.Guid,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............End RTGSIncoming Exception logging...........') INTO rc;

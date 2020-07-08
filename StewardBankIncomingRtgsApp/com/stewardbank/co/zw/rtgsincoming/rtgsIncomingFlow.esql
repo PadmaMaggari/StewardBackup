@@ -10,7 +10,7 @@ Description:Pick file from remote location and based on the account send request
 BROKER SCHEMA com.stewardbank.co.zw.rtgsincoming
 
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,IsLogRequired,ZSS_REQ,T24_REQ EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,IsLogRequired,ZSS_REQ,T24_REQ,DSN  EXTERNAL CHARACTER '';
 DECLARE UUID SHARED CHARACTER '';
 CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateMt103Req
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -62,7 +62,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_RouteToT24orZss
 	BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
 		CALL GeneratingReqToT24orZSS();
-		RETURN FALSE;
+		RETURN TRUE;
 	END;
 	/*
 	Log Incoming Request i.e MT103 in RTGS_INCOMING_DETAILS Table and form ISO8583 if account is in T24 or
@@ -70,7 +70,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_RouteToT24orZss
 	*/
 	CREATE PROCEDURE GeneratingReqToT24orZSS() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-		DECLARE reqMsg CHARACTER ;
+		DECLARE reqMsg,crAcctId CHARACTER ;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
@@ -99,12 +99,14 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_RouteToT24orZss
 			SET Environment.Variables.invoiceReference ='NOTPROVIDED';
 		END IF;
 		SET Environment.Variables.drAcctId = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField AFTER '/')BEFORE CRLF);
-		SET Environment.Variables.crAcctId = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField AFTER '/')BEFORE CRLF);
+		SET  crAcctId = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField AFTER '/')BEFORE CRLF);
+		SET Environment.Variables.crAcctId = crAcctId;
+		--SET Response.accountEnquiry[] = SELECT * FROM Database.ISAVE_CARD_MAPPING AS I WHERE I.ACCOUNT_ID = crAcctId;
 		--get account details from db to check weather Account belongs to Zss or T24
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
-		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(Environment.Variables.crAcctId));
+		SET Response.accountEnquiry[] = PASSTHRU(sql TO Database.{DSN} VALUES(crAcctId));
 		--*************If Account Exist in Isave table or it starts with 2 then it is ZSS Account**********
-		IF EXISTS(Response.accountEnquiry.*[]) OR STARTSWITH(Environment.Variables.crAcctId,'2') THEN
+		IF EXISTS(Response.accountEnquiry.*[]) OR STARTSWITH(crAcctId,'2') THEN
 			-- Routing to Zss Application
 			IF IsLogRequired LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Account Exists in Zss ,Routing Req to Zss Flow...........') INTO rc;
@@ -117,9 +119,13 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_RouteToT24orZss
 		END IF;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = T24_REQ;
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End RTGSIncoming  ReqToPostilion logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End of RTGSIncoming  ReqToPostilion logging...........') INTO rc;
 		SET OutputRoot.MQRFH2 = Environment.Variables;
-		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(InputRoot.DFDL ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+		SET OutputRoot.DFDL = InputRoot.DFDL; 
+		
+--		SET OutputRoot.Properties.MessageSet = '{MT103}';
+--		SET OutputRoot.Properties.MessageType = '{}:MT103';
+		--CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(InputRoot.DFDL ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
 		END;
 		END MODULE;
 CREATE COMPUTE MODULE rtgsIncomingFlow__GenerateExceptionDetails
@@ -156,7 +162,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow__GenerateExceptionDetails
 				-- DB Logging===================
 		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
-		CALL Error_DBLogging(Environment.Variables.Guid,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.RTGSIncoming.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Variables.Guid,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............End RTGSIncoming Exception logging...........') INTO rc;
