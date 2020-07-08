@@ -70,25 +70,25 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			----------------------------------
 		END IF;
 		IF (FIELDNAME(Environment.Variables.processingCode) IS NULL) AND (FIELDNAME(Environment.Variables.channel) IS NULL) THEN
-			CALL errorResponse('no key[proccessingCode & Channel] in the request');
+			CALL errorResponse('no key[proccessingCode & Channel] in the request','ESB_006');
 			RETURN;
 		ELSEIF (FIELDVALUE(Environment.Variables.processingCode) = '' AND FIELDVALUE(Environment.Variables.channel) = '') THEN
-			CALL errorResponse('channel & processingCode  must be specified');
+			CALL errorResponse('channel & processingCode  must be specified','ESB_007');
 			RETURN;
 		ELSEIF FIELDNAME(Environment.Variables.channel) IS NULL THEN
-			CALL errorResponse('no key[channel] in the request');
+			CALL errorResponse('no key[channel] in the request','ESB_008');
 			RETURN;
 		ELSEIF FIELDVALUE(Environment.Variables.channel) = '' THEN
-			CALL errorResponse('channel name must be specified');
+			CALL errorResponse('channel name must be specified','ESB_009');
 			RETURN;
 		ELSEIF FIELDNAME(Environment.Variables.processingCode) IS NULL THEN
-			CALL errorResponse('no key[proccessingCode] in the request');
+			CALL errorResponse('no key[proccessingCode] in the request','ESB_010');
 			RETURN;
 		ELSEIF FIELDVALUE(Environment.Variables.processingCode) = '' THEN
-			CALL errorResponse('proccessingCode must be specified');
+			CALL errorResponse('proccessingCode must be specified','ESB_011');
 			RETURN;
 		ELSEIF NOT LENGTH(FIELDVALUE(Environment.Variables.processingCode)) = 6 THEN
-			CALL errorResponse('processing code length must be = 6');
+			CALL errorResponse('processing code length must be = 6','ESB_012');
 			RETURN;
 		ELSE
 			SET procCodeData = SUBSTRING(Environment.Variables.processingCode FROM 1 FOR 2);
@@ -97,22 +97,43 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 
 		IF EXISTS(getDBDetailsCache.Values[]) THEN
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Values available in shared cache: '|| getDBDetailsCache.Values.*[])INTO rc;
-			SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
-			IF FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
-				SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
-				SET QueueName = qDetails.values.HTTP_REQ;
+			SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES, P.MSGDOMAIN FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
+			IF EXISTS(qDetails.values[]) THEN
+				IF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NOT NULL AND FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
+					SET QueueName = qDetails.values.HTTP_REQ;
+				ELSEIF FIELDVALUE(qDetails.values.HTTP_REQ) IS NULL THEN
+					CALL errorResponse('No Queues based on processingCode or Channel Name','ESB_005');
+					RETURN;
+				ELSEIF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NULL THEN
+					CALL errorResponse('No Domain based on processingCode or Channel Name','ESB_04');
+					RETURN;
+				ELSE
+					CALL errorResponse('No Domain and Queues based on processingCode or Channel Name','ESB_003');
+					RETURN;
+				END IF;
 			ELSE
-				CALL errorResponse('Invalid processingCode or Channel Name');
+				CALL errorResponse('Invalid processingCode or Channel Name','ESB_002');
 				RETURN;
 			END IF;
 		ELSE
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Calling the Cache')INTO rc;
 			CALL STORE_CACHE();
-			SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
-			IF FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
-				SET QueueName = qDetails.values.HTTP_REQ;
+			SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES, P.MSGDOMAIN FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
+			IF EXISTS(qDetails.values[]) THEN
+				IF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NOT NULL AND FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
+					SET QueueName = qDetails.values.HTTP_REQ;
+				ELSEIF FIELDVALUE(qDetails.values.HTTP_REQ) IS NULL THEN
+					CALL errorResponse('No Queues based on processingCode or Channel Name','ESB_005');
+					RETURN;
+				ELSEIF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NULL THEN
+					CALL errorResponse('No Domain based on processingCode or Channel Name','ESB_04');
+					RETURN;
+				ELSE
+					CALL errorResponse('No Domain and Queues based on processingCode or Channel Name','ESB_003');
+					RETURN;
+				END IF;
 			ELSE
-				CALL errorResponse('Invalid processingCode or Channel Name');
+				CALL errorResponse('Invalid processingCode or Channel Name','ESB_002');
 				RETURN;
 			END IF;
 		END IF;
@@ -128,22 +149,26 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 	/*Retrieve application related queues from database or cache*/
 	CREATE PROCEDURE STORE_CACHE ()
 	BEGIN
-		SET getDBDetailsCache.Values[] = SELECT A.PROC_CODE, A.HTTP_REQ, A.HTTP_RES, A.CHANNEL FROM Database.INTEGRATION_SOL_DETAILS AS A WHERE A.MSGDOMAIN = 'JSON';
-		IF getDBDetailsCache.Values IS NOT NULL OR getDBDetailsCache.Values <> '' THEN
+		SET getDBDetailsCache.Values[] = SELECT A.PROC_CODE, A.HTTP_REQ, A.HTTP_RES, A.CHANNEL, A.MSGDOMAIN FROM Database.INTEGRATION_SOL_DETAILS AS A WHERE A.MSGDOMAIN = 'JSON';
+		IF EXISTS(getDBDetailsCache.Values[]) OR getDBDetailsCache <> '' OR getDBDetailsCache IS NOT NULL THEN
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Retrieved values from Database')INTO rc;
 		ELSE
+			CALL errorResponse('No data based on domain name JSON','ESB_001');
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','No Data retrieved from Database')INTO rc;
+			RETURN;
 		END IF;
 	END;
-	CREATE PROCEDURE errorResponse (IN msg CHARACTER)
+	CREATE PROCEDURE errorResponse (IN msg CHAR,IN errorCode CHAR)
 	BEGIN
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
 		DECLARE outJsonRef REFERENCE TO OutputRoot.JSON.Data;
 		SET outJsonRef.statusCode = '000';
-		SET outJsonRef.message = 'FAILURE';
+		SET outJsonRef.status = 'FAILED';
+		SET outJsonRef.message = msg;
 		SET outJsonRef.responseBody.source = 'ESB';
-		SET outJsonRef.responseBody.details = msg;
+		SET outJsonRef.responseBody.applicationName = ApplicationLabel;
+		SET outJsonRef.responseBody.applicationErrorCode = errorCode;
 		SET Environment.Variables.jsonData = OutputRoot.JSON;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 		PROPAGATE TO TERMINAL 'out1';
