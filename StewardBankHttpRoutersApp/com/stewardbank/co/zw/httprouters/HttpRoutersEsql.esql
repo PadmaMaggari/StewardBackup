@@ -30,7 +30,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 	CREATE PROCEDURE RouteToInterfaceBasedOnProcessingCode() BEGIN
 		DECLARE inRef REFERENCE TO InputRoot;
 		DECLARE procCodeData,QueueName,channel CHARACTER '';
-		DECLARE DBDetails ROW;
+		DECLARE qDetails ROW;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -97,23 +97,26 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 
 		IF EXISTS(getDBDetailsCache.Values[]) THEN
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Values available in shared cache: '|| getDBDetailsCache.Values.*[])INTO rc;
-			IF FIELDVALUE(getDBDetailsCache.Values.HTTP_REQ) IS NOT NULL THEN
-				SET QueueName = getDBDetailsCache.Values.HTTP_REQ;
+			SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
+			IF FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
+				SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
+				SET QueueName = qDetails.values.HTTP_REQ;
 			ELSE
 				CALL errorResponse('Invalid processingCode or Channel Name');
 				RETURN;
 			END IF;
 		ELSE
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Calling the Cache')INTO rc;
-			CALL STORE_CACHE(procCodeData,channel);
-			IF FIELDVALUE(getDBDetailsCache.Values.HTTP_REQ) IS NOT NULL THEN
-				SET QueueName = getDBDetailsCache.Values.HTTP_REQ;
+			CALL STORE_CACHE();
+			SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
+			IF FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
+				SET QueueName = qDetails.values.HTTP_REQ;
 			ELSE
 				CALL errorResponse('Invalid processingCode or Channel Name');
 				RETURN;
 			END IF;
 		END IF;
-		SET Environment.MQRFH2.usr.resQueueName = getDBDetailsCache.Values.HTTP_RES;
+		SET Environment.MQRFH2.usr.resQueueName = qDetails.values.HTTP_RES;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data = InputRoot.JSON.Data;
@@ -123,9 +126,9 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		PROPAGATE TO TERMINAL 'out';
 	END;
 	/*Retrieve application related queues from database or cache*/
-	CREATE PROCEDURE STORE_CACHE (IN procCodeData CHARACTER,IN channel CHARACTER)
+	CREATE PROCEDURE STORE_CACHE ()
 	BEGIN
-		SET getDBDetailsCache.Values[] = SELECT A.HTTP_REQ,A.HTTP_RES,A.CHANNEL FROM Database.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData AND A.CHANNEL = channel AND A.MSGDOMAIN = 'JSON';
+		SET getDBDetailsCache.Values[] = SELECT A.PROC_CODE, A.HTTP_REQ, A.HTTP_RES, A.CHANNEL FROM Database.INTEGRATION_SOL_DETAILS AS A WHERE A.MSGDOMAIN = 'JSON';
 		IF getDBDetailsCache.Values IS NOT NULL OR getDBDetailsCache.Values <> '' THEN
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Retrieved values from Database')INTO rc;
 		ELSE
