@@ -13,6 +13,7 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE rc BOOLEAN FALSE;
 CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_VerifyRequest
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -21,27 +22,24 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_VerifyRequest
 	END;
 	CREATE PROCEDURE VerifyRequest() BEGIN
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
-		SET Environment.MQRFH2.usr.localDate = CAST(CURRENT_DATE AS CHAR FORMAT 'DDMM');
-		SET Environment.MQRFH2.usr.localTime = CAST(CURRENT_TIME AS CHAR FORMAT 'hhmmss');
-		SET Environment.MQMD = InputRoot.MQMD;
-		DECLARE rc BOOLEAN FALSE;
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE accountOpeningCheck CHAR inRef.Data.header.accountOpeningCheck;
+		DECLARE accountOpeningCheck CHAR COALESCE(inRef.Data.accountOpeningCheck,inRef.Data.header.accountOpeningCheck,'');
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET Environment.MQRFH2.ChannelRequest = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET Environment.Variables.reqMsg = Environment.MQRFH2.ChannelRequest;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Request from Frontend------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Request------') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;		
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.localTime,Environment.MQEFH2.usr.localDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -53,7 +51,55 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_VerifyRequest
 			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'KYC';
 		ELSEIF accountOpeningCheck = 'T24_CHECK' THEN
 			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'T24';
+		ELSE
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'Unknown';
 		END IF;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateUnknownResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL GenerateUnknownResponse();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateUnknownResponse() BEGIN
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE outRefer REFERENCE TO OutputRoot; 
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
+		SET outRef.statusCode = '000';
+		SET outRef.status = 'FAILED';
+		SET outRef.message = 'Unknown Request';
+		SET outRef.responseBody.source = 'ESB';
+		SET outRef.responseBody.applicationName = ApplicationLabel;
+		SET outRef.responseBody.applicationErrorCode = 'AccountOpening_001';
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON; 
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		SET Environment.jsonData = OutputRoot.JSON;
+		SET OutputRoot.JSON = NULL;
+		------------DBLogging-------------------
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;		
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
+		---------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		SET OutputRoot.JSON = Environment.jsonData;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
 

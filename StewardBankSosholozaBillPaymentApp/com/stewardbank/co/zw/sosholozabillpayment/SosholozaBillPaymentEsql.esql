@@ -22,7 +22,7 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateIsoReq
 
 
 	CREATE PROCEDURE GenerateIsoReq() BEGIN
-		SET Environment.Variables.Data.MQRFH2 = InputRoot.MQRFH2;
+SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE DBDetails ROW;
@@ -33,31 +33,32 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateIsoReq
 		DECLARE comm CHARACTER ',';
 		DECLARE channel CHARACTER 'Channel';
 		DECLARE destinationPhone CHARACTER 'DestinationPhone';
-		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
-		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.Variable.reqMsg = reqMsg;
+		
+		
+		
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			PROPAGATE TO TERMINAL 'out1';
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
 		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
-		/*=================== CALLING LOG4j LOGGING ==============*/
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
+		/*=================== CALLING LOG4j  LOGGING   ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','..............Start AirtimePurchaseHTTPApp logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','Incoming Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','..............Start BillPaymentHTTP logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','Incoming Request::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG',reqMsg) INTO rc;
 		END IF;
-		/*=================== CALLING LOG4J LOGGING END ==============*/
-		SET OutputRoot.Properties = InputRoot.Properties;
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
+	--	DECLARE billProviderLength INTEGER LENGTH(inRef.JSON.Data.billProvider);
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
 		SET OutputRoot.MQRFH2.usr = Environment.Variables.usr;
@@ -76,29 +77,29 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateIsoReq
 		SET outRef.ReservedPrivate_127 = '000000';
 		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
-		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
-		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
+		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);        
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		SET OutputRoot.DFDL = NULL;
-		/*=================== CALLING LOG4J LOGGING ==============*/
+		/*=================== CALLING LOG4J LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid)) INTO rc;
 		END IF;
-		/*=================== CALLING LOG4J LOGGING END ==============*/
-		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			PROPAGATE TO TERMINAL 'out1';
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
 		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
-		SET OutputRoot.MQMD = InputRoot.MQMD;
-		SET OutputRoot.MQRFH2 = Environment.Variables.Data.MQRFH2;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
+		
 	END;
 END MODULE;
 CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
@@ -121,6 +122,7 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
+		SET Environment.dfdlData = InputRoot.DFDL;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Environment.Variables.Data.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
@@ -137,7 +139,9 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 
 
-		SET OutputRoot = InputRoot;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.DFDL = Environment.dfdlData;
 	END;
 END MODULE;
 CREATE COMPUTE MODULE SosholozaBillPaymentFlow_reqToPostilion
@@ -160,6 +164,7 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_reqToPostilion
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
+		SET Environment.dfdlData = InputRoot.DFDL;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Environment.Variables.Data.MQRFH2.RequestIdentifier,Environment.Variables.resISOMsg,'T24 Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
@@ -175,7 +180,9 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_reqToPostilion
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 
-		SET OutputRoot = InputRoot;
+		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.DFDL = Environment.dfdlData;
 	END;
 END MODULE;
 CREATE COMPUTE MODULE SosholozaBillPaymentFlow_reqToFrondEnd
@@ -185,35 +192,33 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_reqToFrondEnd
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenerateResToPortalBackend() BEGIN
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.Variables.Data.MQRFH2;
+	SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
-		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
 		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.Variables.Data.MQRFH2.RequestIdentifier,getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid),'Postilion Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			PROPAGATE TO TERMINAL 'out';
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid),'Postilion Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
 		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
-		/*=================== CALLING LOG4J LOGGING ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
+		/*=================== CALLING LOG4J LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-
+			
 			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','Response from Postilion::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid)) INTO rc;
 		END IF;
-		/*=================== CALLING LOG4J LOGGING END ==============*/
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
@@ -222,36 +227,37 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_reqToFrondEnd
 			SET outRef.message = 'SUCCESS';
 			SET outRef.responseBody.source = 'ESB';
 			SET outRef.responseBody.applicationName = 'BILL_PAYMENT_HTTP';
-
+		
 		ELSE
 			SET outRef.statusCode = '000';
 			SET outRef.message = 'FAILURE';
 			SET outRef.responseBody.source = 'ESB';
 			SET outRef.responseBody.applicationName = 'BILL_PAYMENT_HTTP';
-
+		
 		END IF;
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.JSON),outDomainDataRef,encodeRef,ccsid);
 		SET Environment.jsonData = OutputRoot.JSON.Data;
 		SET OutputRoot.JSON = NULL;
-		/*=================== CALLING LOG4J LOGGING ==============*/
+		/*=================== CALLING LOG4J LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','Response To Outgoing Router::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
-		/*=================== CALLING LOG4J LOGGING END ==============*/
-		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.Variables.Data.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			PROPAGATE TO TERMINAL 'out';
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
 		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
-		SET OutputRoot.MQRFH2 = Environment.Variables.Data.MQRFH2;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data = Environment.jsonData;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES'; --Environment.Variables.usr.resQueueName;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';--Environment.Variables.usr.resQueueName;
+		
 	END;
 END MODULE;
 CREATE COMPUTE MODULE SosholozaBillPaymentFlow_BuildExceptionDetails
@@ -261,19 +267,28 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_BuildExceptionDetails
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
-		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+	DECLARE rc BOOLEAN FALSE;
+CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE errMsg CHARACTER;
+		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') THEN
+			SET errMsg = 'T24 Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
+			SET errMsg = 'Postilion Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN 
+			SET errMsg = 'No Response from T24 Server';
+		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN 
+			SET errMsg = 'No Response from Postilion Server';	
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
-		--DECLARE Id CHARACTER CAST(Environment.Variables.Data.MQRFH2.usr.Id AS CHARACTER);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'BILL_PAYMENT_HTTP';
@@ -282,40 +297,29 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_BuildExceptionDetails
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		/*=================== CALLING DB LOG4J LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
-		END IF;
-		/*=================== CALLING LOG4J LOGGING END ==============*/
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
-		PROPAGATE TO TERMINAL 'out';
-		/*=================== CALLING ERROR DB RAW AUDIT LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Environment.Variables.Data.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.BILL_PAYMENT_HTTP.ErrorCode,outRefer);
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
-		END IF;
-		/*=================== CALLING ERROR DB RAW AUDIT LOGGING END ==============*/
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out';
-		----------------------------------
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
-		DECLARE outJsonRef REFERENCE TO OutputRoot.JSON.Data;
-		SET outJsonRef.statusCode = '000';
-		SET outJsonRef.message = 'FAILURE';
-		SET outJsonRef.responseBody.source = 'ESB';
-		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.BILL_PAYMENT_HTTP);
-		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.BILL_PAYMENT_HTTP.ErrorCode;
-		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.BILL_PAYMENT_HTTP.ErrorType;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.Variables.Data.MQRFH2.RequestIdentifier AS BLOB);
-		/*=================== CALLING LOG4J LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','End of Logging Application Related Exception') INTO rc;
-		END IF;
-		/*=================== CALLING LOG4J LOGGING END ==============*/
-		PROPAGATE TO TERMINAL 'out1';
+		MOVE outRef TO OutputRoot.JSON.Data;
+		SET outRef.statusCode = '000';
+		SET outRef.status = 'FAILED';
+		SET outRef.message = errMsg;
+		SET outRef.responseBody.source = 'ESB';
+		SET outRef.responseBody.applicationName = ApplicationLabel;
+		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.BILL_PAYMENT_HTTP.ErrorCode;
+ 		SET OutputRoot.XMLNSC = NULL;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';   
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+		------------Error Logging in DB----------
+		--CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.BILL_PAYMENT_HTTP.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 		----------------------------------
-	END;
+		END;
+
 END MODULE;

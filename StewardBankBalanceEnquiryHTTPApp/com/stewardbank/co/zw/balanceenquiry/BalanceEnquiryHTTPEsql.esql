@@ -30,8 +30,8 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion
 		SET Environment.Variables.reqMsg = Environment.MQRFH2.inputRequest;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Application Request::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','Application Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -62,8 +62,8 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion
 			SET OutputRoot.DFDL = NULL;
 			PROPAGATE TO TERMINAL 'out1';
 			-----------------------------
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Request To Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','Request To Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
@@ -91,8 +91,8 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion1
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','T24 Response::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','T24 Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -117,8 +117,8 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion1
 			SET OutputRoot.DFDL = NULL;
 			PROPAGATE TO TERMINAL 'out1';
 			-----------------------------
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Request To Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','Request To Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
@@ -146,8 +146,8 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToT24
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Postilion Response::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','Postilion Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -168,8 +168,8 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToT24
 		SET domainName = FIELDNAME(outDomainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','T24 Request::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','T24 Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -207,8 +207,8 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
 			-----------------------------
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Postilion Response::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','Postilion Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		END IF;
 		--field to field mapping
 		--CALL ISOToJSONMapping(inRef,outRef);
@@ -235,8 +235,8 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
 			-----------------------------
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Application Response::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','Application Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;

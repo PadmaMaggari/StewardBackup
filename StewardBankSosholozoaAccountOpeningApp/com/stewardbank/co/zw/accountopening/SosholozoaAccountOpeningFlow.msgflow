@@ -88,6 +88,12 @@
       <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_15" location="615,485" URLSpecifier="https://192.168.1.233:8080/api/v1.0.0/product/account/{customer}/{customerRole}/{tradeDate}/{currencyId}" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON">
         <translation xmi:type="utility:ConstantString" string="FCBServiceCall"/>
       </nodes>
+      <nodes xmi:type="ComIbmLabel.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_16" location="104,264" labelName="Unknown">
+        <translation xmi:type="utility:ConstantString" string="Unknown"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_17" location="395,264" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#SosholozoaAccountOpeningFlow_GenerateUnknownResponse.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="GenerateUnknownResponse"/>
+      </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_23" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input">
         <bendPoints>27,341,-569,-31</bendPoints>
         <bendPoints>522,339,-27,-28</bendPoints>
@@ -129,6 +135,10 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_27" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_15" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_28" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_29" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_17" sourceNode="FCMComposite_1_16" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_15" targetNode="FCMComposite_1_18" sourceNode="FCMComposite_1_17" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in">
+        <bendPoints>587,-10,-80,60</bendPoints>
+      </connections>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_PATH_FILE">

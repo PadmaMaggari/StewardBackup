@@ -21,26 +21,29 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RTGS_INCOMING_SB_Q" name="RTGS_INCOMING_SB_Q" defaultValueLiteral="RTGS_INCOMING_SB_Q">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.DSN" name="DSN" defaultValueLiteral="ORADSN">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="rtgsIncomingZssFlow" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingZssFlow" pluginId="StewardBankIncomingRtgsApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankIncomingRtgsApp/icons/full/obj16/rtgsIncomingZssFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankIncomingRtgsApp/icons/full/obj30/rtgsIncomingZssFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="238,31" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingT24Flow_GeneratingT24Request.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="238,31" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingZssFlow_GeneratingReqToZss.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GeneratingReqToZss"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="246,165">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="437,165" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingT24Flow_GenerateExceptionDetails.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="437,165" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingZssFlow_GenerateExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerartingExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="462,31" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingT24Flow_UpdateDatabaseStatus.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="462,31" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingZssFlow_UpdateDatabaseStatus.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="UpdatingZssStatus"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="582,106" queueName="OUTQ" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="612,94" queueName="OUTQ" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="MQ Output"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="121,90" queueName="RTGS_INCOMING_SB_ZSS_REQ" messageDomainProperty="DFDL" messageSetProperty="{MT103}" messageTypeProperty="{}:MT103">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="95,84" queueName="RTGS_INCOMING_SB_ZSS_REQ" messageDomainProperty="DFDL" messageSetProperty="{MT103}" messageTypeProperty="{}:MT103">
         <translation xmi:type="utility:ConstantString" string="RtgsIncomming_Zss_ReqQ"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_zsscall_StewardBankZssCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_8" location="322,60">
@@ -68,6 +71,9 @@
                 <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingZssFlow" pluginId="StewardBankIncomingRtgsApp"/>
                 <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RTGS_INCOMING_SB_Q">
                   <propertyName xmi:type="utility:TranslatableString" key="Property.RTGS_INCOMING_SB_Q" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingZssFlow" pluginId="StewardBankIncomingRtgsApp"/>
+                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.DSN">
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.DSN" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingZssFlow" pluginId="StewardBankIncomingRtgsApp"/>
+                  </propertyDescriptor>
                 </propertyDescriptor>
               </propertyDescriptor>
             </propertyDescriptor>
