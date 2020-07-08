@@ -25,6 +25,7 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GeneratingT24Request
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Framing T24 Request...........') INTO rc;
 		END IF;
 		 --Framing Rest Request To T24 Url--------
+		 SET OutputRoot.HTTPRequestHeader."Content-Type" =  'application/json';
 			 CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
 		 DECLARE outRef REFERENCE TO OutputRoot.JSON;
 		 CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
@@ -42,6 +43,7 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GeneratingT24Request
 		  SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.JSON),outRef,encodeRef,ccidRef);
 		 --******************Insertingvalues into ISAVE table with T24 Request Message ************
 --		    SET OutputRoot = NULL;
+			
 			 SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 			 SET OutputLocalEnvironment.Destination.HTTP.RequestURL = BackendT24Url||RtgsIncomingUrlPathparameters ;
 			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'') IN Database.ORADSN.{'SYSTEM'};
@@ -63,10 +65,10 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_UpdateDatabaseStatus
 		--***************Updating Database with Zss/T24 Status and Response codes***********************
 		IF FIELDNAME(InputRoot.JSON) IS NOT NULL THEN
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
-			 IF CONTAINS(Environment.Variables.Statuscode,'200') THEN
-			 	CALL UpdateDBStatus(Guid,'SUCCESS',Environment.Variables.Statuscode,' ','T24')IN Database.ORADSN.{'SYSTEM'};
+			 IF CONTAINS(CAST(Environment.Variables.Statuscode AS CHARACTER),'200') THEN
+			 	CALL UpdateDBStatus(Guid,'SUCCESS',CAST(Environment.Variables.Statuscode AS CHARACTER),' ','T24')IN Database.{DSN}.{'SYSTEM'};
 			 ELSE
-			 	CALL UpdateDBStatus(Guid,'FALUIRE',Environment.Variables.Statuscode,' ','T24')IN Database.ORADSN.{'SYSTEM'};
+			 	CALL UpdateDBStatus(Guid,'FALUIRE',CAST(Environment.Variables.Statuscode AS CHARACTER),' ','T24')IN Database.{DSN}.{'SYSTEM'};
 			 END IF;
 		END IF;	
 		SET OutputRoot = InputRoot;

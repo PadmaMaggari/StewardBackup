@@ -44,7 +44,7 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_GeneratingReqToZss
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','**************Zss Request Message **********') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
 			 --******************Inserting ISAVE table with ZSS Request Message ************
-				CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'')IN Database.ORADSN.SYSTEM ;
+			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'')IN Database.{DSN}.{'SYSTEM'};
 		END;
 		END MODULE;
 CREATE COMPUTE MODULE rtgsIncomingZssFlow_UpdateDatabaseStatus
@@ -62,9 +62,9 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_UpdateDatabaseStatus
 		IF FIELDNAME(inDomain) IS NOT NULL THEN
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating ZSS Status in Database**********') INTO rc;
 			IF(inDomain.ResponseCode_039 LIKE '00')  THEN
-				CALL UpdateDBStatus(Guid,'SUCCESS',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS')IN Database.ORADSN.SYSTEM;
+				CALL UpdateDBStatus(Guid,'SUCCESS',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS')IN Database.{DSN}.{'SYSTEM'};
 			ELSE
-				CALL UpdateDBStatus(Guid,'FAILURE',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS')IN Database.ORADSN.SYSTEM;
+				CALL UpdateDBStatus(Guid,'FAILURE',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS')IN Database.{DSN}.{'SYSTEM'};
 			END IF;
 		END IF;
 		SET OutputRoot = InputRoot;
