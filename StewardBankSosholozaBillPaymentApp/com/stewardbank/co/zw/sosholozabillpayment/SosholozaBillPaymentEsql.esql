@@ -76,9 +76,9 @@ SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		SET outRef.AccountIdentification2_103 = CAST(inRef.JSON.Data.billAccount AS INTEGER);
 		
 		DECLARE keyChannelValue CHARACTER'';
-		CALL keyValueGenerator(inRef.JSON.Data.channel) INTO keyChannelValue;  
+		CALL keyValueGenerator(inRef.JSON.Data.channel) INTO keyChannelValue;   
 		DECLARE keyChannel CHARACTER '';
-		CALL keyValueGenerator(channel) INTO keyChannel;
+		CALL keyValueGenerator(channel) INTO keyChannel; 
 		SET outRef.ReservedPrivate_127 = '000000';
 		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel ||keyChannelValue;
 		
@@ -113,16 +113,6 @@ SET Environment.MQRFH2 = InputRoot.MQRFH2;
 
 
 
-CREATE FUNCTION keyValueGenerator (IN inputRef CHARACTER ) RETURNS CHARACTER
-BEGIN
-	DECLARE inputData  INTEGER  LENGTH(inputRef);
-	DECLARE inpurDataChar CHARACTER CAST(inputData AS CHARACTER);
-	DECLARE inpurDataCharlenght INTEGER LENGTH(inpurDataChar);
-	DECLARE inpurDataCharlenghtChar CHARACTER CAST(inpurDataCharlenght AS CHARACTER);
-	DECLARE result CHARACTER'';
-	SET  result = inpurDataCharlenghtChar||inpurDataChar||inputRef;
-	RETURN result;
-END;
 
 
 
