@@ -89,7 +89,7 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_GenerateIsoReq
 		SET outRef.MTI_MessageClass = 2;
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
-		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
+		SET outRef.ProcessingCode_003 = InputRoot.MQRFH2.usr.esbPcode;
 		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.billAmount AS INTEGER);
 		
 		 SET outRef.CurrencyCodeTransaction_049 = inRef.JSON.Data.debitCurrency;
