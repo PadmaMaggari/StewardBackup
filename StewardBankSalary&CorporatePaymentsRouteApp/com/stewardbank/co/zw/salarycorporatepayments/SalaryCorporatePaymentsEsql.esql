@@ -1,5 +1,7 @@
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.salarycorporatepayments
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -31,9 +33,8 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 			DECLARE Response ROW;
 			DECLARE sql CHARACTER '';
 			SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.DFDL,encodeRef,ccsid);
+			SET Environment.MQRFH2.reqMsg = reqMsg;
 			SET UUID = UUIDASCHAR;
-			-- SET Environment.Variables.UID = UUID;
-			-- SET Environment.Variables.FileName = InputLocalEnvironment.File.Name;
 			SET Environment.MQRFH2.UID = UUID;
 			SET Environment.MQRFH2.FileName = InputLocalEnvironment.File.Name;
 			-- SET DBLogging Properties ==============
@@ -114,7 +115,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_BuildException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL BuildException();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE BuildException() BEGIN
@@ -123,11 +124,19 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_BuildException
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		SET UUID = UUIDASCHAR;
+		SET Environment.MQRFH2.usr.UID = UUID;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
+		DECLARE reqMsg CHARACTER;
+		SET reqMsg = Environment.Variable.data.stewardBank_CSV; 
 		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
@@ -146,11 +155,10 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_BuildException
 		------------Error Logging in DB----------
 		IF IsLogRequired LIKE 'Y' THEN
 			-- CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.CurrencyConvertor.ErrorCode,outRefer);
-			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePayments.ErrorCode,outRefer);
+			CALL Error_DBLogging(Environment.MQRFH2.usr.UID,reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePayments.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out';
-
 	END;
 END MODULE;
