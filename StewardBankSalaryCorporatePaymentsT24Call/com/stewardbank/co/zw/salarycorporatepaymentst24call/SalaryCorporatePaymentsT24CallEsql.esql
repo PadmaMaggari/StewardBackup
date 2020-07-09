@@ -203,6 +203,8 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE inRefer REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP; 
 		SET Environment.Variables.RRN = inRef.Purpose;
 		SET Environment.Variables.UID = InputRoot.MQRFH2.UID;
 		DECLARE Env REFERENCE TO Environment.Variables;
@@ -216,7 +218,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
 		/* =================== CALLING LOG4J LOGGING ENDING ==============*/
 		/* =================== CALLING DB LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsT24.ErrorCode,outRefer);
+			CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsT24.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;

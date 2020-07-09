@@ -230,6 +230,8 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_BuildException
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP; 
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SalaryCorporatePaymentsZss';
@@ -251,8 +253,8 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_BuildException
 		DECLARE Env REFERENCE TO Environment.Variables;
 		SET Environment.Variables.Date_Time = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(Env.Date_Time AS CHARACTER),CAST(Env.Date_Time AS CHARACTER),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsZss.ErrorCode,outRefer);
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+			CALL Error_DBLogging(Env.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),Env.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsZss.ErrorCode,outRefer);
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc; 
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q; 
 		PROPAGATE TO TERMINAL 'out';
