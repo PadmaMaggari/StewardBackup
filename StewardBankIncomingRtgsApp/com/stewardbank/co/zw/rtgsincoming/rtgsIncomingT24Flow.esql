@@ -59,7 +59,7 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_UpdateDatabaseStatus
 	
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
-		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader.{'X-Original-HTTP-Status-Code'};
+		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE Guid CHARACTER Environment.Variables.Guid;
 		--***************Updating Database with Zss/T24 Status and Response codes***********************

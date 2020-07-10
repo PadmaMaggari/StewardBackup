@@ -86,6 +86,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_RouteToT24orZss
 		DECLARE CRLF CHARACTER CAST(X'0D0A' AS CHARACTER CCSID 1208);
 		SET UUID = UUIDASCHAR;
 		SET Environment.Variables.Guid = UUID;
+		--SET Environment.Variables.File.FieldNames =  
 		DECLARE Mt50DataAdd CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField AFTER CRLF);
 		SET Environment.Variables.exeDate = SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 1 FOR 6);
 		SET Environment.Variables.transactionAmount= LTRIM(SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 10)) ; 

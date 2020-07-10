@@ -44,7 +44,7 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_GeneratingReqToZss
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','**************Zss Request Message **********') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
 			 --******************Inserting ISAVE table with ZSS Request Message ************
-			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'')IN Database.{DSN}.{'SYSTEM'};
+			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),reqMsg,'',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,'','','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'')IN Database.{DSN}.{'SYSTEM'};
 		END;
 		END MODULE;
 CREATE COMPUTE MODULE rtgsIncomingZssFlow_UpdateDatabaseStatus
