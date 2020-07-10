@@ -177,7 +177,7 @@ DECLARE ISO EXTERNAL CHARACTER '';
 			SET Environment.Variables.esbPcode.values[] = esbPcode.val[];
 			FOR pcodeRef AS Environment.Variables.esbPcode.values[] DO
 				IF (CONTAINS(channel,pcodeRef.CHANNEL) OR CONTAINS(channel,pcodeRef.CHANNEL2)
-					OR CONTAINS(channel,pcodeRef.CHANNEL3) OR CONTAINS(channel,pcodeRef.CHANNEL4)) AND pcodeRef.POSTILION_PCODE = pcode THEN
+					OR CONTAINS(channel,pcodeRef.CHANNEL3) OR CONTAINS(channel,pcodeRef.CHANNEL4)) AND pcodeRef.POSTILION_PCODE = pcode AND CONTAINS(channel,pcodeRef.DESTINATION_SINK) THEN
 						SET Environment.MQRFH2.usr.esbPcode = pcodeRef.ESB_PCODE;
 						CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','====filtering done successfully====')INTO rc;
 						CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','====ESB processing code===')INTO rc;
