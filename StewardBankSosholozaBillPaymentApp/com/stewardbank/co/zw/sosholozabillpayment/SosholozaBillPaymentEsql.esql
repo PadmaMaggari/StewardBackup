@@ -74,8 +74,16 @@ SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		SET outRef.Payee_098 = inRef.JSON.Data.billProvider;
 		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.debitAccountNumber AS INTEGER);
 		SET outRef.AccountIdentification2_103 = CAST(inRef.JSON.Data.billAccount AS INTEGER);
+		
+		DECLARE keyChannelValue CHARACTER'';
+		CALL keyValueGenerator(inRef.JSON.Data.channel) INTO keyChannelValue;   
+		DECLARE keyChannel CHARACTER '';
+		CALL keyValueGenerator(channel) INTO keyChannel; 
 		SET outRef.ReservedPrivate_127 = '000000';
-		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel ||keyChannelValue;
+		
+		
+		
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);        
@@ -101,7 +109,15 @@ SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
 		
 	END;
+
+
+
+
+
+
+
 END MODULE;
+
 CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -114,14 +130,37 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;	
+		DECLARE envUsrRef REFERENCE TO Environment.MQRFH2.usr;
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
+		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		SET Environment.Variables.reqISOMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccsid);
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-		SET Environment.dfdlData = InputRoot.DFDL;
+		
+		DECLARE reqMsgJson CHARACTER'';
+		DECLARE logRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
+		DECLARE jsonRef REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
+		--CALL JSONLogMessage(logRef,jsonRef);
+		SET jsonRef = logRef;
+		SET reqMsgJson = getPayLoad('JSON',jsonRef,encodeRef,ccsid);
+		
+		
+		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
+		CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef);
+		SET Environment.DFDL = OutputRoot.DFDL;
+		
+		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		CALL remove127(removeRefPointer);
+		SET Environment.dfdlData = OutputRoot.DFDL;
+		SET OutputRoot.DFDL = NULL;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
@@ -133,7 +172,8 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 		IF IsLogRequired LIKE 'Y' THEN
 
 			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','Request to T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG',Environment.Variables.reqISOMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','========= ISO TO JSON T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 

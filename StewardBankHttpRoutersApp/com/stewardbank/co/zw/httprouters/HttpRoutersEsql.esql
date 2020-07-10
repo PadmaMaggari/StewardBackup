@@ -40,6 +40,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
 		SET Environment.Variables.messageID = CAST(Environment.MQRFH2.RequestIdentifier AS CHAR);
 		SET Environment.Variables.reqMsg = CAST(InputRoot.JSON AS CHAR CCSID ccidRef);
+		DECLARE procCode CHARACTER InputRoot.JSON.Data.processingCode;
 		IF (InputRoot.JSON.Data.processingCode IS NOT NULL) OR
 			(InputRoot.JSON.Data.processingCode <> '') OR
 			(InputRoot.JSON.Data.header.processingCode IS NOT NULL) OR
@@ -101,6 +102,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			IF EXISTS(qDetails.values[]) THEN
 				IF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NOT NULL AND FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
 					SET QueueName = qDetails.values.HTTP_REQ;
+					CALL generateEsbPcode(Environment.Variables.processingCode,Environment.Variables.channel);
 				ELSEIF FIELDVALUE(qDetails.values.HTTP_REQ) IS NULL THEN
 					CALL errorResponse('No Queues based on processingCode or Channel Name','ESB_005');
 					RETURN;
@@ -122,6 +124,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			IF EXISTS(qDetails.values[]) THEN
 				IF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NOT NULL AND FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
 					SET QueueName = qDetails.values.HTTP_REQ;
+					CALL generateEsbPcode(Environment.Variables.processingCode,Environment.Variables.channel);
 				ELSEIF FIELDVALUE(qDetails.values.HTTP_REQ) IS NULL THEN
 					CALL errorResponse('No Queues based on processingCode or Channel Name','ESB_005');
 					RETURN;
@@ -173,6 +176,53 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 		PROPAGATE TO TERMINAL 'out1';
 	END;
+	
+	
+	CREATE PROCEDURE generateEsbPcode(IN pcode CHARACTER,IN channel CHARACTER)
+	BEGIN
+			/*get esb processing codes from cache if available else call database to retrive values */
+			IF EXISTS(esbPcode.val[]) THEN 
+				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','===esb pcode values available in shared cache===')INTO rc;	
+				CALL filterPcode(pcode,channel);
+			ELSE
+				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','===esb pcode values not available in shared cache calling db===')INTO rc;
+				CALL getEsbPcode(pcode,channel);
+				CALL filterPcode(pcode,channel);
+			END IF;
+	END;
+	/*get esb processing code by filter processing code based on channel and postilion processing code */
+	CREATE PROCEDURE filterPcode(IN pcode CHARACTER,IN channel CHARACTER)
+	BEGIN
+			SET Environment.Variables.esbPcode.values[] = esbPcode.val[];
+			FOR pcodeRef AS Environment.Variables.esbPcode.values[] DO
+				IF (CONTAINS(channel,pcodeRef.CHANNEL) OR CONTAINS(channel,pcodeRef.CHANNEL2)
+					OR CONTAINS(channel,pcodeRef.CHANNEL3) OR CONTAINS(channel,pcodeRef.CHANNEL4)) AND pcodeRef.POSTILION_PCODE = pcode THEN
+						SET Environment.MQRFH2.usr.esbPcode = pcodeRef.ESB_PCODE;
+						CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','====filtering done successfully====')INTO rc;
+						CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','====ESB processing code===')INTO rc;
+						CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG',CAST(Environment.MQRFH2.usr.esbPcode AS CHARACTER))INTO rc;
+				END IF;
+			END FOR;
+	END;
+	/* get esb processing codes from database and store it in shared variable */
+	CREATE PROCEDURE getEsbPcode(IN pcode CHARACTER,IN channel CHARACTER) 
+	BEGIN
+		IF pcode <> '' AND pcode IS NOT NULL THEN 
+			IF channel <> '' AND channel IS NOT NULL THEN 
+				SET esbPcode.val[] = SELECT A.* FROM Database.SB_ESB_PCODE AS A;
+				IF EXISTS(esbPcode.val[]) THEN
+						CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','Retrieved pcode values from Database')INTO rc;
+				ELSE
+					CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','No pcode retrieved from Database')INTO rc;
+				END IF;
+			ELSE
+				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','channel is null or empty')INTO rc;
+			END IF;
+		ELSE
+			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','processing code is null or empty')INTO rc;
+		END IF;
+	END;
+	
 END MODULE;
 /*Generate json formated message and send to front end system*/
 CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd

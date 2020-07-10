@@ -1,13 +1,5 @@
 
 
-
-
-
-
-
-
-
-
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -112,7 +104,6 @@ CREATE FILTER MODULE SosholozoaAccountOpeningFlow_VerifyDWHResponse
 	BEGIN
 		RETURN TRUE;
 	END;
-
 END MODULE;
 
 
@@ -154,22 +145,15 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT24
 	END;
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
-		DECLARE inRef REFERENCE TO InputRoot.JSON;
-		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
-		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
-		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE mobileNumber CHARACTER InputRoot.JSON.Data.mobileNumber;
-		DECLARE outRefer REFERENCE TO OutputRoot;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Calling T24 Service ------') INTO rc;
-		END IF;
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE mobileNumber CHARACTER InputRoot.JSON.Data.mobileNumber;
+		DECLARE outRefer REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('header');
@@ -185,8 +169,233 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT24
 		CREATE LASTCHILD OF bodyRef NAME 'productId' VALUE 'STW.PERSONAL.CURRENT';
 		CREATE LASTCHILD OF bodyRef NAME 'currencyId' VALUE 'ZWL';
 		CREATE LASTCHILD OF bodyRef NAME 'activityId' VALUE 'ACCOUNTS-NEW-ARR.CHANNEL';
-
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+		DECLARE domainName CHARACTER FIELDNAME(OutputRoot.JSON);
+		SET Environment.jsonData = OutputRoot.JSON;
+		SET Environment.Variables.reqMsg = getPayload(domainName,domainDataRef,encodeRef,ccidRef);
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- T24 Request ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.jsonData;
 	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToFCB
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateReqToFCB();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE GenerateReqToFCB() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE mobileNumber CHARACTER InputRoot.JSON.Data.mobileNumber;
+		DECLARE id,email,password CHAR;
+		SET id = '201126287';
+		SET email = 'padma.maggari@eidiko.com';
+		SET password = 'tawa@steward';
+		--CALL newIndividualRequest();
+		CALL getIndividualRequest(id,email,password);
+	END;
+	CREATE PROCEDURE createParts(INOUT partsRef REFERENCE,IN I INT,IN KEY CHAR,IN VAL CHAR) BEGIN
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="'||KEY||'"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE(VAL CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+	END;
+	CREATE PROCEDURE newIndividualRequest() BEGIN
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE I INT 1;
+		CREATE LASTCHILD OF OutputRoot DOMAIN('MIME');
+		CREATE LASTCHILD OF OutputRoot.MIME NAME 'Content-Type' VALUE 'multipart/form-data; boundary= --------------------------775154329068382263430548';
+		CREATE LASTCHILD OF OutputRoot.MIME NAME 'Parts';
+		DECLARE partsRef REFERENCE TO OutputRoot.MIME.Parts;
+		-- WHILE I < 30 DO
+		-- CALL createParts(partsRef,I,KEY,VAL);
+		-- SET I = I + 1;
+		-- END WHILE;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="dob"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="names"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="surname"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="national_id"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="gender"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="search_purpose"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="email"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="password"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="drivers_licence"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="passport"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="married"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="nationality"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="streetno"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="streetname"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="building"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="suburb"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="pbag"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="city"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="telephone"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="mobile"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="ind_email"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="property_density"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="property_status"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="occupation_class"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="employer"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="employer_industry"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="salary_band"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="loan_purpose"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="loan_amount"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE('' CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET Environment.mimeData = OutputRoot.MIME;
+		DECLARE domainName CHAR FIELDNAME(OutputRoot.MIME);
+		DECLARE domainDataRef REFERENCE TO OutputRoot.MIME;
+		SET Environment.Variables.reqMsg = getPayload(domainName,domainDataRef,InputProperties.Encoding,InputProperties.CodedCharSetId);
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- FCB Request ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'FCB Request',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.ContentType = 'multipart/form-data; boundary= --------------------------775154329068382263430548';
+		SET OutputRoot.HTTPInputHeader."Content-Type" = 'multipart/form-data; boundary= --------------------------775154329068382263430548';
+		SET OutputRoot.HTTPInputHeader.Accept = '*/*';
+		SET OutputRoot.HTTPInputHeader."X-Original-HTTP-Command" = 'POST https://www.fcbureau.co.zw/api/newIndividual HTTP/1.1';
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.jsonData;
+END;
+CREATE PROCEDURE getIndividualRequest(IN id CHAR,IN email CHAR,IN password CHAR) BEGIN
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE I INT 1;
+		SET OutputRoot.Properties.ContentType = 'multipart/form-data; boundary= --------------------------775154329068382263430548';
+		SET OutputRoot.HTTPInputHeader."Content-Type" = 'multipart/form-data; boundary= --------------------------775154329068382263430548';
+		SET OutputRoot.HTTPInputHeader.Accept = '*/*';
+		SET OutputRoot.HTTPInputHeader."X-Original-HTTP-Command" = 'POST https://www.fcbureau.co.zw/api/getIndividual HTTP/1.1';
+		CREATE LASTCHILD OF OutputRoot DOMAIN('MIME');
+		CREATE LASTCHILD OF OutputRoot.MIME NAME 'Content-Type' VALUE 'multipart/form-data; boundary=--------------------------775154329068382263430548';
+		CREATE LASTCHILD OF OutputRoot.MIME NAME 'Parts';
+		DECLARE partsRef REFERENCE TO OutputRoot.MIME.Parts;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="id"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE(id CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="email"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE(email CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET I = I + 1;
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="password"';
+		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
+		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE(password CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
+		SET Environment.mimeData = OutputRoot.MIME;
+		DECLARE domainName CHAR FIELDNAME(OutputRoot.MIME);
+		DECLARE domainDataRef REFERENCE TO OutputRoot.MIME;
+		SET Environment.Variables.reqMsg = getPayload(domainName,domainDataRef,InputProperties.Encoding,InputProperties.CodedCharSetId);
+		IF IsLogRequired = 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- FCB Request ------') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'FCB Request',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.jsonData;
+ END;
 END MODULE;
 
 CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateKYCResponse
@@ -195,8 +404,8 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateKYCResponse
 		CALL GenerateKYCResponse();
 		RETURN TRUE;
 	END;
-
-	CREATE PROCEDURE GenerateKYCResponse() BEGIN
+	
+		CREATE PROCEDURE GenerateKYCResponse() BEGIN
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -207,14 +416,14 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateKYCResponse
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Response from DWH ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'DWH Response',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.localTime,Environment.MQEFH2.usr.localDate,'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out';
+		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Response from DWH ------') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'DWH Response',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.localTime,Environment.MQEFH2.usr.localDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
 		END IF;
 		SET OutputRoot.JSON = InputRoot.JSON;
 		SET Environment.outputData = OutputRoot.JSON;
@@ -223,113 +432,80 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateKYCResponse
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Response to FrontEnd ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' Response QueueName :  '||ALL_SB_HTTP_RES) INTO rc;
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Response to FrontEnd',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.localTime,Environment.MQEFH2.usr.localDate,'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out';
+		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Response to FrontEnd ------') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' Response QueueName :  '||ALL_SB_HTTP_RES) INTO rc;
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Response to FrontEnd',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.localTime,Environment.MQEFH2.usr.localDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON = Environment.outputData;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
-	END;
-END MODULE;
-
-CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateFCMResponse
-	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
+		END;
+		END MODULE;
+		CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateFCMResponse
+		CREATE FUNCTION Main() RETURNS BOOLEAN
+		BEGIN
 		CALL CopyMessageHeaders();
 		CALL CopyEntireMessage();
 		RETURN TRUE;
-	END;
-
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		END;
+		CREATE PROCEDURE CopyMessageHeaders() BEGIN
 		DECLARE I INTEGER 1;
 		DECLARE J INTEGER;
 		SET J = CARDINALITY(InputRoot.*[]);
 		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
+		SET OutputRoot.*[I] = InputRoot.*[I];
+		SET I = I + 1;
 		END WHILE;
-	END;
-
-	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		END;
+		CREATE PROCEDURE CopyEntireMessage() BEGIN
 		SET OutputRoot = InputRoot;
-	END;
-END MODULE;
-
-
-
-CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT241
-	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
+		END;
+		END MODULE;
+		CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT241
+		CREATE FUNCTION Main() RETURNS BOOLEAN
+		BEGIN
 		-- CALL CopyMessageHeaders();
 		-- CALL CopyEntireMessage();
 		RETURN TRUE;
-	END;
-
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		END;
+		CREATE PROCEDURE CopyMessageHeaders() BEGIN
 		DECLARE I INTEGER 1;
 		DECLARE J INTEGER;
 		SET J = CARDINALITY(InputRoot.*[]);
 		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
+		SET OutputRoot.*[I] = InputRoot.*[I];
+		SET I = I + 1;
 		END WHILE;
-	END;
-
-	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		END;
+		CREATE PROCEDURE CopyEntireMessage() BEGIN
 		SET OutputRoot = InputRoot;
-	END;
-END MODULE;
-
-CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToFCB
-	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
-		-- CALL CopyMessageHeaders();
-		-- CALL CopyEntireMessage();
-		RETURN TRUE;
-	END;
-
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
-	END;
-
-	CREATE PROCEDURE CopyEntireMessage() BEGIN
-		SET OutputRoot = InputRoot;
-	END;
-END MODULE;
-
-
-CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_BuildException
-	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN
+		END;
+		END MODULE;
+		CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_BuildException
+		CREATE FUNCTION Main() RETURNS BOOLEAN
+		BEGIN
 		CALL BuildErrorMsg();
 		RETURN TRUE;
-	END;
-	CREATE PROCEDURE BuildErrorMsg() BEGIN
+		END;
+		CREATE PROCEDURE BuildErrorMsg() BEGIN
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'T24ServiceCall') THEN
-			SET errMsg = 'T24 Server Down';
+		SET errMsg = 'T24 Server Down';
 		ELSEIF CONTAINS(excpRef.excpText,'FCBServiceCall') THEN
-			SET errMsg = 'FCB Server Down';
+		SET errMsg = 'FCB Server Down';
 		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from T24 Server';
+		SET errMsg = 'No Response from T24 Server';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from Postilion Server';
+		SET errMsg = 'No Response from Postilion Server';
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
@@ -367,5 +543,5 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_BuildException
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		----------------------------------
-	END;
-END MODULE;
+		END;
+		END MODULE;

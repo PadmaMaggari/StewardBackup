@@ -1595,3 +1595,15 @@ BEGIN
 		SET I = I + 1;
 	END WHILE;
 END;
+
+/*  This Function is for creating 127_22 field key values for json requests*/
+CREATE FUNCTION keyValueGenerator (IN inputRef CHARACTER ) RETURNS CHARACTER
+BEGIN
+	DECLARE inputData  INTEGER  LENGTH(inputRef);
+	DECLARE inpurDataChar CHARACTER CAST(inputData AS CHARACTER);
+	DECLARE inpurDataCharlenght INTEGER LENGTH(inpurDataChar);
+	DECLARE inpurDataCharlenghtChar CHARACTER CAST(inpurDataCharlenght AS CHARACTER);
+	DECLARE result CHARACTER'';
+	SET  result = inpurDataCharlenghtChar||inpurDataChar||inputRef;
+	RETURN result;
+END;
