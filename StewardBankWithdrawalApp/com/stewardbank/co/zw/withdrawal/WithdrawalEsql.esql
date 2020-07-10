@@ -60,8 +60,9 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateReqToT24
 		SET Environment.Variables.ResponseQ = resQ;
 		SET Environment.Variables.TcpIp.ConnectionId = connId;
 		--field to field mapping
+		DECLARE envUsrRef REFERENCE TO Environment.MQRFH2.usr;
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
-		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode,posRef);
+		CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef); 
 		SET Environment.DFDL = OutputRoot.DFDL;
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
@@ -120,7 +121,7 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateResToPostilion
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		--field to field mapping
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
-		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.sbPcode,posRef);
+		CALL FieldToFieldMapping(inRef,outRef,'',posRef,posRef); 
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outRef,encodeRef,ccidRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
