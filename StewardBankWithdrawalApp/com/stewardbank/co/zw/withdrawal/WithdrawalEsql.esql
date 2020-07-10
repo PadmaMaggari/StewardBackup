@@ -52,7 +52,7 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateReqToT24
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
-		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL; 
 		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 		--set response queue and tcpip connection id in environment
 		DECLARE resQ CHARACTER Environment.MQRFH2.usr.resQueueName;
