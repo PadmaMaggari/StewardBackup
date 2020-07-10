@@ -65,8 +65,9 @@ CREATE COMPUTE MODULE InternalFundTransferFlow_GenerateReqTo24
 			CALL writeToLogFile(MessageFlowLabel, 'IFTLogger', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		--field to field mapping
+		DECLARE envUsrRef REFERENCE TO Environment.MQRFH2.usr;
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
-		CALL FieldToFieldMapping(inRef,outRef,'',Environment.MQRFH2.usr.esbPcode,posRef);
+		CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef);
 		SET Environment.DFDL = OutputRoot.DFDL;
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
@@ -134,7 +135,7 @@ CREATE COMPUTE MODULE InternalFundTransferFlowT24Req_GenerateReqToPostilion
 		END IF;
 		--field to field mapping
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
-		CALL FieldToFieldMapping(inRef,outRef,'','',posRef);
+		CALL FieldToFieldMapping(inRef,outRef,'',posRef,posRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
