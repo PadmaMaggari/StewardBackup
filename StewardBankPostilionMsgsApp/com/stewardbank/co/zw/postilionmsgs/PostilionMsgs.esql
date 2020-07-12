@@ -54,7 +54,8 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG','Request to Postilion Msgs::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG',Environment.reqMsg) INTO rc;
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
-		CALL FieldToFieldMapping(inRef,outRef,'','',posRef);
+		DECLARE envUsrRef REFERENCE TO Environment.MQRFH2.usr;
+		CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef);
 		SET Environment.DFDL = OutputRoot.DFDL;
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
@@ -115,8 +116,9 @@ CREATE COMPUTE MODULE StewardBankPostilionMsgsFlow_GenerateResToPostilion
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'PostilionMsgs', 'DEBUG','.........................') INTO rc;
 		--field to field mapping
+		
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
-		CALL FieldToFieldMapping(inRef,outRef,'','',posRef);
+		CALL FieldToFieldMapping(inRef,outRef,'',posRef,posRef);
 		SET Environment.dfdlData=InputRoot.DFDL;
 		SET OutputRoot=NULL;
 		/* ==================== Database Logging Starting ==================== */
