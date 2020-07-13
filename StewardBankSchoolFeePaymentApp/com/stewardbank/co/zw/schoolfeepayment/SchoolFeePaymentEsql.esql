@@ -35,7 +35,7 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 		--SET Environment.Variables.usr.Id = InputRoot.MQRFH2.RequestIdentifier;
 		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		SET Environment.MQRFH2.usr.Id = InputRoot.MQRFH2.RequestIdentifier; 
-		DECLARE debitAccountId CHARACTER;
+		DECLARE debitAccountId CHARACTER InputRoot.JSON.Data.dbtId; 
 		DECLARE debitCurrency CHARACTER;
 		DECLARE creditAccountId CHARACTER;
 		DECLARE orderingCustomerName CHARACTER;

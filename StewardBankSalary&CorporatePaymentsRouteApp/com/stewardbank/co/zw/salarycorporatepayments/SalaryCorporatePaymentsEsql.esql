@@ -65,7 +65,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG',CreditAccount) INTO rc;
 			SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(CreditAccount));
 			IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
-
+				--------ZSS-----------
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG','..............Sending Data To ZSS ...........') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG','ZSS Request::') INTO rc;
@@ -84,7 +84,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 				PROPAGATE TO TERMINAL 'out';
 
 			ELSE
-
+					--------T24----------
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG','..............Sending Data To T24 ...........') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsLogger', 'DEBUG','T24 Request::') INTO rc;
