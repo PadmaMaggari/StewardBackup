@@ -28,6 +28,8 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateMt103Req
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.BLOB;
 		SET Environment.Variables.File.Name = InputLocalEnvironment.File.Name;
+		SET UUID = UUIDASCHAR;
+		SET Environment.Variables.Guid = UUID;
 		IF (InputLocalEnvironment.File.Name NOT LIKE ' ') THEN
 			SET Environment.Variables.File.Status = 'SUCCESS';
 		ELSE
@@ -84,8 +86,6 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_RouteToT24orZss
 		END IF;
 		DECLARE Response ROW;
 		DECLARE CRLF CHARACTER CAST(X'0D0A' AS CHARACTER CCSID 1208);
-		SET UUID = UUIDASCHAR;
-		SET Environment.Variables.Guid = UUID;
 		--SET Environment.Variables.File.FieldNames =  
 		DECLARE Mt50DataAdd CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField AFTER CRLF);
 		SET Environment.Variables.exeDate = SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 1 FOR 6);
@@ -137,6 +137,8 @@ CREATE COMPUTE MODULE rtgsIncomingFlow__GenerateExceptionDetails
 		RETURN FALSE;
 	END;
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
+		
+		
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE rc BOOLEAN FALSE;
@@ -163,7 +165,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow__GenerateExceptionDetails
 				-- DB Logging===================
 		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
-		CALL Error_DBLogging(Environment.Variables.Guid,Environment.Variables.mtReqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ExceptionDetails.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Variables.Guid,Environment.Variables.mtReqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.userDefineError.RTGSIncoming.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............End RTGSIncoming Exception logging...........') INTO rc;
