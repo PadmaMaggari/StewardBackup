@@ -4,8 +4,10 @@ DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE ALL_SB_HTTP_RES EXTERNAL CHAR '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE rc BOOLEAN FALSE;
 CREATE COMPUTE MODULE AccountOpeningFlow_VerifyRequest
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -14,43 +16,88 @@ CREATE COMPUTE MODULE AccountOpeningFlow_VerifyRequest
 	END;
 	CREATE PROCEDURE VerifyRequest() BEGIN
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
-		--DECLARE domainName CHARACTER;
-		IF CONTAINS(InputRoot.BLOB.BLOB,'XMLNSC') THEN
-			CREATE LASTCHILD OF OutputRoot DOMAIN('XMLNSC') PARSE(InputRoot.BLOB.BLOB);
-			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'KYC';
-		ELSEIF CONTAINS(InputRoot.BLOB.BLOB,'GET') THEN
-			--CREATE LASTCHILD OF OutputRoot DOMAIN('XMLNSC') PARSE(InputRoot.BLOB.BLOB);
-			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'KYC';
-		ELSEIF CONTAINS(InputRoot.BLOB.BLOB,'JSON') THEN
-			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(InputRoot.BLOB.BLOB);
-			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'FCM';
-		ELSEIF CONTAINS(InputRoot.BLOB.BLOB,'DFDL') THEN
-			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(InputRoot.BLOB.BLOB);
-			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'Update_ACC';	
-		END IF;
-		DECLARE inRef REFERENCE TO InputBody;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE rc BOOLEAN FALSE;
+		DECLARE accountOpeningCheck CHAR COALESCE(inRef.Data.accountOpeningCheck,inRef.Data.header.accountOpeningCheck,'');
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		SET Environment.Variables.reqMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;			
+		SET Environment.MQRFH2.ChannelRequest = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET Environment.Variables.reqMsg = Environment.MQRFH2.ChannelRequest;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG','-----Request from Frontend------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Request------') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-		END IF;	
-		--------------DBLogging-------------------
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,'','','',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
-		-----------------------------			 
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		---------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = InputRoot.JSON;
+		IF accountOpeningCheck = 'KYC_CHECK' THEN
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'KYC';
+		ELSEIF accountOpeningCheck = 'FCM_CHECK' THEN
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'FCM';
+		ELSEIF accountOpeningCheck = 'Update_Zss/Postilion' THEN
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'UPDATE';	
+		ELSE
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'Unknown';
+		END IF;
 	END;
-END MODULE;	
+END MODULE;
+
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateUnknownResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateUnknownResponse();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateUnknownResponse() BEGIN
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
+		SET outRef.statusCode = '000';
+		SET outRef.status = 'FAILED';
+		SET outRef.message = 'Unknown Request';
+		SET outRef.responseBody.source = 'ESB';
+		SET outRef.responseBody.applicationName = ApplicationLabel;
+		SET outRef.responseBody.applicationErrorCode = 'AccountOpening_001';
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		SET Environment.jsonData = OutputRoot.JSON;
+		SET OutputRoot.JSON = NULL;
+		------------DBLogging-------------------
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
+		---------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		SET OutputRoot.JSON = Environment.jsonData;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+	END;
+END MODULE;
+
+	
 CREATE COMPUTE MODULE AccountOpeningKYC_Flow_GenerateReqToEconet
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
