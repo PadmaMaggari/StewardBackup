@@ -240,6 +240,12 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_BuildException
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		---Failure Case---
+			IF Environment.Variables.FileNameCheck LIKE 'PO' THEN    
+				CALL UPDATE_STATUS_SB_ISAVE(Environment.Variables.UID,'','','','','FAILURE','','TRUE');
+			ELSE
+				CALL UPDATE_STATUS_SB_ISAVE(Environment.Variables.UID,'','','','','FAILURE','','FALSE');
+			END IF;  
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;

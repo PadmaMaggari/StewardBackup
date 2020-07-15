@@ -162,7 +162,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 			PROPAGATE TO TERMINAL 'out';
 		ELSE
 			---Failure Case---
-			IF Env.FileNameCheck LIKE 'PO' THEN
+			IF Environment.Variables.FileNameCheck LIKE 'PO' THEN 
 				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,'','','','','','FAILURE','TRUE');
 			ELSE
 				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,'','','','','','FAILURE','FALSE');
@@ -208,6 +208,12 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP; 
 		DECLARE Env REFERENCE TO Environment.Variables;
+			---Failure Case Status Tracking---
+			IF Env.FileNameCheck LIKE 'PO' THEN
+				CALL UPDATE_STATUS_SB_ISAVE(Environment.Variables.UID,'','','','','','FAILURE','TRUE');
+			ELSE
+				CALL UPDATE_STATUS_SB_ISAVE(Environment.Variables.UID,'','','','','','FAILURE','FALSE'); 
+			END IF; 
 		/* =================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;

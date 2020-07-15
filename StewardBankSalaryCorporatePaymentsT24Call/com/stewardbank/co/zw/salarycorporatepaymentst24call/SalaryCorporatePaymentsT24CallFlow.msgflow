@@ -37,13 +37,13 @@
       <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="172,208" queueName="SCP_T24_REQ" messageDomainProperty="DFDL" messageSetProperty="{SB_CSV_Lib}" messageTypeProperty="{}:stewardBank_CSV" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="SCP_T24_REQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="569,268" computeExpression="esql://routine/com.stewardbank.co.zw.salarycorporatepaymentst24call#SalaryCorporatePaymentsT24CallFlow_BuildException.Main" computeMode="all">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="569,268" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.salarycorporatepaymentst24call#SalaryCorporatePaymentsT24CallFlow_BuildException.Main" computeMode="all">
         <translation xmi:type="utility:ConstantString" string="BuildException"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="669,103" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.salarycorporatepaymentst24call#SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChannel.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenereateResponseToChannel"/>
       </nodes>
-      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="594,99" messageDomain="JSON" resetMessageDomain="true">
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="593,143" messageDomain="JSON" resetMessageDomain="true">
         <translation xmi:type="utility:ConstantString" string="ISOValidation"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="281,97" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.salarycorporatepaymentst24call#SalaryCorporatePaymentsT24CallFlow_RequestToT24.Main" computeMode="all">
@@ -67,6 +67,7 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_17" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
