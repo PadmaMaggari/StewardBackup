@@ -51,7 +51,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE UrlPathparameters CHARACTER;
 		SET UrlPathparameters = inRefer.Tran_ID||'/'||inRefer.Currency||'/'||inRefer.Remitter_Name||'/'||inRefer.Currency||'/'||inRefer.Amount||'/'||executionDate||'/'||inRefer.Purpose||'/'||inRefer.Beneficiary_Account_Number||'/'||inRefer.Beneficiary_Name;
-		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/ 
+		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		-- IF IsLogRequired LIKE 'Y' THEN
 		-- CALL DBLogging(Environment.Variables.UID,Environment.Variables.reqMsg,'T24 Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRefer.Purpose,outRefer);
 		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -66,11 +66,12 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		DECLARE pattern CHARACTER 'yyyyMMdd';
 		SET csvDate = CAST(str AS CHARACTER FORMAT pattern);
 		SET Env.CsvDate = CAST(csvDate AS CHARACTER);
+		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
 		CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
 		DECLARE outRef REFERENCE TO OutputRoot.JSON;
-		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
-		SET outRef.batchId = inRefer.Tran_ID; 
-		SET outRef.debitCurrency = inRefer.Currency; 
+		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data'; 
+		SET outRef.batchId = inRefer.Tran_ID;
+		SET outRef.debitCurrency = inRefer.Currency;
 		SET outRef.orderingCustomerName = inRefer.Remitter_Name;
 		SET outRef.paymentCurrency = inRefer.Currency;
 		SET outRef.transactionAmount = inRefer.Amount;
@@ -79,7 +80,6 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		SET outRef.creditAccountId = inRefer.Beneficiary_Account_Number;
 		SET outRef.customer = inRefer.Beneficiary_Name;
 		SET Environment.Variables.jsonData = OutputRoot.JSON.Data;
-		 SET OutputRoot.HTTPRequestHeader."Content-Type" =  'application/json'; 
 		-- SET OutputRoot = NULL;
 		/* =================== CALLING DB RAW AUDIT LOGGING ==============*/
 		-- IF IsLogRequired LIKE 'Y' THEN
@@ -96,18 +96,18 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		/*=============End===============*/
 		/*================DB Update=======================*/
 		IF Env.FileNameCheck LIKE 'PO' THEN
-			CALL INSERT_SB_ISAVE_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,  
+			CALL INSERT_SB_ISAVE_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
 			Environment.Variables.reqMsg,'','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
 		ELSE
-			CALL INSERT_SB_ISAVE_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,   
+			CALL INSERT_SB_ISAVE_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
 			Environment.Variables.reqMsg,'','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
-		END IF;    
+		END IF;
 		/*=============End===============*/
-		SET OutputRoot.Properties = InputRoot.Properties; 
+		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		--SET OutputRoot.JSON.Data = Environment.Variables.jsonData;  
+		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||UrlPathparameters;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||UrlPathparameters; 
 	END;
 END MODULE;
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -134,7 +134,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP; 
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		SET Env.data = inRef;
 		DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		CASE
@@ -149,7 +149,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL DBLogging(Env.UID,Env.resMsg,'T24 Success Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.body.endToEndReference,outRefer);
 			END IF;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q; 
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
 			----------------------
 			IF IsLogRequired LIKE 'Y' THEN
@@ -162,7 +162,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 			PROPAGATE TO TERMINAL 'out';
 		ELSE
 			---Failure Case---
-			IF Environment.Variables.FileNameCheck LIKE 'PO' THEN 
+			IF Environment.Variables.FileNameCheck LIKE 'PO' THEN
 				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,'','','','','','FAILURE','TRUE');
 			ELSE
 				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,'','','','','','FAILURE','FALSE');
@@ -206,14 +206,14 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE inRefer REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP; 
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE Env REFERENCE TO Environment.Variables;
-			---Failure Case Status Tracking---
-			IF Env.FileNameCheck LIKE 'PO' THEN
-				CALL UPDATE_STATUS_SB_ISAVE(Environment.Variables.UID,'','','','','','FAILURE','TRUE');
-			ELSE
-				CALL UPDATE_STATUS_SB_ISAVE(Environment.Variables.UID,'','','','','','FAILURE','FALSE'); 
-			END IF; 
+		---Failure Case Status Tracking---
+		IF Env.FileNameCheck LIKE 'PO' THEN
+			CALL UPDATE_STATUS_SB_ISAVE(Environment.Variables.UID,'','','','','','FAILURE','TRUE');
+		ELSE
+			CALL UPDATE_STATUS_SB_ISAVE(Environment.Variables.UID,'','','','','','FAILURE','FALSE');
+		END IF;
 		/* =================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
