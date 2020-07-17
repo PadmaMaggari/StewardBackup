@@ -139,6 +139,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		SET outRef.CardAcceptorIdentificationCode_042 = '26377-SBZWISAVE';
 		SET outRef.CardAcceptorNameLocation_043 = '12486425402013EYE TRACK SATELL          ';
 		SET outRef.CurrencyCodeTransaction_049 = '932'; 
+		SET outRef.ReservedNational_059 = '0116742676';  
 		SET outRef.ReceivingInstitutionIdentificationCode_100 = '502195';
 		SET outRef.AccountIdentification1_102 = inRef.Remitter_Account_Number; --
 		SET outRef.AccountIdentification2_103 = inRef.Beneficiary_Account_Number; --
@@ -146,7 +147,8 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		SET outRef.ReservedPrivate_123 = '100450100130021'; 
 		SET outRef.ReservedPrivate_127 = '000000'; 
 		SET outRef.SwitchKeyPostilionPrivate_127_2 = inRef.Purpose||','||inRef.Beneficiary_Bank_Name||','||inRef.Beneficiary_Bank_Code||','||inRef.Beneficiary_Account_Number||','||inRef.Beneficiary_Name||','||inRef.Remitter_Name; --
-		SET outRef.BankDetailsPostilionPrivate_127_19 = '12486425402013EYE TRACK SATELL '; -- 
+		SET outRef.AdditionalNodeDataPostilionPrivate_127_9 = '20200717'; --  
+		SET outRef.OriginalKeyPostilionPrivate_127_12 = 'SSB1001199788'; --  
 		SET outRef.ExtendedTransactionTypePostilionPrivate_127_33 = '9040'; -- 
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
@@ -168,11 +170,11 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		PROPAGATE TO TERMINAL 'out1';
 		/*================DB Update=======================*//*---InsertEnvironment.Variables.resMsg in PAYNET_ISO_REQUEST_MSG(DB)----*/
 		IF Env.FileNameCheck LIKE 'PO' THEN
-			CALL INSERT_SB_ISAVE_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+			CALL INSERT_SB_ISAVE_TRACKING(Env.UID,'','','',Environment.Variables.resMsg,'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
 			'','','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
 		ELSE
-			CALL INSERT_SB_ISAVE_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
-			'','','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');  
+			CALL INSERT_SB_ISAVE_TRACKING(Env.UID,'','','',Environment.Variables.resMsg,'',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
+			'','','','','SUCCESS',Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');    
 		END IF;
 		/*=============End===============*/
 		SET OutputRoot.Properties = InputRoot.Properties;

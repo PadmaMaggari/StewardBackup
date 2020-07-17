@@ -28,28 +28,28 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSalaryCorporatePaymentsZSSCall/icons/full/obj16/SalaryCorporatePaymentsZssCallFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSalaryCorporatePaymentsZSSCall/icons/full/obj30/SalaryCorporatePaymentsZssCallFlow.gif"/>
     <composition>
-      <nodes xmi:type="com_stewardbank_co_zw_common_zsscall_StewardBankZssCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_1" location="352,24">
+      <nodes xmi:type="com_stewardbank_co_zw_common_zsscall_StewardBankZssCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_1" location="351,53">
         <translation xmi:type="utility:ConstantString" string="StewardBankZssCallSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="111,94" queueName="SCP_ZSS_REQ" messageDomainProperty="DFDL" messageSetProperty="{SB_CSV_Lib}" messageTypeProperty="{}:stewardBank_CSV" transactionMode="no">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="179,155" queueName="SCP_ZSS_REQ" messageDomainProperty="DFDL" messageSetProperty="{SB_CSV_Lib}" messageTypeProperty="{}:stewardBank_CSV" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="SCP_ZSS_REQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="513,20">
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="514,49">
         <translation xmi:type="utility:ConstantString" string="ISOValidation"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="542,157" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.salarycorporatepaymentszsscall#SalaryCorporatePaymentsZssFlow_BuildException.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildException"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="259,23" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.salarycorporatepaymentszsscall#SalaryCorporatePaymentsZssFlow_RequestToZss.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="224,52" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.salarycorporatepaymentszsscall#SalaryCorporatePaymentsZssFlow_RequestToZss.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="RequestToZss"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="820,92" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="721,157" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="SCP_ZSS_RES"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="325,157">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="594,24" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.salarycorporatepaymentszsscall#SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="622,53" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.salarycorporatepaymentszsscall#SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenereateResponseToChannel"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
