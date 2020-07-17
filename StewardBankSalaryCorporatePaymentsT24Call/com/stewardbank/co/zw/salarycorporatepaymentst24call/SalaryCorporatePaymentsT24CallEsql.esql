@@ -1,3 +1,5 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.salarycorporatepaymentst24call
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -25,7 +27,8 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		DECLARE reqMsg,T24URL CHARACTER '';
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL.stewardBank_CSV;
+		DECLARE domainName CHARACTER InputRoot.DFDL.stewardBank_CSV;
 		DECLARE inRefer REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
 		SET Environment.Variables.FileName = InputRoot.MQRFH2.FileName;
 		SET Environment.Variables.Fields = 'tran id,date, remitter account number, beneficiary bank name, beneficiary bank code, beneficiary account number, beneficiary name, amount, currency, purpose, remitter name';
@@ -34,7 +37,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		SET Environment.Variables.Crt_Acc = inRefer.Beneficiary_Account_Number;
 		SET Environment.Variables.CreationDate = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
 		SET Environment.Variables.RRN = inRefer.Purpose;
-		SET reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccsid);
+		SET reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.Variables.reqMsg = reqMsg;
 		SET Environment.Variables.UID = InputRoot.MQRFH2.UID;
@@ -51,17 +54,6 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE UrlPathparameters CHARACTER;
 		SET UrlPathparameters = inRefer.Tran_ID||'/'||inRefer.Currency||'/'||inRefer.Remitter_Name||'/'||inRefer.Currency||'/'||inRefer.Amount||'/'||executionDate||'/'||inRefer.Purpose||'/'||inRefer.Beneficiary_Account_Number||'/'||inRefer.Beneficiary_Name;
-		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
-		-- IF IsLogRequired LIKE 'Y' THEN
-		-- CALL DBLogging(Environment.Variables.UID,Environment.Variables.reqMsg,'T24 Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRefer.Purpose,outRefer);
-		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		-- PROPAGATE TO TERMINAL 'out1';
-		-- END IF;
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','..............Start Salary & Corporate Payments T24 logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','Incoming Request::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG',reqMsg) INTO rc;
-		END IF;
 		DECLARE csvDate CHARACTER;
 		DECLARE pattern CHARACTER 'yyyyMMdd';
 		SET csvDate = CAST(str AS CHARACTER FORMAT pattern);
@@ -69,7 +61,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
 		CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
 		DECLARE outRef REFERENCE TO OutputRoot.JSON;
-		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data'; 
+		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
 		SET outRef.batchId = inRefer.Tran_ID;
 		SET outRef.debitCurrency = inRefer.Currency;
 		SET outRef.orderingCustomerName = inRefer.Remitter_Name;
@@ -80,20 +72,18 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		SET outRef.creditAccountId = inRefer.Beneficiary_Account_Number;
 		SET outRef.customer = inRefer.Beneficiary_Name;
 		SET Environment.Variables.jsonData = OutputRoot.JSON.Data;
-		-- SET OutputRoot = NULL;
-		/* =================== CALLING DB RAW AUDIT LOGGING ==============*/
-		-- IF IsLogRequired LIKE 'Y' THEN
-		-- CALL DBLogging(Env.UID,T24URL,'T24  Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRefer.Purpose,outRefer);
-		-- END IF;
-		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		-- PROPAGATE TO TERMINAL 'out1';
-		/* =================== RAW AUDIT LOGGING END ==============*/
 		SET T24URL = URL||UrlPathparameters;
+		-- SET OutputRoot = NULL;
+		/* ===================AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','Generate T24 URL POST Request::') INTO rc;
+			CALL DBLogging(Env.UID,T24URL,'T24  Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRefer.Purpose,outRefer);
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','T24 URL Request(POST)::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG',T24URL) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc; 
 		END IF;
-		/*=============End===============*/
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		/* =================== END OF AUDIT LOGGING ==============*/
 		/*================DB Update=======================*/
 		IF Env.FileNameCheck LIKE 'PO' THEN
 			CALL INSERT_SB_ISAVE_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,
@@ -107,7 +97,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||UrlPathparameters; 
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||UrlPathparameters;
 	END;
 END MODULE;
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -130,7 +120,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
 		DECLARE Env REFERENCE TO Environment.Variables;
-		SET Env.resMsg = getPayLoad(FIELDNAME(InputRoot.JSON),domainDataRef,encodeRef,ccidRef);
+		SET Env.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
@@ -148,15 +138,13 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 			---DB Logging---
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL DBLogging(Env.UID,Env.resMsg,'T24 Success Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.body.endToEndReference,outRefer);
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','..........Logging generated Response...............') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','T24 Response:: SUCCESS') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG',Env.resMsg) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 			END IF;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
-			----------------------
-			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','..........Logging generated Response...............') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','T24 Response::') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG',Env.resMsg) INTO rc;
-			END IF;
 			SET outRef = Env.data;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 			PROPAGATE TO TERMINAL 'out';
