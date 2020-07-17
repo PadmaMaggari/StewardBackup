@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -215,7 +207,10 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT24
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE mobileNumber CHARACTER InputRoot.JSON.Data.mobileNumber;
+		DECLARE customerId CHARACTER inRef.Data.*.body.customerId;
+		DECLARE productId CHARACTER inRef.Data.*.body.productId;
+		DECLARE currencyId CHARACTER inRef.Data.*.body.currencyId;
+		DECLARE activityId CHARACTER inRef.Data.*.body.activityId;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
@@ -227,63 +222,62 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT24
 		CREATE LASTCHILD OF headRef NAME ('override');
 		CREATE LASTCHILD OF headRef.override IDENTITY(JSON.Array)overrideDetails;
 		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)customerIds;
-		CREATE LASTCHILD OF bodyRef.customerIds.Item[1] NAME 'customerId' VALUE '100121';
+		CREATE LASTCHILD OF bodyRef.customerIds.Item[1] NAME 'customerId' VALUE customerId;
 		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)properties;
-		CREATE LASTCHILD OF bodyRef NAME 'productId' VALUE 'STW.PERSONAL.CURRENT';
-		CREATE LASTCHILD OF bodyRef NAME 'currencyId' VALUE 'ZWL';
-		CREATE LASTCHILD OF bodyRef NAME 'activityId' VALUE 'ACCOUNTS-NEW-ARR.CHANNEL';
+		CREATE LASTCHILD OF bodyRef NAME 'productId' VALUE productId;
+		CREATE LASTCHILD OF bodyRef NAME 'currencyId' VALUE currencyId;
+		CREATE LASTCHILD OF bodyRef NAME 'activityId' VALUE activityId;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		SET Environment.jsonData = OutputRoot.JSON;
 		SET Environment.Variables.reqMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
-		SET OutputRoot.JSON = NULL;
+		PROPAGATE TO TERMINAL 'out1';
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- T24 Request ------') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out1';
 		END IF;
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.Properties.ContentType = 'application/json';
-		--SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.HTTPInputHeader = Environment.MQRFH2.usr.HTTPInputHeader;
-		SET OutputRoot.JSON = Environment.jsonData;
 	END;
 END MODULE;
-
 
 CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToFCB
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GenerateReqToFCB();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
-	CREATE PROCEDURE GenerateReqToFCB() BEGIN
+		CREATE PROCEDURE GenerateReqToFCB() BEGIN
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE mobileNumber CHARACTER InputRoot.JSON.Data.mobileNumber;
 		DECLARE id,email,password CHAR;
-		SET id = '201126287';
+		SET id = '201126287';--201152883
 		SET email = 'padma.maggari@eidiko.com';
 		SET password = 'tawa@steward';
 		--CALL newIndividualRequest();
 		CALL getIndividualRequest(id,email,password);
-	END;
-	CREATE PROCEDURE createParts(INOUT partsRef REFERENCE,IN I INT,IN KEY CHAR,IN VAL CHAR) BEGIN
+		END;
+		CREATE PROCEDURE createParts(INOUT partsRef REFERENCE,IN I INT,IN KEY CHAR,IN VAL CHAR) BEGIN
 		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="'||KEY||'"';
 		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
 		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE(VAL CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
-	END;
-	CREATE PROCEDURE newIndividualRequest() BEGIN
+		END;
+		CREATE PROCEDURE newIndividualRequest() BEGIN
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE I INT 1;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.ContentType = 'multipart/form-data; boundary= --------------------------174020354820334081381375';
+		SET OutputRoot.HTTPInputHeader."Content-Type" = 'multipart/form-data; boundary= --------------------------174020354820334081381375';
+		SET OutputRoot.HTTPInputHeader.Accept = '*/*';
+		SET OutputRoot.HTTPInputHeader."X-Original-HTTP-Command" = 'POST https://www.fcbureau.co.zw/api/newIndividual HTTP/1.1';
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		CREATE LASTCHILD OF OutputRoot DOMAIN('MIME');
-		CREATE LASTCHILD OF OutputRoot.MIME NAME 'Content-Type' VALUE 'multipart/form-data; boundary= --------------------------775154329068382263430548';
+		CREATE LASTCHILD OF OutputRoot.MIME NAME 'Content-Type' VALUE 'multipart/form-data; boundary= --------------------------174020354820334081381375';
 		CREATE LASTCHILD OF OutputRoot.MIME NAME 'Parts';
 		DECLARE partsRef REFERENCE TO OutputRoot.MIME.Parts;
 		-- WHILE I < 30 DO
@@ -409,30 +403,34 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToFCB
 		DECLARE domainName CHAR FIELDNAME(OutputRoot.MIME);
 		DECLARE domainDataRef REFERENCE TO OutputRoot.MIME;
 		SET Environment.Variables.reqMsg = getPayload(domainName,domainDataRef,InputProperties.Encoding,InputProperties.CodedCharSetId);
+		PROPAGATE TO TERMINAL 'out1';
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- FCB Request ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'FCB Request',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out1';
+		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- FCB Request ------') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'FCB Request',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
 		END IF;
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.Properties.ContentType = 'multipart/form-data; boundary= --------------------------775154329068382263430548';
-		SET OutputRoot.HTTPInputHeader."Content-Type" = 'multipart/form-data; boundary= --------------------------775154329068382263430548';
-		SET OutputRoot.HTTPInputHeader.Accept = '*/*';
-		SET OutputRoot.HTTPInputHeader."X-Original-HTTP-Command" = 'POST https://www.fcbureau.co.zw/api/newIndividual HTTP/1.1';
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON = Environment.jsonData;
 		END;
 		CREATE PROCEDURE getIndividualRequest(IN id CHAR,IN email CHAR,IN password CHAR) BEGIN
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE I INT 1;
-		SET OutputRoot.Properties.ContentType = 'multipart/form-data; boundary= --------------------------775154329068382263430548';
-		SET OutputRoot.HTTPInputHeader."Content-Type" = 'multipart/form-data; boundary= --------------------------775154329068382263430548';
+		--SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.Encoding = '546';
+		SET OutputRoot.Properties.CodedCharSetId = '1208';
+		SET OutputRoot.Properties.Transactional = 'false';
+		SET OutputRoot.Properties.Persistence = 'false';
+		SET OutputRoot.Properties.CreationTime = CURRENT_TIMESTAMP;
+		SET OutputRoot.Properties.ReplyIdentifier = Environment.MQRFH2.RequestIdentifier;
+		SET OutputRoot.Properties.ReplyProtocol = 'SOAP-HTTP'; 
+		SET OutputRoot.Properties.ContentType = 'multipart/form-data; boundary= --------------------------174020354820334081381375';
+		SET OutputRoot.HTTPInputHeader."Content-Type" = 'multipart/form-data; boundary= --------------------------174020354820334081381375';
 		SET OutputRoot.HTTPInputHeader.Accept = '*/*';
+		SET OutputRoot.HTTPInputHeader."Cache-Control" = 'no-cache';
+		SET OutputRoot.HTTPInputHeader.Connection = 'keep-alive';
 		SET OutputRoot.HTTPInputHeader."X-Original-HTTP-Command" = 'POST https://www.fcbureau.co.zw/api/getIndividual HTTP/1.1';
 		CREATE LASTCHILD OF OutputRoot DOMAIN('MIME');
-		CREATE LASTCHILD OF OutputRoot.MIME NAME 'Content-Type' VALUE 'multipart/form-data; boundary=--------------------------775154329068382263430548';
+		CREATE LASTCHILD OF OutputRoot.MIME NAME 'Content-Type' VALUE 'multipart/form-data; boundary=--------------------------174020354820334081381375';
 		CREATE LASTCHILD OF OutputRoot.MIME NAME 'Parts';
 		DECLARE partsRef REFERENCE TO OutputRoot.MIME.Parts;
 		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="id"';
@@ -446,20 +444,16 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToFCB
 		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Content-Disposition' VALUE 'form-data; name="password"';
 		CREATE LASTCHILD OF partsRef.Part[I] NAME 'Data';
 		CREATE LASTCHILD OF partsRef.Part[I].Data DOMAIN('BLOB') PARSE(password CCSID InputProperties.CodedCharSetId ENCODING InputProperties.Encoding);
-		SET Environment.mimeData = OutputRoot.MIME;
-		DECLARE domainName CHAR FIELDNAME(OutputRoot.MIME);
 		DECLARE domainDataRef REFERENCE TO OutputRoot.MIME;
-		SET Environment.Variables.reqMsg = getPayload(domainName,domainDataRef,InputProperties.Encoding,InputProperties.CodedCharSetId);
+		SET Environment.Variables.reqMsg = getPayload('MIME',domainDataRef,InputProperties.Encoding,InputProperties.CodedCharSetId);
+		PROPAGATE TO TERMINAL 'out1';
 		IF IsLogRequired = 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- FCB Request ------') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'FCB Request',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
+		PROPAGATE TO TERMINAL 'out';
 		END IF;
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON = Environment.jsonData;
 		END;
 		END MODULE;
 		CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateKYCResponse
@@ -508,14 +502,15 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToFCB
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 		END;
 		END MODULE;
-		CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateFCMResponse
-		CREATE FUNCTION Main() RETURNS BOOLEAN
-		BEGIN
+		
+CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateFCMResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
 		CALL CopyMessageHeaders();
 		CALL CopyEntireMessage();
 		RETURN TRUE;
-		END;
-		CREATE PROCEDURE CopyMessageHeaders() BEGIN
+	END;
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
 		DECLARE I INTEGER 1;
 		DECLARE J INTEGER;
 		SET J = CARDINALITY(InputRoot.*[]);
@@ -528,33 +523,26 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToFCB
 		SET OutputRoot = InputRoot;
 		END;
 		END MODULE;
-		CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT241
-		CREATE FUNCTION Main() RETURNS BOOLEAN
+
+CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT241
+	CREATE FUNCTION Main() RETURNS BOOLEAN
 		BEGIN
-		-- CALL CopyMessageHeaders();
-		-- CALL CopyEntireMessage();
-		RETURN TRUE;
+		 CALL GenerateReqToT24();
+		 RETURN TRUE;
 		END;
-		CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-		SET OutputRoot.*[I] = InputRoot.*[I];
-		SET I = I + 1;
-		END WHILE;
-		END;
-		CREATE PROCEDURE CopyEntireMessage() BEGIN
+		
+	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		SET OutputRoot = InputRoot;
-		END;
-		END MODULE;
-		CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_BuildException
-		CREATE FUNCTION Main() RETURNS BOOLEAN
-		BEGIN
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_BuildException
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
 		CALL BuildErrorMsg();
 		RETURN TRUE;
-		END;
-		CREATE PROCEDURE BuildErrorMsg() BEGIN
+	END;
+	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 		SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
@@ -562,13 +550,13 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToFCB
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'T24ServiceCall') THEN
-		SET errMsg = 'T24 Server Down';
+			SET errMsg = 'T24 Server Down';
 		ELSEIF CONTAINS(excpRef.excpText,'FCBServiceCall') THEN
-		SET errMsg = 'FCB Server Down';
+			SET errMsg = 'FCB Server Down';
 		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
-		SET errMsg = 'No Response from T24 Server';
+			SET errMsg = 'No Response from T24 Server';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
-		SET errMsg = 'No Response from Postilion Server';
+			SET errMsg = 'No Response from Postilion Server';
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
@@ -584,16 +572,23 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToFCB
 		SET Environment.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
-		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
-		MOVE outRef TO OutputRoot.JSON.Data;
-		SET outRef.statusCode = '000';
-		SET outRef.status = 'FAILED';
-		SET outRef.message = errMsg;
-		SET outRef.responseBody.source = 'ESB';
-		SET outRef.responseBody.applicationName = ApplicationLabel;
-		SET outRef.responseBody.applicationErrorCode = Environment.UserDefinedErrorCodes.AccountOpening.ErrorCode;
 		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AccountOpeningResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef = Environment.Variables.header;
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.UserDefinedErrorCodes.AccountOpening.ErrorCode;
+		SET errorRef.message = errMsg;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
@@ -602,9 +597,9 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToFCB
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.MQRFH2.inputRequest,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.UserDefinedErrorCodes.AccountOpening.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.UserDefinedErrorCodes.AccountOpening.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		----------------------------------
-		END;
-		END MODULE;
+	END;
+END MODULE;

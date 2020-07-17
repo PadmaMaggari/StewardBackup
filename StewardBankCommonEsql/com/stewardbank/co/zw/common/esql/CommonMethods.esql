@@ -672,23 +672,21 @@ END;
 CREATE FUNCTION getPayLoad(IN domainName CHARACTER,IN domainDataRef REFERENCE, IN encodeRef INTEGER,IN ccidRef INTEGER) RETURNS CHARACTER
 BEGIN
 	DECLARE payload CHARACTER '';
-	IF domainName='XMLNSC' OR domainName='SOAP' OR domainName='BLOB' OR domainName='JSON' THEN
-		SET payload=CAST(ASBITSTREAM(domainDataRef CCSID ccidRef ENCODING encodeRef) AS CHARACTER CCSID ccidRef ENCODING encodeRef);
-	ELSEIF domainName='DFDL' THEN
-		--DECLARE sample boolean EXISTS(domainDataRef.stewardBank_CSV[]);   
-		IF EXISTS(domainDataRef.stewardBank_CSV[]) THEN 
-			SET payload=CAST(ASBITSTREAM(domainDataRef ENCODING encodeRef CCSID ccidRef SET '{SB_CSV_Lib}' TYPE '{}:stewardBank_CSV') AS CHARACTER CCSID ccidRef);
-		ELSE
-			DECLARE bPayload BLOB ASBITSTREAM(domainDataRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
-			SET payload = CAST(bPayload AS CHARACTER);
-		END IF;
-	ELSEIF domainName='ISO8583WithHeader' THEN
+	CASE
+	WHEN domainName = 'XMLNSC' OR domainName = 'SOAP' OR domainName = 'BLOB' OR domainName = 'JSON' THEN
+		SET payload = CAST(ASBITSTREAM(domainDataRef CCSID ccidRef ENCODING encodeRef) AS CHARACTER CCSID ccidRef ENCODING encodeRef);
+	WHEN domainName = 'DFDL' THEN
+		DECLARE bPayload BLOB ASBITSTREAM(domainDataRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
+		SET payload = CAST(bPayload AS CHARACTER);
+	WHEN domainName = 'stewardBank_CSV' THEN
+		SET payload=CAST(ASBITSTREAM(domainDataRef ENCODING encodeRef CCSID ccidRef SET '{SB_CSV_Lib}' TYPE '{}:stewardBank_CSV') AS CHARACTER CCSID ccidRef);
+	WHEN domainName = 'ISO8583WithHeader' THEN
 		SET payload=CAST(ASBITSTREAM(domainDataRef ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader') AS CHARACTER);
-	ELSEIF domainName='ISO8583TCPHeader' THEN
+	WHEN domainName = 'ISO8583TCPHeader' THEN
 		SET payload=CAST(ASBITSTREAM(domainDataRef ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583TCPHeader') AS CHARACTER);
-	ELSEIF domainName='MT103' THEN
-		SET payload=CAST(ASBITSTREAM(domainDataRef ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103') AS CHARACTER CCSID ccidRef);
-	END IF;
+	WHEN domainName = 'MT103' THEN
+		SET payload=CAST(ASBITSTREAM(domainDataRef ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103') AS CHARACTER CCSID ccidRef);			
+	END CASE;
 	RETURN payload;
 END;
 CREATE FUNCTION getBlobData(IN domainDataRef REFERENCE, IN encodeRef INTEGER,IN ccidRef INTEGER) RETURNS BLOB

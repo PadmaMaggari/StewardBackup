@@ -21,11 +21,12 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data.*;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.header = inRef.header;
 		SET Environment.MQRFH2.inputRequest = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); ---this is for logging in error audit
 		SET Environment.Variables.reqMsg = Environment.MQRFH2.inputRequest;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -48,12 +49,12 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion
 		SET outRef.MTI_MessageClass = 2;
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
-		SET outRef.ProcessingCode_003 = CAST(inRef.processingCode AS INTEGER);
-		SET outRef.AccountIdentification2_103 = CAST(inRef.fromAccount AS INTEGER);
+		SET outRef.ProcessingCode_003 = CAST(inRef.header.processingCode AS INTEGER);
+		SET outRef.AccountIdentification2_103 = CAST(inRef.body.fromAccount AS INTEGER);
 		CALL UpdateMsgWithAsciiBitMap(outRef);
-		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
-		SET domainName = FIELDNAME(outDomainDataRef);
-		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
+		MOVE domainDataRef TO OutputRoot.DFDL;
+		SET domainName = FIELDNAME(domainDataRef);
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		IF IsLogRequired = 'Y' THEN
 			--------------DBLogging-------------------
@@ -141,8 +142,8 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToT24
 		DECLARE inRef REFERENCE TO InputRoot.DFDL;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
-		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL.*;
+		DECLARE domainName CHARACTER FIELDNAME(domainDataRef);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
@@ -163,10 +164,10 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToT24
 --		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
 --		CALL FieldToFieldMapping(inRef,outRef,'','','');
 		SET OutputRoot.DFDL = InputRoot.DFDL;
-		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+		MOVE domainDataRef TO OutputRoot.DFDL;
 		SET Environment.dfdlData = OutputRoot.DFDL;
-		SET domainName = FIELDNAME(outDomainDataRef);
-		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
+		SET domainName = FIELDNAME(domainDataRef);
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','T24 Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
@@ -215,15 +216,17 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 		MOVE inRef TO InputRoot.DFDL.*.PrimaryAccountNumber_002;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('statusCode');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('message');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('responseBody');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('BalanceEnquiryResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+		SET headRef = Environment.header;
+		SET headRef.status = 'SUCCESS';
+		SET headRef.responseCode = '200';
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
-		DECLARE isoRef REFERENCE TO OutputRoot.JSON.Data.responseBody;
-		SET outRef.statusCode = '200';
-		SET outRef.message = 'SUCCESS';
-		CALL JSONLogMessage(inRef,isoRef);
+		CALL JSONLogMessage(inRef,bodyRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON;
 		SET Environment.jsonData = OutputRoot.JSON;
 		SET domainName = FIELDNAME(outDomainDataRef);
@@ -238,7 +241,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','Application Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
-		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON = Environment.jsonData;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
@@ -284,16 +287,23 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlowCaptureException
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
-		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
-		MOVE outRef TO OutputRoot.JSON.Data;
-		SET outRef.statusCode = '000';
-		SET outRef.status = 'FAILED';
-		SET outRef.message = errMsg;
-		SET outRef.responseBody.source = 'ESB';
-		SET outRef.responseBody.applicationName = ApplicationLabel;
-		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.BalanceEnquiry.ErrorCode;
- 		SET OutputRoot.XMLNSC = NULL;
+		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('BalanceEnquiryResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef = Environment.Variables.header;
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.UserDefinedErrorCodes.BalanceEnquiry.ErrorCode;
+		SET errorRef.message = errMsg;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
@@ -302,7 +312,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlowCaptureException
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.MQRFH2.inputRequest,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.BalanceEnquiry.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.BalanceEnquiry.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		----------------------------------
