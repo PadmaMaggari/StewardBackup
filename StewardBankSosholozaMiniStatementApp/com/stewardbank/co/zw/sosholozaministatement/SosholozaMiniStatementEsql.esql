@@ -61,13 +61,10 @@ SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		SET outRef.MTI_MessageClass = 2;
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
-		SET outRef.ProcessingCode_003 = InputRoot.MQRFH2.usr.esbPcode;
-		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.billAmount AS INTEGER);
-		SET outRef.Payee_098 = inRef.JSON.Data.billProvider;
-		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.debitAccountNumber AS INTEGER);
-		SET outRef.AccountIdentification2_103 = CAST(inRef.JSON.Data.billAccount AS INTEGER);
+		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
+		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.fromAccount AS INTEGER);
 		SET outRef.ReservedPrivate_127 = '000000';
-		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel;
+		SET outRef.StructuredDataPostilionPrivate_127_22 =inRef.JSON.Data.channel;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);        
@@ -128,6 +125,7 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToT24
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.reqISOMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		
 		
 		
 		SET OutputRoot.Properties = InputRoot.Properties;
@@ -210,46 +208,99 @@ SET OutputRoot.Properties = InputRoot.Properties;
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid)) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
-		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		
+		DECLARE field48 CHARACTER'';
+		SET  field48 = InputRoot.DFDL.ISO8583WithHeader.AdditionalDataPrivate_048;
+		
+		SET field48 = SUBSTRING(field48 AFTER '~');
+		
+		CREATE LASTCHILD OF Environment DOMAIN('DFDL') PARSE(field48.RESPONSE  ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId  TYPE '{}:Mini_Statement');
+		
+		
+		
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('statusCode');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('message');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('responseBody');
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
+		DECLARE isoRef REFERENCE TO OutputRoot.JSON.Data.responseBody;
+		SET outRef.statusCode = '200';
+		SET outRef.message = 'SUCCESS';
 		IF inRef.ResponseCode_039 = '00' THEN
+			
+			
+			
+			
+			     
 			SET outRef.statusCode = '200';
 			SET outRef.message = 'SUCCESS';
-			SET outRef.responseBody.source = 'ESB';
-			SET outRef.responseBody.applicationName = 'MINI_STATEMENT_HTTP';
-		
+--			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'responseBody';
+--			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.responseBody;
+--			SET bodyRef.source = 'ESB';
+--			SET bodyRef.applicationName = 'MINI_STATEMENT_HTTP';
+--			
+--			CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)miniStatementData;
+--			DECLARE minRef REFERENCE TO OutputRoot.JSON.Data.responseBody.miniStatementData;
+--			WHILE LASTMOVE(dfdlRef) DO
+--				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'DATE_TIME' VALUE dfdlRef.DATE_TIME;
+--				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'TRAN_TYPE' VALUE dfdlRef.TRAN_TYPE;
+--				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'SIGN' VALUE dfdlRef.SIGN;
+--				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'TRAN_AMOUNT' VALUE dfdlRef.TRAN_AMOUNT;
+--				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'CURR_CODE' VALUE dfdlRef.CURR_CODE;
+--				SET i=i+1;
+--				MOVE dfdlRef NEXTSIBLING;
+--			END WHILE;
+
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'MiniStatementResponse';
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.MiniStatementResponse NAME 'header';
+			
+			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.MiniStatementResponse.header;
+			SET bodyRef.channel = 'MobileApp';
+			SET bodyRef.processingCode = inRef.ProcessingCode_003;
+			SET bodyRef.statusCode = '200';
+			SET bodyRef.message = 'SUCCESS';
+			
+			--CREATE FIELD bodyRef.body IDENTITY(JSON Object)body;
+			
+			
+			
+
 		ELSE
 			SET outRef.statusCode = '000';
 			SET outRef.message = 'FAILURE';
 			SET outRef.responseBody.source = 'ESB';
 			SET outRef.responseBody.applicationName = 'MINI_STATEMENT_HTTP';
-		
+
 		END IF;
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.JSON),outDomainDataRef,encodeRef,ccsid);
-		SET Environment.jsonData = OutputRoot.JSON.Data;
-		SET OutputRoot.JSON = NULL;
-		/*=================== CALLING LOG4J LOGGING  ==============*/
+		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
+		DECLARE envref REFERENCE TO Environment;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
+		CREATE LASTCHILD OF Environment.JSON AS envref NAME 'Data';
+		SET envref = OutRefer;
+		SET OutputRoot = NULL;
+		/*=================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','Response To Outgoing Router::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
-		/*=================== CALLING LOG4J LOGGING END  ==============*/
-		/*=================== CALLING DB RAW AUDIT LOGGING  ==============*/
+		/*=================== CALLING LOG4J LOGGING END ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out';
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out';
 		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON.Data = Environment.jsonData;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';--Environment.Variables.usr.resQueueName;
-		
-	END;
+		SET OutputRoot.JSON.Data = envref;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES'; --Environment.Variables.usr.resQueueName;
+END;
 END MODULE;
 
 CREATE COMPUTE MODULE SosholozaMiniStatementFlow_BuildExceptionDetails
