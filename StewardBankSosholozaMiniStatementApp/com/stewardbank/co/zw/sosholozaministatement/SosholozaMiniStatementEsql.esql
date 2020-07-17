@@ -125,9 +125,6 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToT24
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.reqISOMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
-		
-		
-		
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
@@ -215,9 +212,6 @@ SET OutputRoot.Properties = InputRoot.Properties;
 		SET field48 = SUBSTRING(field48 AFTER '~');
 		
 		CREATE LASTCHILD OF Environment DOMAIN('DFDL') PARSE(field48.RESPONSE  ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId  TYPE '{}:Mini_Statement');
-		
-		
-
 			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'MiniStatementResponse';
 			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'header';
 			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'body';
@@ -230,9 +224,6 @@ SET OutputRoot.Properties = InputRoot.Properties;
 			SET headRef.processingCode = inRef.ProcessingCode_003;
 			SET headRef.responseCode = '200';
 			SET headRef.status = 'SUCCESS';
-			
-			--CREATE FIELD  outRef IDENTITY(JSON.Object)body;
---			 DECLARE outRef1 REFERENCE TO  OutputRoot.JSON.Data.MiniStatementResponse.body;
 			CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)miniStatementData;
 			DECLARE minRef REFERENCE TO bodyRef.miniStatementData;
 			WHILE LASTMOVE(dfdlRef) DO
