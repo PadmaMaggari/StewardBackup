@@ -19,19 +19,19 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 			SET Environment.Variable.data = InputRoot.DFDL;
 			DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
 			DECLARE rc BOOLEAN FALSE;
-			DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+			DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 			DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 			DECLARE inRef REFERENCE TO InputRoot;
 			DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 			DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
-			DECLARE domainDataRef REFERENCE TO InputRoot.DFDL.stewardBank_CSV;
-			DECLARE domainName CHARACTER InputRoot.DFDL.stewardBank_CSV;
+			DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;  
+			DECLARE domainName CHARACTER 'stewardBank_CSV'; 
 			DECLARE Response ROW;
 			DECLARE sql CHARACTER '';
 			-- SET DBLogging Properties ==============
-			SET reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccsid);
+			SET reqMsg = getPayLoad(FIELDNAME(InputRoot.DFDL.stewardBank_CSV),domainDataRef,encodeRef,ccidRef);  
 			SET Environment.MQRFH2.reqMsg = reqMsg;
-			SET UUID = UUIDASCHAR;
+			SET UUID = UUIDASCHAR; 
 			SET Environment.MQRFH2.UID = UUID;
 			SET Environment.MQRFH2.FileName = InputLocalEnvironment.File.Name;
 			DECLARE outRefer REFERENCE TO OutputRoot;
@@ -47,14 +47,16 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 			IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
 				--------ZSS-----------
 				IF IsLogRequired LIKE 'Y' THEN
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','..............Start Salary & Corporate Payments ZSS Logging...........') INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Sending Data to ZSS::') INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG',reqMsg) INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','ID::'|| Environment.MQRFH2.UID) INTO rc;
 					CALL DBLogging(Environment.MQRFH2.UID,reqMsg,'ZSS Flow Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.DFDL.stewardBank_CSV.record.Purpose,outRefer);
 					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 					PROPAGATE TO TERMINAL 'out';
 				END IF;
+				IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','..............Start Salary & Corporate Payments ZSS Logging...........') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Sending Data to ZSS::') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG',reqMsg) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','ID::'|| Environment.MQRFH2.UID) INTO rc;
+					END IF;
 				SET OutputRoot.Properties = InputRoot.Properties;
 				SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 				SET OutputRoot.DFDL = Environment.Variable.data;
