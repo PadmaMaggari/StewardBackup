@@ -21,50 +21,56 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.SWIFT_SB_Q" name="SWIFT_SB_Q" defaultValueLiteral="SWIFT_SB_Q">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.Url" name="Url">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.BackendT24Url" name="BackendT24Url" defaultValueLiteral="http://192.168.1.233:8080/stwbc/api/v1.0.0/stwb/payments/incoming/swift/">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="SwiftFlow" bundleName="com/stewardbank/co/zw/swiftapp/SwiftFlow" pluginId="StewardBankSWIFTApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSWIFTApp/icons/full/obj16/SwiftFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSWIFTApp/icons/full/obj30/SwiftFlow.gif"/>
     <composition>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="153,191">
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="145,230">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="9,117" inputDirectory="C:\vee\STEWARD_Bank\ACE" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtp="true" fileFtpServer="localhost:21" fileFtpUser="ftp">
+      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="9,117" inputDirectory="C:\STEWARD_Bank\ACE" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtpServer="localhost:21" fileFtpUser="ftp">
         <translation xmi:type="utility:ConstantString" string="FetchMT103FromZetts"/>
       </nodes>
       <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="219,14" messageDomain="DFDL" resetMessageDomain="true" messageSet="{MT103}" resetMessageSet="true" messageType="{}:MT103" resetMessageType="true" resetMessageFormat="true" validateTiming="immediate" validateMaster="contentAndValue">
         <translation xmi:type="utility:ConstantString" string="CheckMT103"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="611,126" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="642,116" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="LogQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="356,185" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#rtgsIncomingFlow_GenerateExceptionDetails.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="459,226" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#rtgsIncomingFlow_GenerateExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_13" location="407,13" URLSpecifier="http://" httpVersion="1.1" protocol="TLS" messageDomainProperty="DFDL" messageSetProperty="{MT103}" messageTypeProperty="{}:MT103">
-        <translation xmi:type="utility:ConstantString" string="T24Call"/>
-      </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="298,61" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#SwiftFlow_GenetateReqToT24.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="293,77" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#SwiftFlow_GenetateReqToT24.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GeneratingT24Req"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="463,73" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#rtgsIncomingFlow_UpdateDatabaseStatus.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="481,8" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#rtgsIncomingFlow_UpdateDatabaseStatus.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="UpdatingDBStatus"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="104,60" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#SwiftFlow_GenerateMt103Req.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="97,56" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#SwiftFlow_GenerateMt103Req.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="ConvertBLOBtoMT103"/>
+      </nodes>
+      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="392,19" URLSpecifier="http://local" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON">
+        <translation xmi:type="utility:ConstantString" string="HTTP Request"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="471,94" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#rtgsIncomingFlow_UpdateDatabaseErrorStatus.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="UpdatingDBErrorStatus"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_12" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_13" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_13" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_12" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
@@ -79,8 +85,8 @@
                 <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_Q" bundleName="com/stewardbank/co/zw/swiftapp/SwiftFlow" pluginId="StewardBankSWIFTApp"/>
                 <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.SWIFT_SB_Q">
                   <propertyName xmi:type="utility:TranslatableString" key="Property.SWIFT_SB_Q" bundleName="com/stewardbank/co/zw/swiftapp/SwiftFlow" pluginId="StewardBankSWIFTApp"/>
-                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.Url">
-                    <propertyName xmi:type="utility:TranslatableString" key="Property.Url" bundleName="com/stewardbank/co/zw/swiftapp/SwiftFlow" pluginId="StewardBankSWIFTApp"/>
+                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.BackendT24Url">
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.BackendT24Url" bundleName="com/stewardbank/co/zw/swiftapp/SwiftFlow" pluginId="StewardBankSWIFTApp"/>
                   </propertyDescriptor>
                 </propertyDescriptor>
               </propertyDescriptor>

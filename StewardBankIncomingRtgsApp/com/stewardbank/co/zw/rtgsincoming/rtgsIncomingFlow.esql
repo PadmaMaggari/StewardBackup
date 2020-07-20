@@ -82,7 +82,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_RouteToT24orZss
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Start RTGSIncoming  ReqToPostilion logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Start RTGSIncoming Routing To T24 or ZSS...........') INTO rc;
 		END IF;
 		DECLARE Response ROW;
 		DECLARE CRLF CHARACTER CAST(X'0D0A' AS CHARACTER CCSID 1208);
@@ -93,6 +93,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_RouteToT24orZss
 		SET Environment.Variables.debitCurrency = SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 7 FOR 3); 
 		SET Environment.Variables.ordCustomerName = SUBSTRING(Mt50DataAdd BEFORE CRLF);
 		SET Environment.Variables.narrative = LTRIM(inDomainDataRef.MT103.body.MT20);
+		SET Environment.Variables.Nation = SUBSTRING(Mt50DataAdd AFTER CRLF);
 		DECLARE mtField70 CHARACTER inDomainDataRef.MT103.body.MT70 ;
 		IF ( mtField70 NOT LIKE ' ' ) THEN
 			SET Environment.Variables.invoiceReference = SUBSTRING(mtField70 BEFORE CRLF);
@@ -120,7 +121,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_RouteToT24orZss
 		END IF;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = T24_REQ;
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End of RTGSIncoming  ReqToPostilion logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End of RTGSIncoming  Routing...........') INTO rc;
 		SET OutputRoot.MQRFH2 = Environment.Variables;
 		SET OutputRoot.DFDL = InputRoot.DFDL; 
 		
@@ -137,8 +138,6 @@ CREATE COMPUTE MODULE rtgsIncomingFlow__GenerateExceptionDetails
 		RETURN FALSE;
 	END;
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
-		
-		
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE rc BOOLEAN FALSE;
