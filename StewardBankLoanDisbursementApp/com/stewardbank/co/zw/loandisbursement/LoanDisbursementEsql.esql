@@ -87,7 +87,49 @@ CREATE COMPUTE MODULE LoanDisbursementFlow_AccountAvalilabilityCheck
 			END IF;
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-			SET OutputRoot.JSON.Data = Environment.Variable.data;
+			--SET OutputRoot.JSON.Data = Environment.Variable.data;
+		
+		     
+		    
+		     
+	    SET OutputRoot.HTTPInputHeader = InputRoot.HTTPInputHeader;
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'header';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.header NAME 'override';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'body';
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.header.override;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.body;
+		CREATE LASTCHILD OF headRef IDENTITY(JSON.Array)overrideDetails;
+		-- DECLARE minRef REFERENCE TO bodyRef.overrideDetails;
+		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)customerIds;
+
+		CREATE LASTCHILD OF bodyRef.customerIds.Item[1] TYPE NameValue NAME 'customerId' VALUE '100282';
+		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)properties;
+
+		CREATE LASTCHILD OF bodyRef.properties.Item[1] TYPE NameValue NAME 'propertyId' VALUE 'COMMITMENT';
+		
+		CREATE LASTCHILD OF bodyRef.properties.Item[1] IDENTITY(JSON.Array)fields;
+		
+		CREATE LASTCHILD OF bodyRef.properties.Item[1].fields.Item[1] TYPE NameValue NAME 'fieldName' VALUE 'AMOUNT';
+		CREATE LASTCHILD OF bodyRef.properties.Item[1].fields.Item[1] TYPE NameValue NAME 'fieldValue' VALUE '175';
+		CREATE LASTCHILD OF bodyRef.properties.Item[2] TYPE NameValue NAME 'propertyId' VALUE 'SETTLEMENT';
+		
+		CREATE LASTCHILD OF bodyRef.properties.Item[2] IDENTITY(JSON.Array)fields;
+		
+		CREATE LASTCHILD OF bodyRef.properties.Item[2].fields.Item[1] TYPE NameValue NAME 'fieldName' VALUE 'PAYIN.ACCOUNT';
+		CREATE LASTCHILD OF bodyRef.properties.Item[2].fields.Item[1] TYPE NameValue NAME 'fieldValue' VALUE '1000000047';
+		CREATE LASTCHILD OF bodyRef.properties.Item[2].fields.Item[2] TYPE NameValue NAME 'fieldName' VALUE 'PAYIN.ACCOUNT';
+		CREATE LASTCHILD OF bodyRef.properties.Item[2].fields.Item[2] TYPE NameValue NAME 'fieldValue' VALUE '1000000047';
+
+
+
+		CREATE LASTCHILD OF bodyRef NAME 'productId' VALUE 'NANO.KASHAGI.PAYROLL';
+		CREATE LASTCHILD OF bodyRef NAME 'currencyId' VALUE 'ZWL';
+		CREATE LASTCHILD OF bodyRef NAME 'activityId' VALUE 'LENDING-NEW-ARRANGEMENT';
+
+
+--SET Environment.JSON.Data = OutputRoot.JSON.Data;
+		     
+		     
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = T24_Q;
 			PROPAGATE TO TERMINAL 'out';
 		END IF;

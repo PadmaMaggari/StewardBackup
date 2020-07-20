@@ -1,31 +1,35 @@
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.loandisbursement
 
-PATH  com.stewardbank.co.zw.common.esql;
+PATH com.stewardbank.co.zw.common.esql;
 CREATE COMPUTE MODULE LoanDisbursmentT24Flow_RequestToT24
 	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
-DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';	
-DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
-DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
-DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
-DECLARE IsLogRequired EXTERNAL CHARACTER'';
+	DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
+	DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
+	DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+	DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+	DECLARE IsLogRequired EXTERNAL CHARACTER'';
+	DECLARE URL EXTERNAL CHARACTER'';
+	DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER'';
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL RequestToT24();
-		RETURN TRUE;
+		CALL RequestToT24();
+		RETURN FALSE;
 	END;
 
-	
+
 	CREATE PROCEDURE RequestToT24() BEGIN
-			
-				SET Environment.MQRFH2 = InputRoot.MQRFH2;
-		DECLARE reqMsg CHARACTER '';     
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE reqMsg CHARACTER '';
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inRef REFERENCE TO InputRoot;
-		
---		DECLARE nationalId CHARACTER InputRoot.JSON.Data.nationalId;
---		DECLARE loanPackageId CHARACTER InputRoot.JSON.Data.loanPackageId;
+		-- DECLARE nationalId CHARACTER InputRoot.JSON.Data.nationalId;
+		-- DECLARE loanPackageId CHARACTER InputRoot.JSON.Data.loanPackageId;
 
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
@@ -34,64 +38,220 @@ DECLARE IsLogRequired EXTERNAL CHARACTER'';
 		SET Environment.reqMsg = reqMsg;
 		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
-			/* =================== CALLING LOG4J LOGGING  ==============*/
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		/* =================== CALLING LOG4J LOGGING ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		SET Environment.data = InputRoot.JSON.Data;
+		DECLARE inRefer REFERENCE TO InputRoot.JSON.Data;
+		DECLARE envref REFERENCE TO Environment;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
+		CREATE LASTCHILD OF Environment.JSON AS envref NAME 'Data';
+		SET envref = inRefer;
+		SET OutputRoot = NULL;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','..............Start Lone Disbursment T24  logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','Incoming Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','Incoming Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','Generate Req T24::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid)) INTO rc;
 		END IF;
-		
-		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
-		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'T24  Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
-		END IF; 
+		/* =================== CALLING LOG4J LOGGING ENDING ==============*/
+		/* =================== CALLING DB RAW AUDIT LOGGING ==============*/
+		 IF IsLogRequired LIKE 'Y' THEN
+		 CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'T24  Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+		 SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		 PROPAGATE TO TERMINAL 'out1';
+		 END IF;
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON.Data = Environment.data;
-		-- SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||nationalId||'/'||loanPackageId;
+
+		SET OutputRoot.JSON.Data = envref;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
 		PROPAGATE TO TERMINAL 'out';
-			
+
 	END;
 
 END MODULE;
 CREATE COMPUTE MODULE LoanDisbursmentT24Flow_ResponseToChannel
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL ResponseToChannel();
+		CALL ResponseToChannel();
 		RETURN TRUE;
 	END;
 
-	
+
 	CREATE PROCEDURE ResponseToChannel() BEGIN
-		SET OutputRoot = InputRoot;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+		SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		IF IsLogRequired = 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',' ----- Response from T24 ------') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Disbursment T24 Response',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
+		END IF;
+		DECLARE inRefer REFERENCE TO InputRoot.JSON.Data;
+		DECLARE envref REFERENCE TO Environment;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
+		CREATE LASTCHILD OF Environment.JSON AS envref NAME 'Data';
+		SET envref = inRefer;
+		SET OutputRoot = NULL;
+		SET domainName = FIELDNAME(OutputRoot.JSON);
+		MOVE domainDataRef TO OutputRoot.JSON;
+		--SET Environment.Variables.resMsg = getPayload(domainName,domainDataRef,encodeRef,ccidRef);
+		IF IsLogRequired = 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',' ----- Response to FrontEnd ------') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',' Response QueueName :  '||'ALL_SB_HTTP_RES') INTO rc;
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Response to FrontEnd',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON.Data = envref;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
+
 	END;
 END MODULE;
+
+CREATE COMPUTE MODULE LoanDisbursmentT24Flow_FramingT24BadReq
+	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+	DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+	DECLARE IsLogRequired EXTERNAL CHARACTER'';
+	DECLARE URL EXTERNAL CHARACTER'';
+	
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL FramingT24BadReq();
+		RETURN FALSE;
+	END;
+
+
+	CREATE PROCEDURE FramingT24BadReq() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+		SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		
+		
+		
+		DECLARE myBlob REFERENCE TO InputRoot.BLOB.BLOB;
+		CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(myBlob, InputRoot.Properties.Encoding, InputRoot.Properties.CodedCharSetId);
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+		
+		DECLARE t24Res REFERENCE TO OutputRoot.JSON.Data.override.overrideDetails.[1];
+--		SET Environment = t24Res;
+		SET OutputRoot = NULL;
+		DECLARE i INTEGER 1;
+		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'header';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.header NAME 'override';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'body';
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.header.override;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.body;
+		CREATE LASTCHILD OF headRef IDENTITY(JSON.Array)overrideDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+
+		WHILE LASTMOVE(t24Res) DO
+
+			CREATE LASTCHILD OF headRef.overrideDetails.Item[i] TYPE NameValue NAME 'description' VALUE t24Res.description;
+			CREATE LASTCHILD OF headRef.overrideDetails.Item[i] TYPE NameValue NAME 'id' VALUE t24Res.id;
+			SET i=i+1;
+			MOVE t24Res NEXTSIBLING;
+
+		END WHILE;		
+		-- CREATE LASTCHILD OF headRef.overrideDetails.Item[1] TYPE NameValue NAME 'description' VALUE Environment.outRef.overrideDetails.Item.description;
+		-- CREATE LASTCHILD OF headRef.overrideDetails.Item[1] TYPE NameValue NAME 'id' VALUE Environment.outRef.overrideDetails.Item.id;
+		--
+		-- CREATE LASTCHILD OF headRef.overrideDetails.Item[2] TYPE NameValue NAME 'description' VALUE Environment.outRef.overrideDetails.Item.description;
+		-- CREATE LASTCHILD OF headRef.overrideDetails.Item[2] TYPE NameValue NAME 'id' VALUE Environment.outRef.overrideDetails.Item.id;
+		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)customerIds;
+
+		CREATE LASTCHILD OF bodyRef.customerIds.Item[1] TYPE NameValue NAME 'customerId' VALUE '100282';
+		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)properties;
+
+		CREATE LASTCHILD OF bodyRef.properties.Item[1] TYPE NameValue NAME 'propertyId' VALUE 'COMMITMENT';
+
+		CREATE LASTCHILD OF bodyRef.properties.Item[1] IDENTITY(JSON.Array)fields;
+
+		CREATE LASTCHILD OF bodyRef.properties.Item[1].fields.Item[1] TYPE NameValue NAME 'fieldName' VALUE 'AMOUNT';
+		CREATE LASTCHILD OF bodyRef.properties.Item[1].fields.Item[1] TYPE NameValue NAME 'fieldValue' VALUE '175';
+		CREATE LASTCHILD OF bodyRef.properties.Item[2] TYPE NameValue NAME 'propertyId' VALUE 'SETTLEMENT';
+
+		CREATE LASTCHILD OF bodyRef.properties.Item[2] IDENTITY(JSON.Array)fields;
+
+		CREATE LASTCHILD OF bodyRef.properties.Item[2].fields.Item[1] TYPE NameValue NAME 'fieldName' VALUE 'PAYIN.ACCOUNT';
+		CREATE LASTCHILD OF bodyRef.properties.Item[2].fields.Item[1] TYPE NameValue NAME 'fieldValue' VALUE '1000000047';
+		CREATE LASTCHILD OF bodyRef.properties.Item[2].fields.Item[2] TYPE NameValue NAME 'fieldName' VALUE 'PAYIN.ACCOUNT';
+		CREATE LASTCHILD OF bodyRef.properties.Item[2].fields.Item[2] TYPE NameValue NAME 'fieldValue' VALUE '1000000047';
+		CREATE LASTCHILD OF bodyRef NAME 'productId' VALUE 'NANO.KASHAGI.PAYROLL';
+		CREATE LASTCHILD OF bodyRef NAME 'currencyId' VALUE 'ZWL';
+		CREATE LASTCHILD OF bodyRef NAME 'activityId' VALUE 'LENDING-NEW-ARRANGEMENT';
+		
+		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
+		DECLARE envref REFERENCE TO Environment;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
+		CREATE LASTCHILD OF Environment.JSON AS envref NAME 'Data';
+		SET envref = OutRefer;
+		
+		SET OutputRoot = NULL;
+		DECLARE domainName CHARACTER FIELDNAME(OutputRoot.JSON);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF IsLogRequired = 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',' ----- T24 Bad Request ------') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Disbursment T24 Bad Request',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		
+		
+		
+		SET OutputRoot.JSON.Data = envref;
+		
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
+		PROPAGATE TO TERMINAL 'out';
+		
+		
+		
+
+	END;
+END MODULE;
+
+
 CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL BuildException();
+		CALL BuildException();
 		RETURN TRUE;
 	END;
 
-	
+
 	CREATE PROCEDURE BuildException() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -101,7 +261,7 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;     
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'LOAN_REPAYMENT_T24';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
@@ -109,20 +269,20 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		/*=================== CALLING DB LOG4J LOGGING  ==============*/  
+		/*=================== CALLING DB LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
-		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		/*=================== CALLING LOG4J LOGGING END ==============*/
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
-/*=================== CALLING ERROR DB RAW AUDIT LOGGING  ==============*/
+		/*=================== CALLING ERROR DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT_T24.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
-		/*=================== CALLING ERROR DB RAW AUDIT LOGGING END  ==============*/
+		/*=================== CALLING ERROR DB RAW AUDIT LOGGING END ==============*/
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
@@ -136,14 +296,14 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT_T24.ErrorCode;
 		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT_T24.ErrorType;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
-		/*=================== CALLING LOG4J LOGGING  ==============*/
+		/*=================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','End of Logging Application Related Exception') INTO rc;
 		END IF;
-		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		/*=================== CALLING LOG4J LOGGING END ==============*/
 		PROPAGATE TO TERMINAL 'out1';
 		----------------------------------
-		END;
+	END;
 
 END MODULE;
