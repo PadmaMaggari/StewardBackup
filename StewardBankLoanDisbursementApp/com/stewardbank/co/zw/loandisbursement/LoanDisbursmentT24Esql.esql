@@ -207,7 +207,8 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_FramingT24BadReq
 		CREATE LASTCHILD OF bodyRef NAME 'productId' VALUE 'NANO.KASHAGI.PAYROLL';
 		CREATE LASTCHILD OF bodyRef NAME 'currencyId' VALUE 'ZWL';
 		CREATE LASTCHILD OF bodyRef NAME 'activityId' VALUE 'LENDING-NEW-ARRANGEMENT';
-		
+		DECLARE domainName CHARACTER FIELDNAME(OutputRoot.JSON);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
 		DECLARE envref REFERENCE TO Environment;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
@@ -215,8 +216,7 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_FramingT24BadReq
 		SET envref = OutRefer;
 		
 		SET OutputRoot = NULL;
-		DECLARE domainName CHARACTER FIELDNAME(OutputRoot.JSON);
-		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		
 		IF IsLogRequired = 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',' ----- T24 Bad Request ------') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
@@ -288,6 +288,7 @@ CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		SET outRef.responseBody.applicationName = ApplicationLabel;
 		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSMENT.ErrorCode;
  		SET OutputRoot.XMLNSC = NULL;
+ 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';   
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
@@ -297,7 +298,7 @@ CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
 		--CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSMENT.ErrorCode,outRefer);
-		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSMENT.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSMENT.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 		----------------------------------
