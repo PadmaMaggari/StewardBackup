@@ -296,8 +296,8 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT_T24.ErrorCode;
 		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT_T24.ErrorType;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
-		/*=================== CALLING LOG4J LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
+		/*=================== CALLING LOG4J LOGGING ==============*/     
+		IF IsLogRequired LIKE 'Y' THEN     
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','End of Logging Application Related Exception') INTO rc;
 		END IF;
