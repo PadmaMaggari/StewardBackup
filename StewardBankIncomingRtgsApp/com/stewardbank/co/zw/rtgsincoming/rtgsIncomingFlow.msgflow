@@ -3,7 +3,7 @@
     xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow.msgflow" nsPrefix="com_stewardbank_co_zw_rtgsincoming_rtgsIncomingFlow.msgflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="/log/log4j/Log4jConfigurationFile.xml">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG4J_INIT_ERROR" name="LOG4J_INIT_ERROR" defaultValueLiteral="[Log4j]Initializing the log4j Error">
@@ -43,7 +43,7 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="380,155" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingFlow__GenerateExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GeneratingExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="42,111" inputDirectory="C:\STEWARD_Bank\Rtgs" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtpTransferMode="ASCII">
+      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="42,111" inputDirectory="/var/DEV_TESTING/Stewardbank/ACE/RtgsIncoming" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtpTransferMode="ASCII">
         <translation xmi:type="utility:ConstantString" string="Fectching Mt103 form Remote"/>
       </nodes>
       <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="322,81" messageDomain="DFDL" resetMessageDomain="true" messageSet="{MT103}" resetMessageSet="true" messageType="{}:MT103" validateTiming="immediate" validateMaster="contentAndValue">

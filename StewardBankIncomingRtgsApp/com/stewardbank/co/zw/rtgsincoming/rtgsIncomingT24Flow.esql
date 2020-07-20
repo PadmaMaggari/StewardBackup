@@ -63,14 +63,17 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_UpdateDatabaseStatus
 	
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
-		CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
-		 DECLARE outRef REFERENCE TO OutputRoot.JSON;
-		 CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
-		DECLARE reqMsg CHARACTER;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		SET reqMsg = getPayLoad(FIELDNAME(InputRoot.JSON),outRef,encodeRef,ccidRef);
 		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		DECLARE reqMsg CHARACTER;
+		IF FIELDNAME(InputBody) LIKE 'JSON' THEN
+			DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+			SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+		ELSE
+			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
+			SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+		END IF;
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE Guid CHARACTER Environment.Variables.Guid;
 		IF IsLogRequired LIKE 'Y' THEN
