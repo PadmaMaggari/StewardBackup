@@ -3,7 +3,7 @@
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/swiftapp/SwiftFlow.msgflow" nsPrefix="com_stewardbank_co_zw_swiftapp_SwiftFlow.msgflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log\Log4jConfig.xml">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG4J_INIT_ERROR" name="LOG4J_INIT_ERROR" defaultValueLiteral="[Log4j]Initializing the log4j Error">
@@ -28,7 +28,7 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSWIFTApp/icons/full/obj16/SwiftFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSWIFTApp/icons/full/obj30/SwiftFlow.gif"/>
     <composition>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="145,230">
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="278,233">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
       <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="9,117" inputDirectory="C:\STEWARD_Bank\ACE" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtpServer="localhost:21" fileFtpUser="ftp">
@@ -37,25 +37,25 @@
       <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="219,14" messageDomain="DFDL" resetMessageDomain="true" messageSet="{MT103}" resetMessageSet="true" messageType="{}:MT103" resetMessageType="true" resetMessageFormat="true" validateTiming="immediate" validateMaster="contentAndValue">
         <translation xmi:type="utility:ConstantString" string="CheckMT103"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="642,116" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="675,120" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="LogQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="459,226" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#rtgsIncomingFlow_GenerateExceptionDetails.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="459,231" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#SwiftFlow_GenerateExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateExceptionDetails"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="293,77" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#SwiftFlow_GenetateReqToT24.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GeneratingT24Req"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="481,8" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#rtgsIncomingFlow_UpdateDatabaseStatus.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="481,8" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#SwiftFlow_UpdateDatabaseStatus.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="UpdatingDBStatus"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="97,56" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#SwiftFlow_GenerateMt103Req.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="ConvertBLOBtoMT103"/>
       </nodes>
-      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="392,19" URLSpecifier="http://local" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON">
+      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="382,18" URLSpecifier="http://local" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON">
         <translation xmi:type="utility:ConstantString" string="HTTP Request"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="471,94" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#rtgsIncomingFlow_UpdateDatabaseErrorStatus.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="471,94" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.swiftapp#SwiftFlow_UpdateDatabaseErrorStatus.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="UpdatingDBErrorStatus"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
@@ -70,7 +70,7 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_12" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">

@@ -91,7 +91,7 @@ CREATE COMPUTE MODULE SwiftFlow_GenetateReqToT24
 		SET  crAcctId = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField AFTER '/')BEFORE CRLF);
 		SET  dtAcctId = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField AFTER '/')BEFORE CRLF);		
 		--Framing Rest Request To T24 Url--------
-		--	 SET OutputRoot.HTTPRequestHeader."Content-Type" = 'appilication/json';
+		 SET OutputRoot.HTTPRequestHeader."Content-Type" = 'appilication/json';
 			 CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
 		 DECLARE outRef REFERENCE TO OutputRoot.JSON;
 		 CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
@@ -120,22 +120,21 @@ CREATE COMPUTE MODULE SwiftFlow_GenetateReqToT24
 		END;
 		END MODULE;
 		--*************Updating Database Status ******************
-		CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
+		CREATE COMPUTE MODULE SwiftFlow_UpdateDatabaseStatus
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 CALL UpdateDatabaseStatus();
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
-		--Need to update the Db status---
+		--updating  Db status---
 		SET OutputRoot.Properties = InputRoot.Properties;
-		CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
-		 DECLARE outRef REFERENCE TO OutputRoot.JSON;
-		 CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		-- CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
 		DECLARE reqMsg CHARACTER;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		SET reqMsg = getPayLoad(FIELDNAME(InputRoot.JSON),outRef,encodeRef,ccidRef);
+		SET reqMsg = getPayLoad(FIELDNAME(InputRoot.JSON),inRef,encodeRef,ccidRef);
 		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE Guid CHARACTER Environment.Variables.Guid;
@@ -155,7 +154,7 @@ CREATE COMPUTE MODULE SwiftFlow_GenetateReqToT24
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SWIFT_SB_Q;
 	END;
 END MODULE;
-CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseErrorStatus
+CREATE COMPUTE MODULE SwiftFlow_UpdateDatabaseErrorStatus
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 CALL UpdateDatabaseErrorStatus();
@@ -164,13 +163,11 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseErrorStatus
 	CREATE PROCEDURE UpdateDatabaseErrorStatus() BEGIN
 		--Need to update the Db status---
 		SET OutputRoot.Properties = InputRoot.Properties;
-		CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
-		 DECLARE outRef REFERENCE TO OutputRoot.JSON;
-		 CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
+		DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
 		DECLARE reqMsg CHARACTER;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		SET reqMsg = getPayLoad(FIELDNAME(InputRoot.JSON),outRef,encodeRef,ccidRef);
+		SET reqMsg = getPayLoad(FIELDNAME(InputRoot.BLOB),inRef,encodeRef,ccidRef);
 		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE Guid CHARACTER Environment.Variables.Guid;
@@ -189,7 +186,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseErrorStatus
 	END;
 END MODULE;
 		--************Build Exception Details*******************
-		CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
+		CREATE COMPUTE MODULE SwiftFlow_GenerateExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
@@ -207,7 +204,7 @@ END MODULE;
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Start RTGSIncoming Exception logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Start Swift Exception logging...........') INTO rc;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE exe_Desc CHARACTER'';  
@@ -221,10 +218,10 @@ END MODULE;
 				-- DB Logging===================
 		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
-		CALL Error_DBLogging(Environment.Variables.Guid,Environment.Variables.mtReqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.Swift.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Variables.Guid,Environment.Variables.mtReqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.userDefineError.Swift.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............End Swift Exception logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............End of Swift Exception logging...........') INTO rc;
 	END;
 END MODULE;
 --*************Procedure to insert Values into Swift TABLE**********************************
