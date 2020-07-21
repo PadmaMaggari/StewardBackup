@@ -33,7 +33,7 @@ DECLARE IsLogRequired EXTERNAL CHARACTER'';
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -60,12 +60,12 @@ DECLARE IsLogRequired EXTERNAL CHARACTER'';
 		SET outRef.MTI_MessageClass = 2;
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
-		SET outRef.ProcessingCode_003 = CAST(inRef.JSON.Data.proccessingCode AS INTEGER);
-		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.transactionAmount AS INTEGER);
-		SET outRef.AccountIdentification1_102 = inRef.JSON.Data.debitAccountNumber;
-		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.creditAccountNumber;
+		SET outRef.ProcessingCode_003 = CAST(inRef.JSON.Data.LoanApplicatipon.header.processingCode AS INTEGER);
+		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.LoanApplicatipon.body.transactionAmount AS INTEGER);
+		SET outRef.AccountIdentification1_102 = inRef.JSON.Data.LoanApplicatipon.body.debitAccountNumber;
+		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.LoanApplicatipon.body.creditAccountNumber;
 		SET outRef.ReservedPrivate_127 = '000000';
-		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.mobileNumber;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.LoanApplicatipon.header.channel||comm||destinationPhone||col||inRef.JSON.Data.LoanApplicatipon.body.mobileNumber;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);        
@@ -79,7 +79,7 @@ DECLARE IsLogRequired EXTERNAL CHARACTER'';
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -119,7 +119,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_GenereateResponseToChannel
 		END IF;
 		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid),'Postilion Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid),'ZSS Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out';
 		END IF;
@@ -159,7 +159,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_GenereateResponseToChannel
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		/*=================== CALLING DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out';
 		END IF;

@@ -43,7 +43,53 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_RequestToT24
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		DECLARE inRefer REFERENCE TO InputRoot.JSON.Data;
+		
+		
+		
+		
+		 SET OutputRoot.HTTPInputHeader = InputRoot.HTTPInputHeader;
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'header';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.header NAME 'override';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'body';
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.header.override;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.body;
+		CREATE LASTCHILD OF headRef IDENTITY(JSON.Array)overrideDetails;
+		-- DECLARE minRef REFERENCE TO bodyRef.overrideDetails;
+		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)customerIds;
+
+		CREATE LASTCHILD OF bodyRef.customerIds.Item[1] TYPE NameValue NAME 'customerId' VALUE '100282';
+		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)properties;
+
+		CREATE LASTCHILD OF bodyRef.properties.Item[1] TYPE NameValue NAME 'propertyId' VALUE 'COMMITMENT';
+		
+		CREATE LASTCHILD OF bodyRef.properties.Item[1] IDENTITY(JSON.Array)fields;
+		
+		CREATE LASTCHILD OF bodyRef.properties.Item[1].fields.Item[1] TYPE NameValue NAME 'fieldName' VALUE 'AMOUNT';
+		CREATE LASTCHILD OF bodyRef.properties.Item[1].fields.Item[1] TYPE NameValue NAME 'fieldValue' VALUE '175';
+		CREATE LASTCHILD OF bodyRef.properties.Item[2] TYPE NameValue NAME 'propertyId' VALUE 'SETTLEMENT';
+		
+		CREATE LASTCHILD OF bodyRef.properties.Item[2] IDENTITY(JSON.Array)fields;
+		
+		CREATE LASTCHILD OF bodyRef.properties.Item[2].fields.Item[1] TYPE NameValue NAME 'fieldName' VALUE 'PAYIN.ACCOUNT';
+		CREATE LASTCHILD OF bodyRef.properties.Item[2].fields.Item[1] TYPE NameValue NAME 'fieldValue' VALUE '1000000047';
+		CREATE LASTCHILD OF bodyRef.properties.Item[2].fields.Item[2] TYPE NameValue NAME 'fieldName' VALUE 'PAYIN.ACCOUNT';
+		CREATE LASTCHILD OF bodyRef.properties.Item[2].fields.Item[2] TYPE NameValue NAME 'fieldValue' VALUE '1000000047';
+
+
+
+		CREATE LASTCHILD OF bodyRef NAME 'productId' VALUE 'NANO.KASHAGI.PAYROLL';
+		CREATE LASTCHILD OF bodyRef NAME 'currencyId' VALUE 'ZWL';
+		CREATE LASTCHILD OF bodyRef NAME 'activityId' VALUE 'LENDING-NEW-ARRANGEMENT';
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		DECLARE inRefer REFERENCE TO OutputRoot.JSON.Data;
 		DECLARE envref REFERENCE TO Environment;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
 		CREATE LASTCHILD OF Environment.JSON AS envref NAME 'Data';
@@ -61,7 +107,7 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_RequestToT24
 		/* =================== CALLING LOG4J LOGGING ENDING ==============*/
 		/* =================== CALLING DB RAW AUDIT LOGGING ==============*/
 		 IF IsLogRequired LIKE 'Y' THEN
-		 CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'T24  Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+		 CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'T24  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 		 SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		 PROPAGATE TO TERMINAL 'out1';
 		 END IF;
@@ -101,7 +147,7 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_ResponseToChannel
 		IF IsLogRequired = 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',' ----- Response from T24 ------') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Disbursment T24 Response',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Disbursment T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out';
 		END IF;
@@ -118,7 +164,7 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_ResponseToChannel
 		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',' ----- Response to FrontEnd ------') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',' Response QueueName :  '||'ALL_SB_HTTP_RES') INTO rc;
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Response to FrontEnd',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Response to FrontEnd',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out';
 		END IF;
@@ -148,11 +194,11 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_FramingT24BadReq
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		
+		
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 		SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		
 		
 		
 		DECLARE myBlob REFERENCE TO InputRoot.BLOB.BLOB;
@@ -180,13 +226,7 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_FramingT24BadReq
 			MOVE t24Res NEXTSIBLING;
 
 		END WHILE;		
-		-- CREATE LASTCHILD OF headRef.overrideDetails.Item[1] TYPE NameValue NAME 'description' VALUE Environment.outRef.overrideDetails.Item.description;
-		-- CREATE LASTCHILD OF headRef.overrideDetails.Item[1] TYPE NameValue NAME 'id' VALUE Environment.outRef.overrideDetails.Item.id;
-		--
-		-- CREATE LASTCHILD OF headRef.overrideDetails.Item[2] TYPE NameValue NAME 'description' VALUE Environment.outRef.overrideDetails.Item.description;
-		-- CREATE LASTCHILD OF headRef.overrideDetails.Item[2] TYPE NameValue NAME 'id' VALUE Environment.outRef.overrideDetails.Item.id;
 		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)customerIds;
-
 		CREATE LASTCHILD OF bodyRef.customerIds.Item[1] TYPE NameValue NAME 'customerId' VALUE '100282';
 		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)properties;
 
@@ -220,7 +260,7 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_FramingT24BadReq
 		IF IsLogRequired = 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',' ----- T24 Bad Request ------') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Disbursment T24 Bad Request',ApplicationLabel,BrokerName,Environment.MQEFH2.usr.dbLogTime,Environment.MQEFH2.usr.dbLogDate,'',outRefer);
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Disbursment T24 Bad Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF;
