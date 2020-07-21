@@ -1,0 +1,254 @@
+BROKER SCHEMA com.stewardbank.co.zw.cashin
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE IsLogRequired EXTERNAL CHARACTER'';
+DECLARE URL EXTERNAL CHARACTER '';
+
+CREATE COMPUTE MODULE CashInFlow_GenReqToMobiquity
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		CALL GenerateReqToMobiquity();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateReqToMobiquity() BEGIN
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		SET Environment.MQRFH2.RequestIdentifier = InputRoot.MQRFH2.RequestIdentifier;
+		/* =================== CALLING DB LOGGING   ==============*/
+	    IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
+			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		/* ==================== Database Logging End ==================== */
+		/* =================== CALLING  LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG','..............Initializing CASHOUT logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG','Application Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		END IF;
+		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
+		/*===========Framing request to Mobiquity============*/
+		DECLARE reqData CHARACTER '';	
+		DECLARE env REFERENCE TO Environment.Variables;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		DECLARE outRef REFERENCE TO OutputRoot.JSON;
+		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
+		DECLARE resQ CHARACTER Environment.MQRFH2.usr.resQueueName;
+		SET Environment.Variables.ResponseQ = resQ;
+		
+		SET outRef.serviceCode=inRef.serviceCode;
+		SET outRef.bearerCode=inRef.bearerCode;
+		SET outRef.transactionAmount=inRef.transactionAmount;
+		SET outRef.currency=inRef.currency;
+		SET outRef.externalReferenceId=inRef.externalReferenceId;
+		SET outRef.remarks=inRef.remarks;
+		SET outRef.transactionMode=inRef.transactionMode;
+		SET outRef.initiator=inRef.initiator;
+		SET outRef.language=inRef.language;
+		SET outRef.transactor.idType=inRef.transactor.idType;
+		SET outRef.transactor.idValue=inRef.transactor.idValue;
+		SET outRef.transactor.productId=inRef.transactor.productId;
+		SET outRef.transactor.mpin=inRef.transactor.mpin;
+		SET outRef.transactor.tpin=inRef.transactor.tpin;
+		SET outRef.receiver.idType=inRef.receiver.idType;
+		SET outRef.receiver.idValue=inRef.receiver.idValue;
+		SET outRef.receiver.productId=inRef.receiver.productId;
+		SET reqData=getPayLoad(FIELDNAME(InputBody),outRef,encodeRef,ccidRef);
+		SET Environment.Variables.jsonData=outRef;
+		SET OutputRoot = NULL;
+		
+		/* =================== CALLING DB LOGGING   ==============*/
+	 /* IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,reqData,'Mobiquity Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
+			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';*/
+		/* ==================== Database Logging End ==================== */
+		/* =================== CALLING  LOG4J LOGGING   ==============*/
+		
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
+		IF IsLogRequired LIKE 'Y' THEN
+			
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG','Request to Mobiquity::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG',Environment.Variables.jsonData) INTO rc;
+		END IF;
+		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
+		
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
+		
+		END;
+END MODULE;
+
+CREATE COMPUTE MODULE CashInFlow_GenResToT24
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateResToT24();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateResToT24() BEGIN
+		SET Environment.MQMD = InputRoot.MQMD;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+	 	DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+	 	DECLARE inDomain CHARACTER FIELDNAME(InputBody);
+	 	DECLARE outRef REFERENCE TO OutputRoot;
+	 	DECLARE DomainDataRef REFERENCE TO InputRoot.JSON.Data;
+	 	SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),DomainDataRef,encodeRef,ccsid);
+	 	DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+	 	SET OutputRoot = NULL;
+	 	DECLARE rc BOOLEAN FALSE;
+	 	
+	 	/* =================== CALLING  LOG4J LOGGING   ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+			
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG','Response from Mobiquity::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),DomainDataRef,encodeRef,ccsid)) INTO rc;
+		END IF;
+		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
+		/* =================== CALLING DB LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resData,'Mobiquity Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		END IF; 
+		/* =================== CALLING DB LOGGING ENDING  ==============*/
+		
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
+		CREATE LASTCHILD OF OutputRoot.JSON AS OutRefer NAME 'Data';
+		IF responceCode LIKE '200' THEN
+			SET OutRefer=inRef;
+		ELSE
+			SET OutRefer.statusCode = '000';
+			SET OutRefer.message = 'FAILURE';
+			SET OutRefer.responseBody.source = 'ESB';
+			SET OutRefer.responseBody.ServiveFlow = 'CASHOUT';
+		END IF;
+	--------------	
+		DECLARE envref REFERENCE TO Environment.JSON.Data;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
+		CREATE LASTCHILD OF envref AS envref NAME 'Data';
+		SET envref = OutRefer;
+		SET OutputRoot = NULL;
+		
+		/* =================== CALLING DB LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resData,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		END IF; 
+		/* =================== CALLING DB LOGGING ENDING  ==============*/
+		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON.Data = envref;
+		
+		/* =================== CALLING LOG4J LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG','Application Response ::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),outDomainDataRef,encodeRef,ccsid)) INTO rc;
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
+	END;
+END MODULE;
+
+
+
+
+	CREATE COMPUTE MODULE CashOutFlow_BuildException
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		CALL BuildErrorMsg();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE BuildErrorMsg() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;     
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'CashOut';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'CashOut');
+		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
+		/* =================== CALLING LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+		/* =================== CALLING DB LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.CurrencyConverter.ErrorCode,outRefer);
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q; 
+		PROPAGATE TO TERMINAL 'out';
+		/* =================== CALLING DB LOGGING ENDING  ==============*/
+		----------------------------------
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		DECLARE outJsonRef REFERENCE TO OutputRoot.JSON.Data;
+		SET outJsonRef.statusCode = '000';
+		SET outJsonRef.message = 'FAILURE';
+		SET outJsonRef.responseBody.source = 'ESB';
+		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.CurrencyConverter);
+		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CurrencyConverter.ErrorCode;
+		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.CurrencyConverter.ErrorType; 
+		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+		/* =================== CALLING LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','End of Logging Application Related Exception') INTO rc;
+		END IF;
+		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+		PROPAGATE TO TERMINAL 'out1';
+
+        END;
+END MODULE;
