@@ -116,7 +116,7 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_UpdateDatabaseStatus
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE Guid CHARACTER Environment.Variables.Guid;
-		SET reqMsg = getPayLoad(FIELDNAME(inDomain),outRef,encodeRef,ccidRef);
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inDomain,encodeRef,ccidRef);
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............ZSS Response..........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;

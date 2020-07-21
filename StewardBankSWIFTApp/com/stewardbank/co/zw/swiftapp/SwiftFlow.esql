@@ -13,6 +13,7 @@ CREATE COMPUTE MODULE SwiftFlow_GenerateMt103Req
 	*/
 	CREATE PROCEDURE BuildMT103FromRaw() BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
+		DECLARE reqMsg CHARACTER;
 		SET UUID = UUIDASCHAR;
 		SET Environment.Variables.Guid = UUID;
 		DECLARE rc BOOLEAN FALSE;
@@ -25,7 +26,7 @@ CREATE COMPUTE MODULE SwiftFlow_GenerateMt103Req
 		ELSE
 			SET Environment.Variables.File.Status = 'FAILURE'; 	
 		END IF;
-		SET Environment.Variables.mtReqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
@@ -33,7 +34,7 @@ CREATE COMPUTE MODULE SwiftFlow_GenerateMt103Req
 		IF IsLogRequired LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............Start Swift Application logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','Swift Request in RAW data in BLOB start') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',Environment.reqMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',reqMsg) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','Swift Request in RAW data end') INTO rc;
 		END IF;
 		SET OutputRoot.Properties.MessageSet = '{MT103}';
@@ -41,9 +42,10 @@ CREATE COMPUTE MODULE SwiftFlow_GenerateMt103Req
 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
 		parse(InputRoot.BLOB.BLOB ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+		SET Environment.Variables.mtReqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),outDomainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','Swift Request in MT103:') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',Environment.Variables.mtReqMsg) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','Swift Request MT103 end') INTO rc;
 		END IF;
 	END;
@@ -91,7 +93,7 @@ CREATE COMPUTE MODULE SwiftFlow_GenetateReqToT24
 		SET  crAcctId = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField AFTER '/')BEFORE CRLF);
 		SET  dtAcctId = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField AFTER '/')BEFORE CRLF);		
 		--Framing Rest Request To T24 Url--------
-		 SET OutputRoot.HTTPRequestHeader."Content-Type" = 'appilication/json';
+		-- SET OutputRoot.HTTPRequestHeader."Content-Type" = 'appilication/json';
 			 CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
 		 DECLARE outRef REFERENCE TO OutputRoot.JSON;
 		 CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
@@ -104,8 +106,6 @@ CREATE COMPUTE MODULE SwiftFlow_GenetateReqToT24
 		  SET outRef.narrative = narrative;
 		  SET outRef.endToEndReference = endToEndReference;
 		 -- Appending path parameters to stiring--
-----		  SET OutputRoot = NULL ;
---		  SET OutputRoot.Properties = InputRoot.Properties;
 		  SET SwiftUrlPathparameters = debitCurrency||'/'||crAcctId||'/'||ordCustomerName||'/'||debitCurrency||'/'||transactionAmount||'/'||exeDate||'/'||narrative||'/'||endToEndReference;
 		  --SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 		  SET OutputLocalEnvironment.Destination.HTTP.RequestURL = BackendT24Url||SwiftUrlPathparameters;
