@@ -680,8 +680,10 @@ BEGIN
 		SET payload = CAST(bPayload AS CHARACTER);
 	WHEN domainName = 'stewardBank_CSV' THEN
 		SET payload=CAST(ASBITSTREAM(domainDataRef ENCODING encodeRef CCSID ccidRef SET '{SB_CSV_Lib}' TYPE '{}:stewardBank_CSV') AS CHARACTER CCSID ccidRef);
+		WHEN domainName = 'StewardBank_EcoCSV' THEN
+		SET payload=CAST(ASBITSTREAM(domainDataRef ENCODING encodeRef CCSID ccidRef SET '{SB_EcoCSV_Lib}' TYPE '{}:StewardBank_EcoCSV') AS CHARACTER CCSID ccidRef);
 	WHEN domainName = 'ISO8583WithHeader' THEN
-		SET payload=CAST(ASBITSTREAM(domainDataRef ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader') AS CHARACTER);
+		SET payload=CAST(ASBITSTREAM(domainDataRef ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader') AS CHARACTER); 
 	WHEN domainName = 'ISO8583TCPHeader' THEN
 		SET payload=CAST(ASBITSTREAM(domainDataRef ENCODING encodeRef CCSID ccidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583TCPHeader') AS CHARACTER);
 	WHEN domainName = 'MT103' THEN
