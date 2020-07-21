@@ -39,7 +39,7 @@ CREATE COMPUTE MODULE ZipitHttpFlow_GenerateIsoReq
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','Application Request::') INTO rc; 
-			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc; 
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -58,12 +58,12 @@ CREATE COMPUTE MODULE ZipitHttpFlow_GenerateIsoReq
 		SET outRef.MTI_MessageClass = 2;
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
-		SET outRef.ProcessingCode_003 = CAST(inRef.processingCode AS INTEGER);
-		SET outRef.AmountTransaction_004 = CAST(inRef.amount AS INTEGER);
-		SET outRef.AccountIdentification1_102 = CAST(inRef.debitAccountNumber AS INTEGER);
-		SET outRef.AccountIdentification2_103 = CAST(inRef.destinationAccount AS INTEGER);
+		SET outRef.ProcessingCode_003 = CAST(inRef.ZipitRequest.header.processingCode AS INTEGER);
+		SET outRef.AmountTransaction_004 = CAST(inRef.ZipitRequest.body.amount AS INTEGER);
+		SET outRef.AccountIdentification1_102 = CAST(inRef.ZipitRequest.body.destinationAccount AS INTEGER);
+		SET outRef.AccountIdentification2_103 = CAST(inRef.ZipitRequest.body.destinationInstitution AS INTEGER);
 		SET outRef.ReservedPrivate_127 = '000000';
-		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||':'||inRef.channel||','||destinationPhone||':'||inRef.destinationPhone;   
+		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||':'||inRef.ZipitRequest.header.channel||','||destinationPhone||':'||inRef.ZipitRequest.body.destinationPhone;   
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL; 
 		SET domainName = FIELDNAME(outDomainDataRef);
@@ -231,15 +231,19 @@ CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 		MOVE inRef TO InputRoot.DFDL.*.PrimaryAccountNumber_002;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('statusCode');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('message');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('responseBody');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('ZipitResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.ZipitResponse NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.ZipitResponse NAME ('body');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.ZipitResponse.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.ZipitResponse.body;  
+		--SET headRef = Environment.header;
+		SET headRef.channel = 'Sosholoza'; 
+		SET headRef.processingCode = '420000';
+		SET headRef.status = 'SUCCESS';
+		SET headRef.responseCode = '200';
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
-		DECLARE isoRef REFERENCE TO OutputRoot.JSON.Data.responseBody;
-		SET outRef.statusCode = '200';
-		SET outRef.message = 'SUCCESS';
-		CALL JSONLogMessage(inRef,isoRef);
+		CALL JSONLogMessage(inRef,bodyRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON;
 		SET Environment.jsonData = OutputRoot.JSON;
 		SET domainName = FIELDNAME(outDomainDataRef);
