@@ -14,7 +14,7 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_GenerateIsoReq
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenerateIsoReq() BEGIN
-SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE DBDetails ROW;
@@ -61,10 +61,15 @@ SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		SET outRef.MTI_MessageClass = 2;
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
-		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
-		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.fromAccount AS INTEGER);
+		SET outRef.ProcessingCode_003 = inRef.JSON.Data.MiniStatementRequest.header.processingCode;
+		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.MiniStatementRequest.body.fromAccount AS INTEGER);
+	/*          ==================================     */
+		DECLARE keyChannelValue CHARACTER'';
+		CALL keyValueGenerator(inRef.JSON.Data.MiniStatementRequest.header.channel) INTO keyChannelValue;   
+		DECLARE keyChannel CHARACTER '';
+		CALL keyValueGenerator(channel) INTO keyChannel; 
 		SET outRef.ReservedPrivate_127 = '000000';
-		SET outRef.StructuredDataPostilionPrivate_127_22 =inRef.JSON.Data.channel;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel ||keyChannelValue;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);        
@@ -98,33 +103,58 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToT24
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
+		
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;	
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;	
+		DECLARE envUsrRef REFERENCE TO Environment.MQRFH2.usr;
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
+		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		SET Environment.Variables.reqISOMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccsid);
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-		SET Environment.dfdlData = InputRoot.DFDL;
-		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
+		
+		DECLARE reqMsgJson CHARACTER'';
+		DECLARE logRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
+		DECLARE jsonRef REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
+		--CALL JSONLogMessage(logRef,jsonRef);
+		SET jsonRef = logRef;
+		SET reqMsgJson = getPayLoad('JSON',jsonRef,encodeRef,ccsid);
+		
+		SET OutputRoot.JSON=NULL;
+		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
+		CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef);
+		SET Environment.DFDL = OutputRoot.DFDL;
+		
+		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		CALL remove127(removeRefPointer);
+		SET Environment.dfdlData = OutputRoot.DFDL;
+		SET OutputRoot.DFDL = NULL;
+		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out1';
 		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
-		/*=================== CALLING LOG4J LOGGING   ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
+		/*=================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			
+
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','Request to T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.reqISOMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','========= ISO TO JSON T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
 		END IF;
-		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		/*=================== CALLING LOG4J LOGGING END ==============*/
+
+
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
@@ -211,13 +241,13 @@ SET OutputRoot.Properties = InputRoot.Properties;
 		
 		SET field48 = SUBSTRING(field48 AFTER '~');
 		
-		CREATE LASTCHILD OF Environment DOMAIN('DFDL') PARSE(field48.RESPONSE  ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId  TYPE '{}:Mini_Statement');
+		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(field48.RESPONSE  ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId  TYPE '{}:Mini_Statement');
 			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'MiniStatementResponse';
 			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'header';
 			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'body';
 			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
-			DECLARE dfdlRef REFERENCE TO Environment.DFDL.Mini_Statement.record[1];
+			DECLARE dfdlRef REFERENCE TO OutputRoot.DFDL.Mini_Statement.record[1];
 			DECLARE i INTEGER 1;
 		IF inRef.ResponseCode_039 = '00' THEN
 			SET headRef.channel = 'MobileApp';
