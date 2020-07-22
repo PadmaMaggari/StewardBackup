@@ -1,4 +1,3 @@
-
 BROKER SCHEMA com.stewardbank.co.zw.balanceenquiry
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -102,10 +101,10 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion1
 		END IF;
 		--field to field mapping
 		--CALL JSONToISOMapping(inRef,outRef);
---		CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
---		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
---		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
---		CALL FieldToFieldMapping(inRef,outRef,'','','');
+		-- CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
+		-- CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+		-- DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		-- CALL FieldToFieldMapping(inRef,outRef,'','','');
 		SET OutputRoot.DFDL = InputRoot.DFDL;
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		SET Environment.dfdlData = OutputRoot.DFDL;
@@ -159,10 +158,10 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToT24
 		--SET OutputRoot = null;
 		--CALL JSONToISOMapping(inRef,outRef);
 		--
---		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
---		DECLARE outRef REFERENCE TO OutputRoot.DFDL;
---		CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
---		CALL FieldToFieldMapping(inRef,outRef,'','','');
+		-- CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		-- DECLARE outRef REFERENCE TO OutputRoot.DFDL;
+		-- CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
+		-- CALL FieldToFieldMapping(inRef,outRef,'','','');
 		SET OutputRoot.DFDL = InputRoot.DFDL;
 		MOVE domainDataRef TO OutputRoot.DFDL;
 		SET Environment.dfdlData = OutputRoot.DFDL;
@@ -213,7 +212,15 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 		END IF;
 		--field to field mapping
 		--CALL ISOToJSONMapping(inRef,outRef);
-		MOVE inRef TO InputRoot.DFDL.*.PrimaryAccountNumber_002;
+		IF EXISTS(inRef.*.SecondaryBitmap[]) THEN
+			MOVE inRef TO InputRoot.DFDL.*.SecondaryBitmap;
+			MOVE inRef NEXTSIBLING;
+		ELSEIF EXISTS(inRef.*.PrimaryBitmap[]) THEN
+			MOVE inRef TO InputRoot.DFDL.*.PrimaryBitmap;
+			MOVE inRef NEXTSIBLING;
+		ELSE
+			MOVE inRef TO InputRoot.DFDL.*.PrimaryAccountNumber_002;
+		END IF;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('BalanceEnquiryResponse');
@@ -268,10 +275,10 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlowCaptureException
 			SET errMsg = 'T24 Server Down';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
 			SET errMsg = 'Postilion Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN 
+		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
 			SET errMsg = 'No Response from T24 Server';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN 
-			SET errMsg = 'No Response from Postilion Server';	
+		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
+			SET errMsg = 'No Response from Postilion Server';
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
