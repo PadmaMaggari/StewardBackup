@@ -125,9 +125,6 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToT24
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.reqISOMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
-		
-		
-		
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
@@ -215,63 +212,37 @@ SET OutputRoot.Properties = InputRoot.Properties;
 		SET field48 = SUBSTRING(field48 AFTER '~');
 		
 		CREATE LASTCHILD OF Environment DOMAIN('DFDL') PARSE(field48.RESPONSE  ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId  TYPE '{}:Mini_Statement');
-		
-		
-		
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
-		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('statusCode');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('message');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('responseBody');
-		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
-		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
-		DECLARE isoRef REFERENCE TO OutputRoot.JSON.Data.responseBody;
-		SET outRef.statusCode = '200';
-		SET outRef.message = 'SUCCESS';
-		IF inRef.ResponseCode_039 = '00' THEN
-			
-			
-			
-			
-			     
-			SET outRef.statusCode = '200';
-			SET outRef.message = 'SUCCESS';
---			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'responseBody';
---			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.responseBody;
---			SET bodyRef.source = 'ESB';
---			SET bodyRef.applicationName = 'MINI_STATEMENT_HTTP';
---			
---			CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)miniStatementData;
---			DECLARE minRef REFERENCE TO OutputRoot.JSON.Data.responseBody.miniStatementData;
---			WHILE LASTMOVE(dfdlRef) DO
---				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'DATE_TIME' VALUE dfdlRef.DATE_TIME;
---				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'TRAN_TYPE' VALUE dfdlRef.TRAN_TYPE;
---				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'SIGN' VALUE dfdlRef.SIGN;
---				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'TRAN_AMOUNT' VALUE dfdlRef.TRAN_AMOUNT;
---				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'CURR_CODE' VALUE dfdlRef.CURR_CODE;
---				SET i=i+1;
---				MOVE dfdlRef NEXTSIBLING;
---			END WHILE;
-
 			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'MiniStatementResponse';
-			CREATE LASTCHILD OF OutputRoot.JSON.Data.MiniStatementResponse NAME 'header';
-			
-			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.MiniStatementResponse.header;
-			SET bodyRef.channel = 'MobileApp';
-			SET bodyRef.processingCode = inRef.ProcessingCode_003;
-			SET bodyRef.statusCode = '200';
-			SET bodyRef.message = 'SUCCESS';
-			
-			--CREATE FIELD bodyRef.body IDENTITY(JSON Object)body;
-			
-			
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'header';
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'body';
+			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+			DECLARE dfdlRef REFERENCE TO Environment.DFDL.Mini_Statement.record[1];
+			DECLARE i INTEGER 1;
+		IF inRef.ResponseCode_039 = '00' THEN
+			SET headRef.channel = 'MobileApp';
+			SET headRef.processingCode = inRef.ProcessingCode_003;
+			SET headRef.responseCode = '200';
+			SET headRef.status = 'SUCCESS';
+			CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)miniStatementData;
+			DECLARE minRef REFERENCE TO bodyRef.miniStatementData;
+			WHILE LASTMOVE(dfdlRef) DO
+				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'DATE_TIME' VALUE dfdlRef.DATE_TIME;
+				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'TRAN_TYPE' VALUE dfdlRef.TRAN_TYPE;
+				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'SIGN' VALUE dfdlRef.SIGN;
+				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'TRAN_AMOUNT' VALUE dfdlRef.TRAN_AMOUNT;
+				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'CURR_CODE' VALUE dfdlRef.CURR_CODE;
+				SET i=i+1;
+				MOVE dfdlRef NEXTSIBLING;
+			END WHILE;
+
 			
 
 		ELSE
-			SET outRef.statusCode = '000';
-			SET outRef.message = 'FAILURE';
-			SET outRef.responseBody.source = 'ESB';
-			SET outRef.responseBody.applicationName = 'MINI_STATEMENT_HTTP';
+			SET headRef.statusCode = '000';
+			SET headRef.message = 'FAILURE';
+			SET headRef.responseBody.source = 'ESB';
+			SET headRef.responseBody.applicationName = 'MINI_STATEMENT_HTTP';
 
 		END IF;
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;

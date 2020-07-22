@@ -46,8 +46,12 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GeneratingT24Request
 			
 			 SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 			 SET OutputLocalEnvironment.Destination.HTTP.RequestURL = BackendT24Url||RtgsIncomingUrlPathparameters ;
-			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'') IN Database.ORADSN.{'SYSTEM'};
+			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'');
+			IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............T24 Request..........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End of RTGSIncoming  ReqToT24 logging...........') INTO rc;
+			END IF;
 		END;
 		END MODULE;
 CREATE COMPUTE MODULE rtgsIncomingT24Flow_UpdateDatabaseStatus
@@ -59,16 +63,33 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_UpdateDatabaseStatus
 	
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		DECLARE reqMsg CHARACTER;
+		IF FIELDNAME(InputBody) LIKE 'JSON' THEN
+			DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+			SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+		ELSE
+			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
+			SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+		END IF;
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE Guid CHARACTER Environment.Variables.Guid;
-		--***************Updating Database with Zss/T24 Status and Response codes***********************
-		IF FIELDNAME(InputRoot.JSON) IS NOT NULL THEN
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............T24 Response..........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End of RTGSIncoming  ResToT24 logging...........') INTO rc;
+			END IF;
+		--***************Updating Database with T24 Status and Response codes***********************
+		IF FIELDNAME(InputRoot) IS NOT NULL THEN
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
 			 IF CONTAINS(CAST(Environment.Variables.Statuscode AS CHARACTER),'200') THEN
-			 	CALL UpdateDBStatus(Guid,'SUCCESS',CAST(Environment.Variables.Statuscode AS CHARACTER),' ','T24')IN Database.{DSN}.{'SYSTEM'};
+			 	CALL UpdateDBStatus(Guid,'SUCCESS',CAST(Environment.Variables.Statuscode AS CHARACTER),' ','T24');
+			 	CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Updated Database as Success...........') INTO rc;
 			 ELSE
-			 	CALL UpdateDBStatus(Guid,'FALUIRE',CAST(Environment.Variables.Statuscode AS CHARACTER),' ','T24')IN Database.{DSN}.{'SYSTEM'};
+			 	CALL UpdateDBStatus(Guid,'FALUIRE',CAST(Environment.Variables.Statuscode AS CHARACTER),' ','T24');
+			 	CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Updated Database as Failure...........') INTO rc;
 			 END IF;
 		END IF;	
 		SET OutputRoot = InputRoot;

@@ -11,12 +11,35 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_GeneratingReqToZss
 	CREATE PROCEDURE GeneratingZssReq()
 	 BEGIN
 		DECLARE rc BOOLEAN ;
+		DECLARE trnTime TIMESTAMP CURRENT_GMTTIMESTAMP;
+		DECLARE Field12,Field13,Field7 CHARACTER;
+		SET Field12 = CAST(trnTime AS CHARACTER FORMAT 'HHmmss');
+		SET Field13 = CAST(trnTime AS CHARACTER FORMAT 'MMdd');
+		SET Field7 = CAST(trnTime AS CHARACTER FORMAT 'MMddHHmmss');
 		SET Environment.Variables = InputRoot.MQRFH2 ;
-		 DECLARE envRef REFERENCE TO Environment.Variables;
+		DECLARE CRLF CHARACTER CAST(X'0D0A' AS CHARACTER CCSID 1208);
+		DECLARE envRef REFERENCE TO Environment.Variables;
 		DECLARE reqMsg CHARACTER ;
+		DECLARE isoDataTime TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE isoField43,isoField43Data,iso127_19Field CHARACTER ;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		SET isoField43 = Environment.Variables.drAcctId||Environment.Variables.ordCustomerName;
+		IF (LENGTH(isoField43) > 41) THEN
+			SET isoField43Data = SUBSTRING(isoField43 FROM 1 FOR 40);
+		END IF;
+		SET iso127_19Field = SUBSTRING(inDomainDataRef.MT103.body.MT52Data.MT52DataField BEFORE CRLF);
+		
+		DECLARE iso127_19FieldLength INTEGER LENGTH(inDomainDataRef.MT103.body.MT52Data.MT52DataField);
+		IF iso127_19FieldLength < 33  THEN
+			WHILE iso127_19FieldLength < 33 DO
+				SET  iso127_19Field = iso127_19Field||' ';
+			SET iso127_19FieldLength =iso127_19FieldLength+1;
+			END WHILE;
+		ELSE
+			SET  iso127_19Field = SUBSTRING(iso127_19Field FROM 1 FOR 31 );
+		END IF;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
@@ -34,17 +57,45 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_GeneratingReqToZss
 			SET outRef.MTI_MessageClass = 2;
 			SET outRef.MTI_MessageFunction = 0;
 			SET outRef.MTI_MessageOrigin = 0;
+			SET outRef.ProcessingCode_003 = '212000';
 			SET outRef.AmountTransaction_004 = CAST(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 10) AS DECIMAL);
-			SET outRef.CurrencyCodeTransaction_049 = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 1 FOR 3);
-			SET outRef.AccountIdentification1_102 = envRef.drAcctId;
+			SET outRef.TransmissionDatetime_007 = Field7;
+			SET outRef.SystemsTraceAuditNumber_011 = '397520';
+			SET outRef.TimeLocalTransaction_012 = Field12 ;
+			SET outRef.DateLocalTransaction_013 = Field13;
+			SET outRef.DateSettlement_015 = SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 3 FOR 4);
+			SET outRef.MerchantType_018 = '6011';
+			SET outRef.PointOfServiceEntryMode_022 = '001';
+			SET outRef.PointOfServiceConditionCode_025 = '27';
+			SET outRef.PointOfServiceCaptureCode_026 = '12';
+			SET outRef.AmountTransactionFee_028 = 'C00000000';
+			SET outRef.AmountTransactionProcessingFee_030 = 'C00000000';
+			SET outRef.AcquiringInstitutionIdentificationCode_032 = '502195';
+			SET outRef.ForwardingInstitutionIdentificationCode_033 = '502195';
+			SET outRef.RetrievalReferenceNumber_037 = CAST(SUBSTRING(inDomainDataRef.MT103.body.MT20 FROM 1 FOR 12) AS CHARACTER);
+			SET outRef.CardAcceptorTerminalIdentification_041 = 'ISAVE263';
+			SET outRef.CardAcceptorIdentificationCode_042 = '26377-SBZWISAVE'; 
+			SET outRef.CardAcceptorNameLocation_043 = isoField43Data ;
+			--SET outRef.CurrencyCodeTransaction_049 = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT33B  BEFORE ',') FROM 1 FOR 3);
+			SET outRef.CurrencyCodeTransaction_049 = '932';
+			--SET outRef.ReservedNational_059 = Environment.Variables.Nation ;
+			SET outRef.ReceivingInstitutionIdentificationCode_100 = '502195';
+			--SET outRef.AccountIdentification1_102 = envRef.drAcctId;
 			SET outRef.AccountIdentification2_103 = envRef.crAcctId;
+			--SET outRef.AccountIdentification2_103 = '2000005171';
+			SET outRef.ReservedPrivate_123 = '100450100130021';
+			SET outRef.ReservedPrivate_127 = '000000';
+			SET outRef.SwitchKeyPostilionPrivate_127_2 = CAST(isoDataTime AS CHARACTER);
+			SET outRef.BankDetailsPostilionPrivate_127_19 = iso127_19Field ;
+			SET outRef.ExtendedTransactionTypePostilionPrivate_127_33 = '9040'; 
 			CALL UpdateMsgWithAsciiBitMap(outRef);
 			SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outRef,encodeRef,ccidRef);
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Account Exixts in ZSS **********') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','**************Zss Request Message **********') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............RTGSIncoming calling ZSS Subflow...........') INTO rc;
 			 --******************Inserting ISAVE table with ZSS Request Message ************
-			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),reqMsg,'',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,'','','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'')IN Database.{DSN}.{'SYSTEM'};
+			 CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),reqMsg,'',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,'','','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'');
 		END;
 		END MODULE;
 CREATE COMPUTE MODULE rtgsIncomingZssFlow_UpdateDatabaseStatus
@@ -56,15 +107,30 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_UpdateDatabaseStatus
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
 		DECLARE inDomain REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		SET OutputRoot.Properties.MessageType = '{}: ISO8583_1987';
+			CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
+			CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		DECLARE rc BOOLEAN FALSE;
+		DECLARE reqMsg CHARACTER;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE Guid CHARACTER Environment.Variables.Guid;
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inDomain,encodeRef,ccidRef);
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............ZSS Response..........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End of RTGSIncoming  ResToZSS logging...........') INTO rc;
+			END IF;
 		--***************Updating Database with Zss/T24 Status and Response codes***********************
 		IF FIELDNAME(inDomain) IS NOT NULL THEN
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating ZSS Status in Database**********') INTO rc;
 			IF(inDomain.ResponseCode_039 LIKE '00')  THEN
-				CALL UpdateDBStatus(Guid,'SUCCESS',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS')IN Database.{DSN}.{'SYSTEM'};
+				CALL UpdateDBStatus(Guid,'SUCCESS',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS');
+				CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............RTGSIncoming ZSS status updated as SUCCESS in Database...........') INTO rc;
 			ELSE
-				CALL UpdateDBStatus(Guid,'FAILURE',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS')IN Database.{DSN}.{'SYSTEM'};
+				CALL UpdateDBStatus(Guid,'FAILURE',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS');
+				CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............RTGSIncoming ZSS status updated as Failure in Database...........') INTO rc;
 			END IF;
 		END IF;
 		SET OutputRoot = InputRoot;

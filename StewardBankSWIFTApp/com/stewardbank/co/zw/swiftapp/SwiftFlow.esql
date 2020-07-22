@@ -1,6 +1,6 @@
 BROKER SCHEMA com.stewardbank.co.zw.swiftapp
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,SWIFT_SB_Q,OUTQ,IsLogRequired,Url EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,SWIFT_SB_Q,OUTQ,IsLogRequired,BackendT24Url EXTERNAL CHARACTER '';
 DECLARE UUID SHARED CHARACTER '';
 CREATE COMPUTE MODULE SwiftFlow_GenerateMt103Req
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -13,17 +13,20 @@ CREATE COMPUTE MODULE SwiftFlow_GenerateMt103Req
 	*/
 	CREATE PROCEDURE BuildMT103FromRaw() BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
+		DECLARE reqMsg CHARACTER;
+		SET UUID = UUIDASCHAR;
+		SET Environment.Variables.Guid = UUID;
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.BLOB;
-		SET Environment.File.Name = InputLocalEnvironment.File.Name;
+		SET Environment.Variables.File.Name = InputLocalEnvironment.File.Name;
 		IF (InputLocalEnvironment.File.Name NOT LIKE ' ') THEN
-			SET Environment.File.Status = 'SUCCESS';
+			SET Environment.Variables.File.Status = 'SUCCESS';
 		ELSE
-			SET Environment.File.Status = 'FAILURE'; 	
+			SET Environment.Variables.File.Status = 'FAILURE'; 	
 		END IF;
-		SET Environment.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
@@ -31,7 +34,7 @@ CREATE COMPUTE MODULE SwiftFlow_GenerateMt103Req
 		IF IsLogRequired LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............Start Swift Application logging...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','Swift Request in RAW data in BLOB start') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',Environment.reqMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',reqMsg) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','Swift Request in RAW data end') INTO rc;
 		END IF;
 		SET OutputRoot.Properties.MessageSet = '{MT103}';
@@ -39,9 +42,10 @@ CREATE COMPUTE MODULE SwiftFlow_GenerateMt103Req
 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
 		parse(InputRoot.BLOB.BLOB ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+		SET Environment.Variables.mtReqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),outDomainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','Swift Request in MT103:') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',Environment.Variables.mtReqMsg) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','Swift Request MT103 end') INTO rc;
 		END IF;
 	END;
@@ -49,62 +53,140 @@ END MODULE;
 CREATE COMPUTE MODULE SwiftFlow_GenetateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		SET OutputRoot.Properties = InputRoot.Properties;
+		
 		CALL GenetateReqToT24();
 		RETURN TRUE;
 	END;
 	/*
-	Log Incoming Request i.e MT103 in RTGS_INCOMING_DETAILS Table and form ISO8583 if account is in T24 or
-	else form MT103 
+	Log Incoming Request i.e MT103 in SWIFT_DETAILS Table and Calling T24 URL 
 	*/
 	CREATE PROCEDURE GenetateReqToT24() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-		DECLARE reqMsg CHARACTER ;
+		DECLARE reqMsg,crAcctId,dtAcctId CHARACTER ;
+		DECLARE mt72data,endToEndReference,SwiftUrlPathparameters CHARACTER;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		DECLARE sql CHARACTER;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............Start SWIFT  Req To T24 logging...........') INTO rc;
 		DECLARE Response ROW;
-		SET UUID = UUIDASCHAR;
-		SET Environment.Guid = UUID;
-		DECLARE SettlementAmt CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 10); 
-		DECLARE Amt CHARACTER LTRIM(SettlementAmt); 
-		DECLARE CR CHARACTER CAST(CAST('X''0A''' AS BLOB) AS CHARACTER CCSID ccidRef);
-		DECLARE LF CHARACTER CAST(CAST('X''0D''' AS BLOB) AS CHARACTER CCSID ccidRef);
-		DECLARE MT50Data CHARACTER SUBSTRING(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField BEFORE CR) BEFORE LF) FROM 2);
-		DECLARE MT59Data CHARACTER SUBSTRING(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField BEFORE CR) BEFORE LF) FROM 2);
-		SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),inDomainDataRef,encodeRef,ccidRef);
+		DECLARE CRLF CHARACTER CAST(X'0D0A' AS CHARACTER CCSID 1208);
+		--SET Environment.Variables.File.FieldNames =  
+		DECLARE Mt50DataAdd CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField AFTER CRLF);
+		DECLARE exeDate CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 1 FOR 6);
+		DECLARE transactionAmount CHARACTER LTRIM(SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 10)) ; 
+		DECLARE debitCurrency CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 7 FOR 3); 
+		DECLARE ordCustomerName CHARACTER SUBSTRING(Mt50DataAdd BEFORE CRLF);
+		DECLARE narrative CHARACTER LTRIM(inDomainDataRef.MT103.body.MT20);
+		--SET Environment.Variables.Nation = SUBSTRING(Mt50DataAdd AFTER CRLF);
+		DECLARE mtField72 CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT72 BEFORE CRLF) ;
+		IF ( mtField72 NOT LIKE ' ' ) AND STARTSWITH(mtField72,'/') THEN
+			SET mtField72 = SUBSTRING(mtField72 AFTER '/');
+			SET endToEndReference = REPLACE(mtField72,'/',' ');
+		ELSE
+			SET endToEndReference = 'NOT PROVIDED';
+		END IF;
+		SET  crAcctId = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField AFTER '/')BEFORE CRLF);
+		SET  dtAcctId = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField AFTER '/')BEFORE CRLF);		
+		--Framing Rest Request To T24 Url--------
+		-- SET OutputRoot.HTTPRequestHeader."Content-Type" = 'appilication/json';
+			 CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
+		 DECLARE outRef REFERENCE TO OutputRoot.JSON;
+		 CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
+		  SET outRef.debitCurrency = debitCurrency;
+		  SET outRef.creditAccountId = crAcctId;
+		  SET outRef.orderingCustomerName = ordCustomerName;
+		  SET outRef.paymentCurrency = debitCurrency ;
+		  SET outRef.transactionAmount = transactionAmount ;
+		  SET outRef.executionDate = exeDate;
+		  SET outRef.narrative = narrative;
+		  SET outRef.endToEndReference = endToEndReference;
+		 -- Appending path parameters to stiring--
+		  SET SwiftUrlPathparameters = debitCurrency||'/'||crAcctId||'/'||ordCustomerName||'/'||debitCurrency||'/'||transactionAmount||'/'||exeDate||'/'||narrative||'/'||endToEndReference;
+		  --SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
+		  SET OutputLocalEnvironment.Destination.HTTP.RequestURL = BackendT24Url||SwiftUrlPathparameters;
+		  SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.JSON),outRef,encodeRef,ccidRef);
+		  --Inserting Swift Details To Database Table---
+		  CALL insertSwiftDetails(Environment.Variables.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),Environment.Variables.File.Name,Environment.Variables.File.Status,Environment.Variables.mtReqMsg,transactionAmount,dtAcctId,crAcctId,exeDate,reqMsg,'','',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 		IF IsLogRequired LIKE 'Y' THEN
-		 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','***************Account Exixts in T24 **********') INTO rc;
-		 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','**************T24 Request Message **********') INTO rc;
-		 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',reqMsg) INTO rc;
+		 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','***************Sending Request To T24 **********') INTO rc;
+		 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','*T24 Request Message:'|| reqMsg) INTO rc;
 		 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............End of SWIFT  ReqToT24 logging...........') INTO rc;
 		END IF;
-		--***************Inserting values in  ISAVE table ***************************
-		CALL insertIntoSbIsaveTable(UUID,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',Environment.File.Name,'',Amt,MT50Data,MT59Data,'','',reqMsg,'',Environment.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
-		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(ASBITSTREAM(InputRoot.DFDL CCSID ccidRef SET '{MT103}' TYPE '{}:MT103')  ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = Url;
 		END;
 		END MODULE;
 		--*************Updating Database Status ******************
-		CREATE COMPUTE MODULE rtgsIncomingFlow_UpdateDatabaseStatus
+		CREATE COMPUTE MODULE SwiftFlow_UpdateDatabaseStatus
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 CALL UpdateDatabaseStatus();
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
+		--updating  Db status---
+		SET OutputRoot.Properties = InputRoot.Properties;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		-- CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
+		DECLARE reqMsg CHARACTER;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		SET reqMsg = getPayLoad(FIELDNAME(InputRoot.JSON),inRef,encodeRef,ccidRef);
+		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE Guid CHARACTER Environment.Variables.Guid;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............T24 Response..........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............End of Swif  ResToT24 logging...........') INTO rc;
+			END IF;
+		IF FIELDNAME(InputRoot) IS NOT NULL THEN
+			 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
+			 IF CONTAINS(CAST(Environment.Variables.Statuscode AS CHARACTER),'200') THEN
+			 	CALL UpdateDBStatus(Guid,'SUCCESS',CAST(Environment.Variables.Statuscode AS CHARACTER));
+			 	CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............Updated Database as Success...........') INTO rc;
+			 END IF;	
+		END IF;
+		SET OutputRoot = InputRoot;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SWIFT_SB_Q;
+	END;
+END MODULE;
+CREATE COMPUTE MODULE SwiftFlow_UpdateDatabaseErrorStatus
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL UpdateDatabaseErrorStatus();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE UpdateDatabaseErrorStatus() BEGIN
 		--Need to update the Db status---
+		SET OutputRoot.Properties = InputRoot.Properties;
+		DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
+		DECLARE reqMsg CHARACTER;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		SET reqMsg = getPayLoad(FIELDNAME(InputRoot.BLOB),inRef,encodeRef,ccidRef);
+		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE Guid CHARACTER Environment.Variables.Guid;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............T24 Response..........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............End of Swif  ResToT24 logging...........') INTO rc;
+			END IF;
+		IF FIELDNAME(InputRoot) IS NOT NULL THEN
+			 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
+			 	CALL UpdateDBStatus(Guid,'FAILURE',CAST(Environment.Variables.Statuscode AS CHARACTER));
+			 	CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............Updated Database as Failure...........') INTO rc;
+		END IF;
 		SET OutputRoot = InputRoot;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SWIFT_SB_Q;
 	END;
 END MODULE;
 		--************Build Exception Details*******************
-		CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
+		CREATE COMPUTE MODULE SwiftFlow_GenerateExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		SET OutputRoot.Properties = InputRoot.Properties;
@@ -122,7 +204,7 @@ END MODULE;
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
 		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Start RTGSIncoming Exception logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Start Swift Exception logging...........') INTO rc;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE exe_Desc CHARACTER'';  
@@ -136,17 +218,20 @@ END MODULE;
 				-- DB Logging===================
 		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
-		CALL Error_DBLogging(Environment.Guid,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.Swift.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Variables.Guid,Environment.Variables.mtReqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.userDefineError.Swift.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............End RTGSIncoming Exception logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............End of Swift Exception logging...........') INTO rc;
 	END;
 END MODULE;
---*************Procedure to insert Values into SB_ISAVE_TABLE**********************************
-	CREATE PROCEDURE insertIntoSbIsaveTable(IN PAYNET_GUID CHARACTER,IN PAYNET_STAN_NUM CHARACTER, IN PAYNET_STANDATE CHARACTER
-,IN PAYNET_RRN_REF CHARACTER,IN PAYNET_ISO_REQUEST_MSG CHARACTER,IN PAYNET_ISO_RESPONSE_CODE CHARACTER,IN PAYNET_MT103_FILENAME CHARACTER,IN PAYNET_MT103_FIELDS CHARACTER,IN PAYNET_MT103_AMOUNT CHARACTER,
-IN PAYNET_MT103_DTACCOUNT CHARACTER,IN PAYNET_MT103_CRACCOUNT CHARACTER,IN PAYNET_MT103_DTDATE CHARACTER,IN PAYNET_MT103_T24_MSG CHARACTER,
-IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_MT103_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP)
+--*************Procedure to insert Values into Swift TABLE**********************************
+	CREATE PROCEDURE insertSwiftDetails(IN PAYNET_GUID CHARACTER,IN PAYNET_STAN_NUM CHARACTER, IN PAYNET_STANDATE CHARACTER
+,IN PAYNET_MT103_FILENAME CHARACTER,IN PAYNET_MT103_STATUS CHARACTER,IN PAYNET_Mt_REQUEST_MSG CHARACTER,IN PAYNET_MT103_AMOUNT CHARACTER,
+IN PAYNET_MT103_DTACCOUNT CHARACTER,IN PAYNET_MT103_CRACCOUNT CHARACTER,IN ExeDate CHARACTER,IN PAYNET_T24_MSG CHARACTER,IN ResponseCode CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP)
 	LANGUAGE DATABASE
-	EXTERNAL NAME "INSERT_SB_ISAVE_TABLE";
+	EXTERNAL NAME "INSERT_SB_ISAVE_SWIFT";
+	--*********************Procedure to Update Database Status***************
+	CREATE PROCEDURE UpdateDBStatus (IN PAYNET_ID CHARACTER,IN PAYNET_STATUS CHARACTER,IN PAYNET_RESPONSE_CODE CHARACTER)
+	LANGUAGE DATABASE
+	EXTERNAL NAME "UPDATE_SB_ISAVE_SWIFT";
 
