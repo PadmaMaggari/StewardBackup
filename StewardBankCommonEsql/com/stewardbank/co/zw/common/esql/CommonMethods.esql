@@ -1354,79 +1354,102 @@ END;
 
 CREATE PROCEDURE ISOToJSONMapping (IN inputRef REFERENCE, IN outRef REFERENCE )
 BEGIN
-	DECLARE inRef REFERENCE TO inputRef.PrimaryBitmap;
-	CREATE FIELD outRef.FIELD IDENTITY (JSON.Array)FIELD;
-	DECLARE field127Ref,field127_25Ref REFERENCE TO outRef;
-	MOVE outRef TO outRef.FIELD;
-	DECLARE mtiVersion,mtiClass,mtiFunction,mtiOrigin CHARACTER;
-	DECLARE I,J,K INT 1;
-	DECLARE ID,VALUE CHARACTER;
-	SET mtiVersion = inputRef.MTI_Version;
-	SET mtiClass = inputRef.MTI_MessageClass;
-	SET mtiFunction = inputRef.MTI_MessageFunction;
-	SET mtiOrigin = inputRef.MTI_MessageOrigin;
-	CREATE LASTCHILD OF outRef.Item[I] NAME 'ID' VALUE '0';
-	CREATE LASTCHILD OF outRef.Item[I] NAME 'VALUE' VALUE (mtiVersion||mtiClass||mtiFunction||mtiOrigin);
-	SET I = I + 1;
-	IF EXISTS(inputRef.SecondaryBitmap[]) THEN
-		MOVE inRef TO inputRef.SecondaryBitmap;
-		MOVE inRef NEXTSIBLING;
-	ELSE
-		MOVE inRef NEXTSIBLING;
-	END IF;
-
-	WHILE LASTMOVE(inRef) DO
-		DECLARE CurrentFieldName CHAR FIELDNAME(inRef);
-		SET ID = SUBSTRING(CurrentFieldName AFTER '_');
-		SET VALUE = FIELDVALUE(inRef);
+	DECLARE CurrentFieldName,CurrentFieldValue CHAR;
+	WHILE LASTMOVE(inputRef) DO
+		SET CurrentFieldName = FIELDNAME(inputRef);
+		SET CurrentFieldValue = FIELDVALUE(inputRef);
 		IF CONTAINS(CurrentFieldName,'127') THEN
 			IF CONTAINS(CurrentFieldName,'127_') AND NOT CONTAINS(CurrentFieldName, '127_25') THEN
-				SET ID = SUBSTRING(ID AFTER '_');
-				CREATE LASTCHILD OF field127Ref.Item[J] NAME 'ID' VALUE ID;
-				CREATE LASTCHILD OF field127Ref.Item[J] NAME 'VALUE' VALUE VALUE;
-				SET J = J + 1;
+				CREATE LASTCHILD OF outRef.ISO8583_1987 NAME SUBSTRING(CurrentFieldName BEFORE '_') VALUE CurrentFieldValue;
 			ELSEIF CONTAINS(CurrentFieldName, '127_25') AND LENGTH(SUBSTRING(CurrentFieldName AFTER '_')) < 7 THEN
-				SET ID = SUBSTRING(ID AFTER '_');
-				CREATE LASTCHILD OF field127Ref.Item[J] NAME 'ID' VALUE ID;
-				CREATE LASTCHILD OF field127Ref.Item[J] NAME 'VALUE' VALUE VALUE;
-				CREATE FIELD field127Ref.Item[J].FIELD IDENTITY (JSON.Array)FIELD;
-				MOVE field127_25Ref TO field127Ref.Item[J].FIELD;
+				CREATE LASTCHILD OF outRef.ISO8583_1987 NAME SUBSTRING(CurrentFieldName BEFORE '_') VALUE CurrentFieldValue;
 			ELSEIF CONTAINS(CurrentFieldName, '127_25_') THEN
-				SET ID = SUBSTRING(ID AFTER '_');
-				CREATE LASTCHILD OF field127_25Ref.Item[K] NAME 'ID' VALUE ID;
-				CREATE LASTCHILD OF field127_25Ref.Item[K] NAME 'VALUE' VALUE VALUE;
-				SET K = K + 1;
+				CREATE LASTCHILD OF outRef.ISO8583_1987 NAME SUBSTRING(CurrentFieldName BEFORE '_') VALUE CurrentFieldValue;
 			ELSE
-
-				CREATE LASTCHILD OF outRef.Item[I] NAME 'ID' VALUE ID;
-				CREATE LASTCHILD OF outRef.Item[I] NAME 'VALUE' VALUE VALUE;
-				CREATE FIELD outRef.Item[I].FIELD IDENTITY (JSON.Array)FIELD;
-				MOVE field127Ref TO outRef.Item[I].FIELD;
-				SET I = I + 1;
+				CREATE LASTCHILD OF outRef.ISO8583_1987 NAME SUBSTRING(CurrentFieldName BEFORE '_') VALUE CurrentFieldValue;
 			END IF;
 		ELSE
 			IF CAST(SUBSTRING(CurrentFieldName AFTER '_') AS INT) < 65 AND SUBSTRING(CurrentFieldName AFTER '_') <> '' THEN
-				IF ID LIKE '00%' THEN
-					SET ID = SUBSTRING(ID FROM 3 FOR 1);
-				ELSE
-					SET ID = SUBSTRING(ID FROM 2 FOR 2);
-				END IF;
-				CREATE LASTCHILD OF outRef.Item[I] NAME 'ID' VALUE ID;
-				CREATE LASTCHILD OF outRef.Item[I] NAME 'VALUE' VALUE VALUE;
-				SET I = I + 1;
+				CREATE LASTCHILD OF outRef.ISO8583_1987 NAME SUBSTRING(CurrentFieldName BEFORE '_') VALUE CurrentFieldValue;
 			ELSEIF CAST(SUBSTRING(CurrentFieldName AFTER '_') AS INT) > 64 AND SUBSTRING(CurrentFieldName AFTER '_') <> '' THEN
-				IF ID LIKE '0%' THEN
-					SET ID = SUBSTRING(ID FROM 2 FOR 2);
-				END IF;
-
-				CREATE LASTCHILD OF outRef.Item[I] NAME 'ID' VALUE ID;
-				CREATE LASTCHILD OF outRef.Item[I] NAME 'VALUE' VALUE VALUE;
-				SET I = I + 1;
-
+				CREATE LASTCHILD OF outRef.ISO8583_1987 NAME SUBSTRING(CurrentFieldName BEFORE '_') VALUE CurrentFieldValue;
 			END IF;
 		END IF;
-		MOVE inRef NEXTSIBLING;
+		MOVE inputRef NEXTSIBLING;
 	END WHILE;
+--	DECLARE inRef REFERENCE TO inputRef.PrimaryBitmap;
+--	CREATE FIELD outRef.FIELD IDENTITY (JSON.Array)FIELD;
+--	DECLARE field127Ref,field127_25Ref REFERENCE TO outRef;
+--	MOVE outRef TO outRef.FIELD;
+--	DECLARE mtiVersion,mtiClass,mtiFunction,mtiOrigin CHARACTER;
+--	DECLARE I,J,K INT 1;
+--	DECLARE ID,VALUE CHARACTER;
+--	SET mtiVersion = inputRef.MTI_Version;
+--	SET mtiClass = inputRef.MTI_MessageClass;
+--	SET mtiFunction = inputRef.MTI_MessageFunction;
+--	SET mtiOrigin = inputRef.MTI_MessageOrigin;
+--	CREATE LASTCHILD OF outRef.Item[I] NAME 'ID' VALUE '0';
+--	CREATE LASTCHILD OF outRef.Item[I] NAME 'VALUE' VALUE (mtiVersion||mtiClass||mtiFunction||mtiOrigin);
+--	SET I = I + 1;
+--	IF EXISTS(inputRef.SecondaryBitmap[]) THEN
+--		MOVE inRef TO inputRef.SecondaryBitmap;
+--		MOVE inRef NEXTSIBLING;
+--	ELSE
+--		MOVE inRef NEXTSIBLING;
+--	END IF;
+--
+--	WHILE LASTMOVE(inRef) DO
+--		DECLARE CurrentFieldName CHAR FIELDNAME(inRef);
+--		SET ID = SUBSTRING(CurrentFieldName AFTER '_');
+--		SET VALUE = FIELDVALUE(inRef);
+--		IF CONTAINS(CurrentFieldName,'127') THEN
+--			IF CONTAINS(CurrentFieldName,'127_') AND NOT CONTAINS(CurrentFieldName, '127_25') THEN
+--				SET ID = SUBSTRING(ID AFTER '_');
+--				CREATE LASTCHILD OF field127Ref.Item[J] NAME 'ID' VALUE ID;
+--				CREATE LASTCHILD OF field127Ref.Item[J] NAME 'VALUE' VALUE VALUE;
+--				SET J = J + 1;
+--			ELSEIF CONTAINS(CurrentFieldName, '127_25') AND LENGTH(SUBSTRING(CurrentFieldName AFTER '_')) < 7 THEN
+--				SET ID = SUBSTRING(ID AFTER '_');
+--				CREATE LASTCHILD OF field127Ref.Item[J] NAME 'ID' VALUE ID;
+--				CREATE LASTCHILD OF field127Ref.Item[J] NAME 'VALUE' VALUE VALUE;
+--				CREATE FIELD field127Ref.Item[J].FIELD IDENTITY (JSON.Array)FIELD;
+--				MOVE field127_25Ref TO field127Ref.Item[J].FIELD;
+--			ELSEIF CONTAINS(CurrentFieldName, '127_25_') THEN
+--				SET ID = SUBSTRING(ID AFTER '_');
+--				CREATE LASTCHILD OF field127_25Ref.Item[K] NAME 'ID' VALUE ID;
+--				CREATE LASTCHILD OF field127_25Ref.Item[K] NAME 'VALUE' VALUE VALUE;
+--				SET K = K + 1;
+--			ELSE
+--
+--				CREATE LASTCHILD OF outRef.Item[I] NAME 'ID' VALUE ID;
+--				CREATE LASTCHILD OF outRef.Item[I] NAME 'VALUE' VALUE VALUE;
+--				CREATE FIELD outRef.Item[I].FIELD IDENTITY (JSON.Array)FIELD;
+--				MOVE field127Ref TO outRef.Item[I].FIELD;
+--				SET I = I + 1;
+--			END IF;
+--		ELSE
+--			IF CAST(SUBSTRING(CurrentFieldName AFTER '_') AS INT) < 65 AND SUBSTRING(CurrentFieldName AFTER '_') <> '' THEN
+--				IF ID LIKE '00%' THEN
+--					SET ID = SUBSTRING(ID FROM 3 FOR 1);
+--				ELSE
+--					SET ID = SUBSTRING(ID FROM 2 FOR 2);
+--				END IF;
+--				CREATE LASTCHILD OF outRef.Item[I] NAME 'ID' VALUE ID;
+--				CREATE LASTCHILD OF outRef.Item[I] NAME 'VALUE' VALUE VALUE;
+--				SET I = I + 1;
+--			ELSEIF CAST(SUBSTRING(CurrentFieldName AFTER '_') AS INT) > 64 AND SUBSTRING(CurrentFieldName AFTER '_') <> '' THEN
+--				IF ID LIKE '0%' THEN
+--					SET ID = SUBSTRING(ID FROM 2 FOR 2);
+--				END IF;
+--
+--				CREATE LASTCHILD OF outRef.Item[I] NAME 'ID' VALUE ID;
+--				CREATE LASTCHILD OF outRef.Item[I] NAME 'VALUE' VALUE VALUE;
+--				SET I = I + 1;
+--
+--			END IF;
+--		END IF;
+--		MOVE inRef NEXTSIBLING;
+--	END WHILE;
 END;
 
 
