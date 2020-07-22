@@ -228,14 +228,23 @@ CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 		END IF;
 		--field to field mapping
 		--CALL ISOToJSONMapping(inRef,outRef);
-		MOVE inRef TO InputRoot.DFDL.*.PrimaryAccountNumber_002;
+		IF EXISTS(inRef.*.SecondaryBitmap[])  THEN
+			MOVE inRef TO InputRoot.DFDL.*.SecondaryBitmap;
+			MOVE inRef NEXTSIBLING;
+		ELSEIF EXISTS(inRef.*.PrimaryBitmap[]) THEN
+			MOVE inRef TO InputRoot.DFDL.*.PrimaryBitmap;
+			MOVE inRef NEXTSIBLING;
+		ELSE
+		MOVE inRef TO InputRoot.DFDL.*.PrimaryAccountNumber_002;		 
+		END IF;
+		
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('ZipitResponse');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.ZipitResponse NAME ('header');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.ZipitResponse NAME ('body');
-		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.ZipitResponse.header;
-		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.ZipitResponse.body;  
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('ZipitResponse'); 
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;  
 		--SET headRef = Environment.header;
 		SET headRef.channel = 'Sosholoza'; 
 		SET headRef.processingCode = '420000';
@@ -243,7 +252,7 @@ CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 		SET headRef.responseCode = '200';
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
-		CALL JSONLogMessage(inRef,bodyRef);
+		CALL ISOToJSONMapping(inRef,bodyRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON;
 		SET Environment.jsonData = OutputRoot.JSON;
 		SET domainName = FIELDNAME(outDomainDataRef);
@@ -303,16 +312,23 @@ CREATE COMPUTE MODULE ZipitHttpFlow_BuildExceptionDetails
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
-		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
-		MOVE outRef TO OutputRoot.JSON.Data;
-		SET outRef.statusCode = '000';
-		SET outRef.status = 'FAILED';
-		SET outRef.message = errMsg;
-		SET outRef.responseBody.source = 'ESB';
-		SET outRef.responseBody.applicationName = ApplicationLabel;
-		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.ZIPIT_HTTP.ErrorCode;
- 		SET OutputRoot.XMLNSC = NULL;
+		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data'); 
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('ZipitResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef = Environment.Variables.header;
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.UserDefinedErrorCodes.ZIPIT_HTTP.ErrorCode;
+		SET errorRef.message = errMsg;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
@@ -321,9 +337,9 @@ CREATE COMPUTE MODULE ZipitHttpFlow_BuildExceptionDetails
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.MQRFH2.inputRequest,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ZIPIT_HTTP.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.ZIPIT_HTTP.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;   
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q; 
 		----------------------------------
 	END;
-END MODULE; 
+END MODULE;
