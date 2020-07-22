@@ -235,7 +235,8 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
 		CALL ISOToJSONMapping(inRef,bodyRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON;
-		SET Environment.jsonData = OutputRoot.JSON;
+		CREATE LASTCHILD OF Environment DOMAIN ('JSON');
+		SET Environment.JSON = OutputRoot.JSON;
 		SET domainName = FIELDNAME(outDomainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.JSON = NULL;
@@ -250,7 +251,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON = Environment.jsonData;
+		SET OutputRoot.JSON = Environment.JSON;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 	END;
 END MODULE;
@@ -280,8 +281,6 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlowCaptureException
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
 			SET errMsg = 'No Response from Postilion Server';
 		END IF;
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
@@ -295,20 +294,22 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlowCaptureException
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.XMLNSC = NULL;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('BalanceEnquiryResponse');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
-		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
-		SET headerRef = Environment.Variables.header;
-		SET headerRef.status = 'FAILED';
-		SET headerRef.responseCode = '000';
+		SET headRef = Environment.MQRFH2.header;
+		SET headRef.status = 'FAILED';
+		SET headRef.responseCode = '000';
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
-		SET errorRef.applicationErrorCode = Environment.UserDefinedErrorCodes.BalanceEnquiry.ErrorCode;
-		SET errorRef.message = errMsg;
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.BalanceEnquiry.ErrorCode;
+		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.BalanceEnquiry.ErrorType,'');
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;

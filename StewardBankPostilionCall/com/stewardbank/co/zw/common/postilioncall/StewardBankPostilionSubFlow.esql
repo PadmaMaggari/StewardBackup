@@ -28,8 +28,9 @@ CREATE COMPUTE MODULE StewardBankPostilionSubFlow
 		END IF;
 		IF Environment.Variables.Counter IS NULL AND Environment.Variables.Retry.Counter IS NULL THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Environment.Variables.Counter is null maybe didnt capture tcp exceptionMsg') INTO rc;
-			SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
 			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+			SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
 			PROPAGATE TO TERMINAL 'out1';
 			RETURN FALSE;
 		END IF;
@@ -55,8 +56,9 @@ CREATE COMPUTE MODULE StewardBankPostilionSubFlow
 				RETURN TRUE;
 			END IF;
 		ELSE
-			SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
 			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+			SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
 			PROPAGATE TO TERMINAL 'out1';
 			RETURN FALSE;
 		END IF;

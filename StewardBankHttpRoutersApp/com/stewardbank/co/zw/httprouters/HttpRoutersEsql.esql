@@ -35,6 +35,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inputRef REFERENCE TO InputRoot.JSON.Data;
 		SET Environment.MQRFH2.RequestIdentifier = InputLocalEnvironment.Destination.HTTP.RequestIdentifier;
 		SET Environment.MQRFH2.usr.HTTPInputHeader = InputRoot.HTTPInputHeader;
 		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
@@ -45,18 +46,14 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		SET Environment.Variables.messageID = CAST(Environment.MQRFH2.RequestIdentifier AS CHAR);
 		SET Environment.Variables.reqMsg = CAST(InputRoot.JSON AS CHAR CCSID ccidRef);
 		--DECLARE procCode CHARACTER InputRoot.JSON.Data.processingCode;
-		IF (InputRoot.JSON.Data.processingCode IS NOT NULL) OR
-			(InputRoot.JSON.Data.processingCode <> '') OR
-			(InputRoot.JSON.Data.*.header.processingCode IS NOT NULL) OR
-			(InputRoot.JSON.Data.*.header.processingCode <> '') THEN
-			SET Environment.Variables.processingCode = COALESCE(InputRoot.JSON.Data.processingCode,InputRoot.JSON.Data.*.header.processingCode,'');
+		IF 	(inputRef.*.header.processingCode IS NOT NULL) OR
+			(inputRef.*.header.processingCode <> '') THEN
+			SET Environment.Variables.processingCode = inputRef.*.header.processingCode;
 			Set Environment.MQRFH2.usr.sbPcode = Environment.Variables.processingCode;
 		END IF;
-		IF (InputRoot.JSON.Data.channel IS NOT NULL) OR
-			(InputRoot.JSON.Data.channel <> '') OR
-			(InputRoot.JSON.Data.*.header.channel IS NOT NULL) OR
-			(InputRoot.JSON.Data.*.header.channel <> '') THEN
-			SET Environment.Variables.channel = COALESCE(InputRoot.JSON.Data.channel,InputRoot.JSON.Data.*.header.channel,'');
+		IF 	(inputRef.*.header.channel IS NOT NULL) OR
+			(inputRef.*.header.channel <> '') THEN
+			SET Environment.Variables.channel = inputRef.*.header.channel;
 		END IF;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
