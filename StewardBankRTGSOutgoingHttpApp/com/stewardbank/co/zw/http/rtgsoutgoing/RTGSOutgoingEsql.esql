@@ -24,6 +24,10 @@ CREATE COMPUTE MODULE RTGSOutgoingHttp_GenerateIsoReq
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE chnl CHARACTER;
+		
+		SET chnl = inRef.RTGSRequest.header.channel;
+		DECLARE phn CHARACTER inRef.RTGSRequest.body.destinationPhone;   
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
@@ -57,17 +61,18 @@ CREATE COMPUTE MODULE RTGSOutgoingHttp_GenerateIsoReq
 		SET outRef.MTI_MessageClass = 2;
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
-		SET outRef.ProcessingCode_003 = CAST(inRef.processingCode AS INTEGER); 
-		SET outRef.AmountTransaction_004 = CAST(inRef.amount AS INTEGER);
-		SET outRef.AccountIdentification1_102 = CAST(inRef.fromAccount AS INTEGER); 
-		SET outRef.AccountIdentification2_103 = CAST(inRef.destinationAccount AS INTEGER); 
+		SET outRef.ProcessingCode_003 = CAST(inRef.RTGSRequest.header.processingCode AS INTEGER); 
+		SET outRef.AmountTransaction_004 = CAST(inRef.RTGSRequest.body.amount AS INTEGER);
+		SET outRef.AccountIdentification1_102 = CAST(inRef.RTGSRequest.body.fromAccount AS INTEGER); 
+		SET outRef.AccountIdentification2_103 = CAST(inRef.RTGSRequest.body.destinationAccount AS INTEGER); 
 		SET outRef.ReservedPrivate_127 = '000000'; 
-		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.channel||comm||destinationPhone||col||inRef.destinationPhone;  
+		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.RTGSRequest.header.channel||comm||destinationPhone||col||inRef.RTGSRequest.body.destinationPhone;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL; 
 		SET domainName = FIELDNAME(outDomainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
+		
 		IF IsLogRequired = 'Y' THEN
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
@@ -229,15 +234,18 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_reqToFrondEnd
 		MOVE inRef TO InputRoot.DFDL.*.PrimaryAccountNumber_002;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('statusCode');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('message');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('responseBody');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.RTGSResponse NAME ('RTGSResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.RTGSResponse NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.RTGSResponse NAME ('body');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.RTGSResponse.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.RTGSResponse.body;  
+		SET headRef.channel = 'Sosholoza'; 
+		SET headRef.processingCode = '540000';
+		SET headRef.status = 'SUCCESS';
+		SET headRef.responseCode = '200';
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
-		DECLARE isoRef REFERENCE TO OutputRoot.JSON.Data.responseBody;
-		SET outRef.statusCode = '200';
-		SET outRef.message = 'SUCCESS';
-		CALL JSONLogMessage(inRef,isoRef);
+		CALL JSONLogMessage(inRef,bodyRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON;
 		SET Environment.jsonData = OutputRoot.JSON;
 		SET domainName = FIELDNAME(outDomainDataRef);
