@@ -83,10 +83,10 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion1
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -106,10 +106,10 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion1
 		-- DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		-- CALL FieldToFieldMapping(inRef,outRef,'','','');
 		SET OutputRoot.DFDL = InputRoot.DFDL;
-		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+		MOVE domainDataRef TO OutputRoot.DFDL;
 		SET Environment.dfdlData = OutputRoot.DFDL;
-		SET domainName = FIELDNAME(outDomainDataRef);
-		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
+		SET domainName = FIELDNAME(domainDataRef);
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
@@ -165,6 +165,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToT24
 		SET OutputRoot.DFDL = InputRoot.DFDL;
 		MOVE domainDataRef TO OutputRoot.DFDL;
 		SET Environment.dfdlData = OutputRoot.DFDL;
+		MOVE domainDataRef TO OutputRoot.DFDL.*;
 		SET domainName = FIELDNAME(domainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
@@ -199,7 +200,8 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		SET Environment.Variables.reqMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
+		DECLARE domianDataRef REFERENCE TO InputRoot.DFDL.*;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domianDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
 			--------------DBLogging-------------------
@@ -237,7 +239,8 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON;
 		CREATE LASTCHILD OF Environment DOMAIN ('JSON');
 		SET Environment.JSON = OutputRoot.JSON;
-		SET domainName = FIELDNAME(outDomainDataRef);
+		MOVE domianDataRef TO OutputRoot.JSON;
+		SET domainName = FIELDNAME(domianDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired LIKE 'Y' THEN
@@ -276,9 +279,11 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlowCaptureException
 			SET errMsg = 'T24 Server Down';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
 			SET errMsg = 'Postilion Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
+		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') OR 
+			CONTAINS(excpRef.excpText,'T24ClientReceiveData,no valid connection acquired,') THEN
 			SET errMsg = 'No Response from T24 Server';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
+		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') OR
+			CONTAINS(excpRef.excpText,'PostilionRecevieData,no valid connection acquired,') THEN
 			SET errMsg = 'No Response from Postilion Server';
 		END IF;
 		DECLARE outRefer REFERENCE TO OutputRoot;

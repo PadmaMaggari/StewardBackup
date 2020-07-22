@@ -87,11 +87,10 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow_addHeaderData
 		SET jsonRef = logRef;
 	 		DECLARE tcpHeader BLOB ;
 	 		DECLARE rc BOOLEAN FALSE;
-	 		
-	 		SET Environment.Variables.reqMsg = getPayLoad('JSON',jsonRef,encodeRef,ccsidRef);  
+	 		SET Environment.Variables.reqMsg = getPayLoad('JSON',jsonRef,encodeRef,ccsidRef);
+	 		SET OutputRoot.JSON = NULL;  
 			CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
 			IF ( rc = FALSE ) THEN
-				DECLARE msg CHARACTER ;
 				SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 			END IF;
 			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','..............Start logging T24 sub flow...........') INTO rc;
@@ -137,9 +136,9 @@ CREATE COMPUTE MODULE StewardBankT24SubFlow_removeHeaderData
 		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
 		SET jsonRef = logRef;
 			SET Environment.Variables.resMsg = getPayLoad('JSON',jsonRef,encodeRef,ccsidRef);
+			SET OutputRoot.JSON = NULL;
 			CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 			IF ( rc = FALSE ) THEN
-				DECLARE msg CHARACTER ;
 				SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 			END IF;
 			CALL writeToLogFile(MessageFlowLabel, 'T24SubFlowLogger', 'DEBUG','===JSON Formatted Data Response====') INTO rc;
