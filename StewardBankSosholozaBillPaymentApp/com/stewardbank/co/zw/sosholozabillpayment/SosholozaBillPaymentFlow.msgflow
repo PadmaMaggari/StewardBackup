@@ -28,46 +28,46 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSosholozaBillPaymentApp/icons/full/obj16/SosholozaBillPaymentFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSosholozaBillPaymentApp/icons/full/obj30/SosholozaBillPaymentFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_17" location="30,56" queueName="BP_SB_HTTP_REQ" messageDomainProperty="JSON" transactionMode="no">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_17" location="12,54" queueName="BP_SB_HTTP_REQ" messageDomainProperty="JSON" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="BP_SB_HTTP_REQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_18" location="148,133" computeExpression="esql://routine/com.stewardbank.co.zw.sosholozabillpayment#SosholozaBillPaymentFlow_GenerateIsoReq.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_18" location="130,131" computeExpression="esql://routine/com.stewardbank.co.zw.sosholozabillpayment#SosholozaBillPaymentFlow_GenerateIsoReq.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateIsoReq"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_addheader_addHeader.subflow:FCMComposite_1" xmi:id="FCMComposite_1_19" location="212,216">
+      <nodes xmi:type="com_stewardbank_co_zw_common_addheader_addHeader.subflow:FCMComposite_1" xmi:id="FCMComposite_1_19" location="194,214">
         <translation xmi:type="utility:ConstantString" string="addHeader"/>
       </nodes>
-      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_20" location="262,135" messageDomain="DFDL" messageSet="{ISO8583_Lib}" messageType="{}:ISO8583WithHeader">
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_20" location="244,133" messageDomain="DFDL" messageSet="{ISO8583_Lib}" messageType="{}:ISO8583WithHeader">
         <translation xmi:type="utility:ConstantString" string="CheckISO"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_21" location="310,217">
+      <nodes xmi:type="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_21" location="292,215">
         <translation xmi:type="utility:ConstantString" string="PostilionCall"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_22" location="348,104" computeExpression="esql://routine/com.stewardbank.co.zw.sosholozabillpayment#SosholozaBillPaymentFlow_GenerateReqToT24.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_22" location="330,102" computeExpression="esql://routine/com.stewardbank.co.zw.sosholozabillpayment#SosholozaBillPaymentFlow_GenerateReqToT24.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="ReqToT24"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_24" location="441,135">
+      <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_24" location="429,142">
         <translation xmi:type="utility:ConstantString" string="T24Call"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_25" location="510,219" computeExpression="esql://routine/com.stewardbank.co.zw.sosholozabillpayment#SosholozaBillPaymentFlow_reqToPostilion.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_25" location="492,217" computeExpression="esql://routine/com.stewardbank.co.zw.sosholozabillpayment#SosholozaBillPaymentFlow_reqToPostilion.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="ReqToPostilion"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_addheader_addHeader.subflow:FCMComposite_1" xmi:id="FCMComposite_1_26" location="569,144">
+      <nodes xmi:type="com_stewardbank_co_zw_common_addheader_addHeader.subflow:FCMComposite_1" xmi:id="FCMComposite_1_26" location="551,142">
         <translation xmi:type="utility:ConstantString" string="addHeader1"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_27" location="585,288">
+      <nodes xmi:type="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_27" location="567,286">
         <translation xmi:type="utility:ConstantString" string="PostilionCall1"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_28" location="709,179" computeExpression="esql://routine/com.stewardbank.co.zw.sosholozabillpayment#SosholozaBillPaymentFlow_reqToFrondEnd.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_28" location="691,177" computeExpression="esql://routine/com.stewardbank.co.zw.sosholozabillpayment#SosholozaBillPaymentFlow_reqToFrondEnd.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="ReqToFrondEnd"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_29" location="779,77" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_29" location="761,75" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="BP_SB_HTTP_RES"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_30" location="229,41">
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_30" location="211,39">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_31" location="436,33" computeExpression="esql://routine/com.stewardbank.co.zw.sosholozabillpayment#SosholozaBillPaymentFlow_BuildExceptionDetails.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_31" location="418,31" computeExpression="esql://routine/com.stewardbank.co.zw.sosholozabillpayment#SosholozaBillPaymentFlow_BuildExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionDetails"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_28" targetNode="FCMComposite_1_18" sourceNode="FCMComposite_1_17" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
