@@ -250,11 +250,24 @@ SET OutputRoot.Properties = InputRoot.Properties;
 			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 			DECLARE dfdlRef REFERENCE TO OutputRoot.DFDL.Mini_Statement.record[1];
 			DECLARE i INTEGER 1;
+		DECLARE MTI_Version CHARACTER InputRoot.DFDL.ISO8583WithHeader.MTI_Version;
+		DECLARE MTI_MessageClass CHARACTER InputRoot.DFDL.ISO8583WithHeader.MTI_MessageClass;
+		DECLARE MTI_MessageFunction CHARACTER InputRoot.DFDL.ISO8583WithHeader.MTI_MessageFunction;
+		DECLARE MTI_MessageOrigin CHARACTER InputRoot.DFDL.ISO8583WithHeader.MTI_MessageOrigin;
+			
 		IF inRef.ResponseCode_039 = '00' THEN
 			SET headRef.channel = 'MobileApp';
 			SET headRef.processingCode = inRef.ProcessingCode_003;
 			SET headRef.responseCode = '200';
 			SET headRef.status = 'SUCCESS';     
+			SET bodyRef.postilionRRN='';
+			SET bodyRef.postilionRespCode = inRef.ResponseCode_039;
+			SET bodyRef.postilionRespMsgType = MTI_Version||MTI_MessageClass||MTI_MessageFunction||MTI_MessageOrigin;
+			SET bodyRef.reference='';
+			SET bodyRef.reference1='';
+			SET bodyRef.reference2='';
+			SET bodyRef.balance='';
+			
 			CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)miniStatementData;
 			DECLARE minRef REFERENCE TO bodyRef.miniStatementData;
 			WHILE LASTMOVE(dfdlRef) DO
