@@ -113,6 +113,8 @@ CREATE COMPUTE MODULE SwiftFlow_GenetateReqToT24
 		  --Inserting Swift Details To Database Table---
 		  CALL insertSwiftDetails(Environment.Variables.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),Environment.Variables.File.Name,Environment.Variables.File.Status,Environment.Variables.mtReqMsg,transactionAmount,dtAcctId,crAcctId,exeDate,reqMsg,'','',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
 		IF IsLogRequired LIKE 'Y' THEN
+		 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............T24 Request Url..........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',BackendT24Url||SwiftUrlPathparameters) INTO rc;
 		 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','***************Sending Request To T24 **********') INTO rc;
 		 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','*T24 Request Message:'|| reqMsg) INTO rc;
 		 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............End of SWIFT  ReqToT24 logging...........') INTO rc;
