@@ -138,7 +138,7 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_ReqToFrondEnd
 			SET headRef.accountType = 'T24';
 			SET headRef.responseCode = '200';
 			SET headRef.status = 'SUCCESS';     
-			CREATE FIELD OutputRoot.JSON.Data IDENTITY(JSON.Array);
+			CREATE FIELD OutputRoot.JSON.Data.FullStatementResponse IDENTITY(JSON.Array);
 			WHILE LASTMOVE(inRef1) DO
 				SET bodyRef.FullStatementData = inRef1;
 				SET i=i+1;
