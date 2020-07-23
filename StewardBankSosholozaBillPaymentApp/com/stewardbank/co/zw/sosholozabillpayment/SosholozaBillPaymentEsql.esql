@@ -177,7 +177,7 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'Postilion  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
-		END IF;
+		END IF;     
 		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
 		/*=================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
