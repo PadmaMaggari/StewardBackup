@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmMQInput.msgnode="ComIbmMQInput.msgnode" xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode" xmlns:ComIbmResetContentDescriptor.msgnode="ComIbmResetContentDescriptor.msgnode" xmlns:ComIbmWSReply.msgnode="ComIbmWSReply.msgnode" xmlns:com_stewardbank_co_zw_common_addheader_addHeader.subflow="com/stewardbank/co/zw/common/addheader/addHeader.subflow" xmlns:com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow="com/stewardbank/co/zw/common/exceptionhandling/exceptionHandlingSubFlow.subflow"
-    xmlns:com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionCallSubFlow.subflow" xmlns:com_stewardbank_co_zw_common_removeheader_removeHeader.subflow="com/stewardbank/co/zw/common/removeheader/removeHeader.subflow" xmlns:com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow="com/stewardbank/co/zw/common/t24call/StewardBankT24SubFlow.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
-    xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/http/ift/iftHttpFlow.msgflow" nsPrefix="com_stewardbank_co_zw_http_ift_iftHttpFlow.msgflow">
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmMQInput.msgnode="ComIbmMQInput.msgnode" xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode" xmlns:ComIbmResetContentDescriptor.msgnode="ComIbmResetContentDescriptor.msgnode" xmlns:com_stewardbank_co_zw_common_addheader_addHeader.subflow="com/stewardbank/co/zw/common/addheader/addHeader.subflow" xmlns:com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow="com/stewardbank/co/zw/common/exceptionhandling/exceptionHandlingSubFlow.subflow"
+    xmlns:com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow="com/stewardbank/co/zw/common/postilioncall/StewardBankPostilionCallSubFlow.subflow" xmlns:com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow="com/stewardbank/co/zw/common/t24call/StewardBankT24SubFlow.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/http/ift/iftHttpFlow.msgflow" nsPrefix="com_stewardbank_co_zw_http_ift_iftHttpFlow.msgflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log\Log4jConfig.xml">
@@ -20,6 +19,9 @@
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.IsLogRequired" name="IsLogRequired" defaultValueLiteral="Y">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ALL_SB_HTTP_RES" name="ALL_SB_HTTP_RES" defaultValueLiteral="ALL_SB_HTTP_RES">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="iftHttpFlow" bundleName="com/stewardbank/co/zw/http/ift/iftHttpFlow" pluginId="StewardBankInternalFundTransferHttpApp"/>
@@ -59,17 +61,11 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_17" location="655,98" computeExpression="esql://routine/com.stewardbank.co.zw.http.ift#iftHttpFlow_reqToFrondEnd.Main" computeMode="all">
         <translation xmi:type="utility:ConstantString" string="ReqToFrondEnd"/>
       </nodes>
-      <nodes xmi:type="ComIbmWSReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_18" location="771,91">
-        <translation xmi:type="utility:ConstantString" string="ReplyToFrontEnd"/>
-      </nodes>
       <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="213,90" messageDomain="DFDL" resetMessageDomain="true" messageSet="{ISO8583_Lib}" resetMessageSet="true" messageType="{}:ISO8583WithHeader" resetMessageType="true" resetMessageFormat="true" validateTiming="immediate">
         <translation xmi:type="utility:ConstantString" string="CheckISO"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_addheader_addHeader.subflow:FCMComposite_1" xmi:id="FCMComposite_1_8" location="146,150">
         <translation xmi:type="utility:ConstantString" string="addHeader"/>
-      </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_removeheader_removeHeader.subflow:FCMComposite_1" xmi:id="FCMComposite_1_10" location="366,156">
-        <translation xmi:type="utility:ConstantString" string="removeHeader"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_addheader_addHeader.subflow:FCMComposite_1" xmi:id="FCMComposite_1_20" location="534,91">
         <translation xmi:type="utility:ConstantString" string="addHeader1"/>
@@ -103,19 +99,12 @@
         <bendPoints>341,-66,-25,54</bendPoints>
       </connections>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_28" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_29" targetNode="FCMComposite_1_18" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in">
-        <bendPoints>229,-12,-173,-99</bendPoints>
-      </connections>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_12" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input">
         <bendPoints>30,-9,-25,-69</bendPoints>
       </connections>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in">
         <bendPoints>26,-67,-39,-7</bendPoints>
-      </connections>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_10" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_14" sourceNode="FCMComposite_1_10" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.Input">
-        <bendPoints>21,-71,-35,-8</bendPoints>
       </connections>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_25" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_26" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
@@ -127,6 +116,7 @@
       </connections>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_15" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_14" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
@@ -141,6 +131,9 @@
                 <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_Q" bundleName="com/stewardbank/co/zw/http/ift/iftHttpFlow" pluginId="StewardBankInternalFundTransferHttpApp"/>
                 <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
                   <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/http/ift/iftHttpFlow" pluginId="StewardBankInternalFundTransferHttpApp"/>
+                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ALL_SB_HTTP_RES">
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.ALL_SB_HTTP_RES" bundleName="com/stewardbank/co/zw/http/ift/iftHttpFlow" pluginId="StewardBankInternalFundTransferHttpApp"/>
+                  </propertyDescriptor>
                 </propertyDescriptor>
               </propertyDescriptor>
             </propertyDescriptor>
