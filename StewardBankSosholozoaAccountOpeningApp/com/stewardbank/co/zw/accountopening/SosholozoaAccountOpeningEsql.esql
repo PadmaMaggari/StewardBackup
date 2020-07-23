@@ -1,5 +1,7 @@
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -412,8 +414,36 @@ CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_GenerateReqToT241
 	END;
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
+	--	DECLARE individual ROW;
+	--	CREATE LASTCHILD OF individual IDENTITY(JSON.Array) Report;
+	-- initialize the variable with JSON string
+DECLARE unStructuredData CHAR InputRoot.JSON.Data.individual;
+
+-- converting JSON string into JSON object
+DECLARE dataAsBit BIT  CAST(unStructuredData AS BIT CCSID 1208);
+CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON' PARSE(dataAsBit CCSID 1208);
+SET Environment.individual = OutputRoot.JSON.Data;
+
+		
 		SET OutputRoot = InputRoot;
+		SET OutputRoot.JSON.Data.individual = Environment.individual;
+		SET OutputRoot.JSON.Data.individual = NULL;
 	END;
+	CREATE PROCEDURE structureJSONMessage(IN unStructuredData CHAR,IN structuredRef REFERENCE) BEGIN
+		DECLARE CurrentFieldName,CurrentFieldValue CHAR;
+		SET CurrentFieldName = SUBSTRING(SUBSTRING(unStructuredData AFTER '"') BEFORE '"');
+		SET unStructuredData = SUBSTRING(unStructuredData AFTER ':');
+		CREATE LASTCHILD OF structuredRef IDENTITY(JSON.Array){CurrentFieldName};
+		DECLARE I INT 1;
+		WHILE I < 18 DO
+			SET CurrentFieldName = SUBSTRING(SUBSTRING(unStructuredData AFTER '"') BEFORE '"');
+			SET CurrentFieldValue = SUBSTRING(SUBSTRING(SUBSTRING(unStructuredData AFTER ':')AFTER '"') BEFORE '"');
+			SET unStructuredData = SUBSTRING(unStructuredData AFTER ',');
+			CREATE LASTCHILD OF structuredRef.*.Item[I] TYPE NameValue NAME CurrentFieldName VALUE CurrentFieldValue;
+			SET I = I + 1;
+		END WHILE;
+	END;
+
 END MODULE;
 
 CREATE COMPUTE MODULE SosholozoaAccountOpeningFlow_BuildException

@@ -166,7 +166,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Occured') INTO rc;
 				SET OutputRoot = NULL;
 				CALL CopyMessageHeaders();
-				IF domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) AND CONTAINS(flowName,'OutgoingRouterFlow')= FALSE THEN
+				IF domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) AND CONTAINS(flowName,'OutgoingRouterFlow') = FALSE  AND FIELDVALUE(Environment.Variables.RequestIdentifier) IS NULL THEN
 					CALL revertBackToSystem(ccidRef,encodeRef);
 				END IF;
 				CALL LogException(encodeRef,ccidRef);

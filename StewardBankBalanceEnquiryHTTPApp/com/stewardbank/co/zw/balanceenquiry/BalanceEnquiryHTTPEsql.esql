@@ -24,6 +24,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+		DECLARE channel CHARACTER 'Channel';
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.header = inRef.header;
 		SET Environment.MQRFH2.inputRequest = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); ---this is for logging in error audit
@@ -38,9 +39,6 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion
 			PROPAGATE TO TERMINAL 'out1';
 			-----------------------------
 		END IF;
-		--field to field mapping
-		--SET OutputRoot = null;
-		--CALL JSONToISOMapping(inRef,outRef);
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
 		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
@@ -50,11 +48,19 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion
 		SET outRef.MTI_MessageOrigin = 0;
 		SET outRef.ProcessingCode_003 = CAST(inRef.header.processingCode AS INTEGER);
 		SET outRef.AccountIdentification2_103 = CAST(inRef.body.fromAccount AS INTEGER);
+		
+		DECLARE keyChannelValue CHARACTER'';
+		CALL keyValueGenerator(inRef.header.channel) INTO keyChannelValue;   
+		DECLARE keyChannel CHARACTER '';
+		CALL keyValueGenerator(channel) INTO keyChannel; 
+		SET outRef.ReservedPrivate_127 = '000000';
+		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel ||keyChannelValue;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		MOVE domainDataRef TO OutputRoot.DFDL;
 		SET domainName = FIELDNAME(domainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		SET Environment.dfdlData = OutputRoot.DFDL;
+		CREATE LASTCHILD OF Environment DOMAIN ('DFDL');
+		SET Environment.DFDL = OutputRoot.DFDL;
 		IF IsLogRequired = 'Y' THEN
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
@@ -67,7 +73,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion
 		END IF;
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.DFDL = Environment.dfdlData;
+		SET OutputRoot.DFDL = Environment.DFDL;
 	END;
 END MODULE;
 
@@ -99,15 +105,9 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion1
 			PROPAGATE TO TERMINAL 'out1';
 			-----------------------------
 		END IF;
-		--field to field mapping
-		--CALL JSONToISOMapping(inRef,outRef);
-		-- CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
-		-- CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
-		-- DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
-		-- CALL FieldToFieldMapping(inRef,outRef,'','','');
 		SET OutputRoot.DFDL = InputRoot.DFDL;
 		MOVE domainDataRef TO OutputRoot.DFDL;
-		SET Environment.dfdlData = OutputRoot.DFDL;
+		SET Environment.DFDL = OutputRoot.DFDL;
 		SET domainName = FIELDNAME(domainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
@@ -122,7 +122,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToPostilion1
 		END IF;
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.DFDL = Environment.dfdlData;
+		SET OutputRoot.DFDL = Environment.DFDL;
 	END;
 END MODULE;
 
@@ -138,11 +138,12 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToT24
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		DECLARE inRef REFERENCE TO InputRoot.DFDL;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.*;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.DFDL.*;
 		DECLARE domainName CHARACTER FIELDNAME(domainDataRef);
+		DECLARE envUsrRef REFERENCE TO Environment.MQRFH2.usr;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
@@ -154,17 +155,14 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToT24
 			PROPAGATE TO TERMINAL 'out1';
 			-----------------------------
 		END IF;
-		--field to field mapping
-		--SET OutputRoot = null;
-		--CALL JSONToISOMapping(inRef,outRef);
-		--
-		-- CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
-		-- DECLARE outRef REFERENCE TO OutputRoot.DFDL;
-		-- CREATE LASTCHILD OF OutputRoot.DFDL AS outRef NAME 'ISO8583_1987';
-		-- CALL FieldToFieldMapping(inRef,outRef,'','','');
-		SET OutputRoot.DFDL = InputRoot.DFDL;
-		MOVE domainDataRef TO OutputRoot.DFDL;
-		SET Environment.dfdlData = OutputRoot.DFDL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
+		CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
+		CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef);
+		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		CALL remove127(removeRefPointer);
+		SET Environment.DFDL = OutputRoot.DFDL;
 		MOVE domainDataRef TO OutputRoot.DFDL.*;
 		SET domainName = FIELDNAME(domainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
@@ -180,7 +178,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateReqToT24
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.DFDL = Environment.dfdlData;
+		SET OutputRoot.DFDL = Environment.DFDL;
 	END;
 END MODULE;
 
@@ -212,8 +210,7 @@ CREATE COMPUTE MODULE BalanceEnquiryHTTPFlow_GenerateResToBackend
 			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','Postilion Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		END IF;
-		--field to field mapping
-		--CALL ISOToJSONMapping(inRef,outRef);
+		
 		IF EXISTS(inRef.*.SecondaryBitmap[]) THEN
 			MOVE inRef TO InputRoot.DFDL.*.SecondaryBitmap;
 			MOVE inRef NEXTSIBLING;

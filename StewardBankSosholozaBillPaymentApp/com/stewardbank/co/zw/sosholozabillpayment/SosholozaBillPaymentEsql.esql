@@ -160,21 +160,34 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 		
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
+		SET Environment.Variables.t24ResMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);  
 		SET Environment.dfdlData = OutputRoot.DFDL;
+		DECLARE reqMsgJson1 CHARACTER'';
+		DECLARE logRef1 REFERENCE TO OutputRoot.DFDL;
+		DECLARE jsonRef1 REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot AS jsonRef1 DOMAIN('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef1 NAME ('Data');
+		--CALL JSONLogMessage(logRef,jsonRef);
+		SET jsonRef1 = logRef1;
+		SET reqMsgJson1 = getPayLoad('JSON',jsonRef1,encodeRef,ccsid);
 		SET OutputRoot.DFDL = NULL;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'Postilion  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
-		END IF;
+		END IF;     
 		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
 		/*=================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 
-			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','Request to T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','========= ISO TO JSON T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','========= POSTILION RESPONSE ==========') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG',reqMsgJson1) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG',Environment.Variables.t24ResMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 
