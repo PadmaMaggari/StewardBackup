@@ -172,20 +172,21 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				DECLARE outRef REFERENCE TO OutputRoot.JSON;
 				CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
 				SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
-				SET outRef.debitAccountId = 'ZWL1447400010001';
-				SET outRef.debitCurrency = 'USD';
+				SET outRef.debitAccountId = '1000000163'; 
+				SET outRef.debitCurrency = 'ZWL';
 				SET outRef.creditAccountId = EnvRefer.BANK_ACC_NUMBER;
 				SET outRef.orderingCustomerName = EnvRefer.MERCHANT_NAME;
-				SET outRef.paymentCurrency = 'USD';
+				SET outRef.paymentCurrency = 'ZWL'; 
 				SET outRef.transactionAmount = EnvRefer.BALANCE_USD;
 				SET outRef.executionDate = CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd');
 				SET outRef.narrative = EnvRefer.BATCH_IDENTIFIER;
 				SET outRef.invoiceReference = EnvRefer.CODE;
 				SET Environment.Variables.SB_jsonData = OutputRoot.JSON.Data;
 				--{debitAccountId}/{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}
-				SET STBUrlParameters ='ZWL1447400010001'||'/'||'USD'||'/'||EnvRefer.BANK_ACC_NUMBER||'/'|| EnvRefer.MERCHANT_NAME||'/'||'USD'||'/'||EnvRefer.BALANCE_USD||'/'||CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd')||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.CODE;
+				--{debitAccountId}/{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}
+				SET STBUrlParameters ='1000000163'||'/'||'ZWL'||'/'||EnvRefer.BANK_ACC_NUMBER||'/'|| EnvRefer.MERCHANT_NAME||'/'||'ZWL'||'/'||EnvRefer.BALANCE_USD||'/'||CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd')||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.CODE;
 				SET SB_T24URL = STB_T24URL||STBUrlParameters;
-				SET STB_Msg = getPayLoad(FIELDNAME(OutputRoot.JSON),OutputRoot.JSON.Data,encodeRef,ccidRef);
+				SET STB_Msg = getPayLoad(FIELDNAME(OutputRoot.JSON),OutputRoot.JSON.Data,encodeRef,ccidRef); 
 				SET OutputRoot = NULL;
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL DBLogging(Environment.Variables.UID,STB_Msg,'STB T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);

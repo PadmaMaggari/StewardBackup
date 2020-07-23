@@ -4,18 +4,18 @@ PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
-DECLARE EXCEPTION_Q EXTERNAL CHARACTER ''; 
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE resQueueName EXTERNAL CHARACTER '';
-DECLARE URL EXTERNAL CHARACTER ''; 
-CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24 
+DECLARE URL EXTERNAL CHARACTER '';
+CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyEntireMessage();
-		RETURN TRUE; 
+		RETURN TRUE;
 	END;
-	CREATE PROCEDURE CopyEntireMessage() BEGIN 
-				SET Environment.MQRFH2 = InputRoot.MQRFH2; 
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE rc BOOLEAN FALSE;
@@ -32,53 +32,56 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		--SET Environment.Variables.usr.Id = InputRoot.MQRFH2.RequestIdentifier;
-		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-		SET Environment.MQRFH2.usr.Id = InputRoot.MQRFH2.RequestIdentifier; 
-		DECLARE debitAccountId CHARACTER InputRoot.JSON.Data.dbtId; 
-		DECLARE debitCurrency CHARACTER;
-		DECLARE creditAccountId CHARACTER;
-		DECLARE orderingCustomerName CHARACTER;
-		DECLARE paymentCurrency CHARACTER;
-		DECLARE transactionAmount CHARACTER;
-		DECLARE executionDate CHARACTER;
-		DECLARE narrative CHARACTER;
-		DECLARE invoiceReference CHARACTER; 
+		DECLARE env REFERENCE TO Environment.Variables;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+			--set response queue and tcpip connection id in environment
+		DECLARE resQ CHARACTER Environment.MQRFH2.usr.resQueueName;
+		DECLARE connId CHARACTER Environment.MQRFH2.RequestIdentifier; 
+		SET Environment.Variables.ResponseQ = resQ;
+		SET Environment.Variables.HttpIp.ConnectionId = connId;
+		SET Environment.Variables.usr.Id = InputRoot.MQRFH2.RequestIdentifier;  
 		--------------DBLogging-------------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),
+			CALL DBLogging(Environment.Variables.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),
 			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		-----------------------------
 		/* ==================== Database Logging End ==================== */
-		/* ==================== Framming Request to T24 ==================== */
-		DECLARE env REFERENCE TO Environment.Variables;
-		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQMD = InputRoot.MQMD;
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
-		DECLARE outRef REFERENCE TO OutputRoot.JSON;
-		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
-		--set response queue and tcpip connection id in environment
-		DECLARE resQ CHARACTER Environment.MQRFH2.usr.resQueueName;
-		DECLARE connId CHARACTER Environment.MQRFH2.usr.Id;
-		SET Environment.Variables.ResponseQ = resQ;
-		SET Environment.Variables.HttpIp.ConnectionId = connId;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','..............Initializing School Fee Payment logging...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','Request from Postilion::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.Variables.usr.Id) INTO rc;
 		END IF;
+		/* ==================== Framming Request to T24 ==================== */
+
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		DECLARE outRef REFERENCE TO OutputRoot.JSON;
+		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
 		----------------------------------------------------------------
+		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		SET Environment.MQRFH2.usr.Id = InputRoot.MQRFH2.RequestIdentifier;
+		DECLARE debitAccountId CHARACTER InputRoot.JSON.Data.debitAccountNumber;
+		DECLARE debitCurrency CHARACTER InputRoot.JSON.Data.debitCurrency;
+		DECLARE creditAccountId CHARACTER InputRoot.JSON.Data.creditAccountNumber;
+		DECLARE orderingCustomerName CHARACTER InputRoot.JSON.Data.biller;
+		DECLARE paymentCurrency CHARACTER InputRoot.JSON.Data.debitCurrency;
+		DECLARE transactionAmount CHARACTER InputRoot.JSON.Data.debitAmount;
+		DECLARE executionDate CHARACTER CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd');
+		DECLARE narrative CHARACTER InputRoot.JSON.Data.transactionType;
+		DECLARE invoiceReference CHARACTER InputRoot.JSON.Data.debitReference;
+		DECLARE SFP_T24uRL CHARACTER;
+		SET SFP_T24uRL = URL||'/'||debitAccountId||'/'||debitCurrency||'/'||creditAccountId||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||narrative||'/'||invoiceReference;
 		SET outRef = inRef;
 		SET Environment.Variables.jsonData = outRef;
-		SET OutputRoot = NULL;
+		SET OutputRoot = NULL; 
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.Id,getPayLoad(domainName,outRef,encodeRef,ccidRef),'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),
+			CALL DBLogging(Environment.Variables.usr.Id,SFP_T24uRL,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),
 			CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -90,17 +93,17 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 		MOVE outRef TO OutputRoot.JSON;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','Request To T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',getPayLoad(domainName,outRef,encodeRef,ccidRef)) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',SFP_T24uRL) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.Variables.usr.Id) INTO rc; 
 		END IF;
 		--{debitAccountId}/{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}"
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||'/'||debitAccountId||'/'||debitCurrency||'/'||creditAccountId||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||narrative||'/'||invoiceReference; 
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = SFP_T24uRL;
 	END;
-END MODULE; 
+END MODULE;
 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion 
+CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyEntireMessage();
@@ -125,7 +128,7 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE OutRef REFERENCE TO OutputRoot;
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
-			DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code"; 
+		DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 
 		SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot = NULL;
@@ -148,16 +151,18 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
 		DECLARE OutRefer REFERENCE to OutputRoot.JSON.Data;
 		DECLARE Inrefer REFERENCE to InputRoot.JSON.Data.body;
-		IF domainName LIKE 'JSON' OR  responceCode LIKE  '200' THEN   
+		IF domainName LIKE 'JSON' OR responceCode LIKE '200' THEN
 			SET OutRefer.statusCode = '200';
 			SET OutRefer.message = 'SUCCESS';
 			SET OutRefer.responseBody.source = 'ESB';
 			SET OutRefer.responseBody.applicationName = 'SchoolFeePayment';
 		ELSE
+			
 			SET OutRefer.statusCode = '000';
 			SET OutRefer.message = 'FAILURE';
 			SET OutRefer.responseBody.source = 'ESB';
 			SET OutRefer.responseBody.applicationName = 'SchoolFeePayment';
+			SET OutRefer = InputRoot.BLOB;
 		END IF;
 		DECLARE envref REFERENCE TO Environment.JSON.Data;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
@@ -173,32 +178,32 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 		PROPAGATE TO TERMINAL 'out';
 		----------------------
 		SET OutputRoot.Properties=InputRoot.Properties;
-		SET OutputRoot.Properties = Environment.Properties; 
+		SET OutputRoot.Properties = Environment.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
 		SET OutputRoot.JSON.Data=envref;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','SchoolFeePayment Response To Postilion::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','SchoolFeePayment Response To Postilion::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',Environment.jsonData) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 	END;
 END MODULE;
 
 
-CREATE COMPUTE MODULE SchoolFeePaymentFlow_CaptureException 
+CREATE COMPUTE MODULE SchoolFeePaymentFlow_CaptureException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL BuildErrorMsg();
-		RETURN TRUE;
+		CALL BuildErrorMsg();
+		RETURN FALSE;
 	END;
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -206,30 +211,30 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_CaptureException
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;     
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SchoolFeePayment';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'SchoolFeePayment');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
-		/* =================== CALLING LOG4J LOGGING   ==============*/
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		/* =================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
-		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
-		/* =================== CALLING DB LOGGING  ==============*/
+		/* =================== CALLING LOG4J LOGGING ENDING ==============*/
+		/* =================== CALLING DB LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SchoolFeePayment.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;   
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
-		/* =================== CALLING DB LOGGING ENDING  ==============*/
+		/* =================== CALLING DB LOGGING ENDING ==============*/
 		----------------------------------
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
@@ -241,13 +246,13 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_CaptureException
 		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.SchoolFeePayment.ErrorCode;
 		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.SchoolFeePayment.ErrorType;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
-		/* =================== CALLING LOG4J LOGGING   ==============*/
+		/* =================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','End of Logging Application Related Exception') INTO rc;
 		END IF;
-		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+		/* =================== CALLING LOG4J LOGGING ENDING ==============*/
 		PROPAGATE TO TERMINAL 'out1';
 		----------------------------------
-		END;
+	END;
 END MODULE;
