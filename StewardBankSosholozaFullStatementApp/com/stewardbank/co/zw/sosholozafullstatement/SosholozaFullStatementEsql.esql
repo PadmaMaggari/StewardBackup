@@ -96,9 +96,9 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_ReqToFrondEnd
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 	 	DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
-	 	DECLARE inRef1 REFERENCE TO InputRoot.JSON.Data.body;
+	 	DECLARE inRef1 REFERENCE TO InputRoot.JSON.Data.body.Item[1];
 	 	DECLARE inDomain CHARACTER FIELDNAME(InputBody);
-	 	DECLARE i INTEGER 0;
+	 	DECLARE i INTEGER 1;
 	 	DECLARE outRefer REFERENCE TO OutputRoot;
 	 	DECLARE inDomainDataRef REFERENCE TO InputRoot.JSON.Data;
 	 	DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
@@ -123,13 +123,13 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_ReqToFrondEnd
 		PROPAGATE TO TERMINAL 'out';
 		END IF; 
 		/* =================== CALLING DB LOGGING ENDING  ==============*/
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'FullStatementResponse';
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'FullStatementResponse';
 			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'header';
 			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'body';
 			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 		
-		     
+		
 		
 		
 		IF inDomain LIKE 'JSON' OR inDomain LIKE 'XMLNSC'OR responceCode LIKE  '200' THEN
@@ -138,13 +138,37 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_ReqToFrondEnd
 			SET headRef.accountType = 'T24';
 			SET headRef.responseCode = '200';
 			SET headRef.status = 'SUCCESS';     
-			CREATE FIELD OutputRoot.JSON.Data.FullStatementResponse IDENTITY(JSON.Array);
-			WHILE LASTMOVE(inRef1) DO
-				SET bodyRef.FullStatementData = inRef1;
+			CREATE FIELD bodyRef.fullStatementData IDENTITY(JSON.Array);
+			DECLARE minRef REFERENCE TO bodyRef.fullStatementData;
+--			WHILE LASTMOVE(inRef1) DO
+--				SET minRef.FullStatementData.transactionReference = inRef1.transactionReference;
+--				SET minRef.FullStatementData.closingBalance = inRef1.closingBalance;
+--				SET minRef.FullStatementData.bookingDate = inRef1.bookingDate;
+--				SET minRef.FullStatementData.transactionDescription = inRef1.transactionDescription;
+--				SET minRef.FullStatementData.valueDate = inRef1.valueDate;
+--				SET minRef.FullStatementData.credit = inRef1.credit;
+--				
+--				SET i=i+1;
+--				MOVE inRef1 NEXTSIBLING;
+--			END WHILE;
+		
+		WHILE LASTMOVE(inRef1) DO
+				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'transactionReference' VALUE inRef1.transactionReference;
+				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'closingBalance' VALUE inRef1.closingBalance;
+				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'bookingDate' VALUE inRef1.bookingDate;
+				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'transactionDescription' VALUE inRef1.transactionDescription;
+				CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'valueDate' VALUE inRef1.valueDate;
+				IF CONTAINS(FIELDNAME(inRef1.credit),'credit')   THEN
+					CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'credit' VALUE inRef1.credit;
+				
+				ELSE
+					CREATE LASTCHILD OF minRef.Item[i] TYPE NameValue NAME 'debit' VALUE inRef1.debit;
+				END IF;
+				
+				
 				SET i=i+1;
 				MOVE inRef1 NEXTSIBLING;
-			END WHILE;
-		
+				END WHILE;
 		ELSE
 			SET headRef.statusCode = '000';
 			SET headRef.message = 'FAILURE';
