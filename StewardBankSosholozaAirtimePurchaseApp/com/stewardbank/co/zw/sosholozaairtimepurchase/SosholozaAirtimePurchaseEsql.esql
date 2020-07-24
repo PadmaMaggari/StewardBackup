@@ -88,7 +88,7 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_GenerateIsoReq
 		CALL keyValueGenerator(destinationPhone) INTO keydestinationPhone; 
 		
 		SET outRef.ReservedPrivate_127 = '000000';
-		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel ||keyChannelValue||comm||keydestinationPhone ||keydestinationPhoneValue;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel ||keyChannelValue||keydestinationPhone ||keydestinationPhoneValue;
 		SET OutputRoot.JSON= NULL;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
