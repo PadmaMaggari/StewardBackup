@@ -63,10 +63,10 @@ CREATE COMPUTE MODULE ZipitHttpFlow_GenerateIsoReq
 		SET outRef.MTI_MessageClass = 2;
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
-		SET outRef.ProcessingCode_003 = CAST(inRef.ZipitRequest.header.processingCode AS INTEGER);
-		SET outRef.AmountTransaction_004 = CAST(inRef.ZipitRequest.body.amount AS INTEGER);
-		SET outRef.AccountIdentification1_102 = CAST(inRef.ZipitRequest.body.destinationAccount AS INTEGER);
-		SET outRef.AccountIdentification2_103 = CAST(inRef.ZipitRequest.body.destinationInstitution AS INTEGER);
+		SET outRef.ProcessingCode_003 = CAST(inRef.JSON.Data.ZipitRequest.header.processingCode AS INTEGER);
+		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.ZipitRequest.body.amount AS INTEGER); 
+		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.ZipitRequest.body.destinationAccount AS INTEGER);
+		SET outRef.AccountIdentification2_103 = CAST(inRef.JSON.Data.ZipitRequest.body.destinationInstitution AS INTEGER);
 		
 		DECLARE keyChannelValue CHARACTER'';
 		CALL keyValueGenerator(inRef.JSON.Data.ZipitRequest.header.channel) INTO keyChannelValue;  ----  19Soshaloza   
@@ -79,7 +79,7 @@ CREATE COMPUTE MODULE ZipitHttpFlow_GenerateIsoReq
 		CALL keyValueGenerator(destinationPhone) INTO keydestinationPhone;  
 		
 		SET outRef.ReservedPrivate_127 = '000000';
-		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel ||keyChannelValue||comm||keydestinationPhone ||keydestinationPhoneValue;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel||keyChannelValue||keydestinationPhone||keydestinationPhoneValue;  
 		SET OutputRoot.JSON= NULL;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
@@ -177,12 +177,11 @@ END MODULE;
 CREATE COMPUTE MODULE ZipitHttpFlow_ReqToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL GenerateReqToPostilion();
+		 CALL reqToPostilion();
 		RETURN TRUE;
 	END;
-
-	CREATE PROCEDURE GenerateReqToPostilion() BEGIN
-		DECLARE rc BOOLEAN FALSE;
+	CREATE PROCEDURE reqToPostilion() BEGIN
+	DECLARE rc BOOLEAN FALSE;
 		
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -265,7 +264,9 @@ CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
-		SET headRef = Environment.header;
+		--SET headRef = Environment.header; 
+		SET headRef.channel = 'Sosholoza';
+		SET headRef.processingCode = '420000'; 
 		SET headRef.status = 'SUCCESS';
 		SET headRef.responseCode = '200';
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
@@ -278,7 +279,6 @@ CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 		CREATE LASTCHILD OF Environment.JSON AS envref NAME 'Data';
 		SET envref = OutRefer;
 	--	SET OutputRoot = NULL;
-
 		SET domainName = FIELDNAME(outDomainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.JSON = NULL;
