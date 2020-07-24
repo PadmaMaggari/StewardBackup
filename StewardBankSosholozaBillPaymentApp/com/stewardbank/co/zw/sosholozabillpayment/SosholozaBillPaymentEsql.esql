@@ -170,6 +170,7 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef1 NAME ('Data');
 		--CALL JSONLogMessage(logRef,jsonRef);
 		SET jsonRef1 = logRef1;
+		SET OutputRoot.JSON=NULL;
 		SET reqMsgJson1 = getPayLoad('JSON',jsonRef1,encodeRef,ccsid);
 		SET OutputRoot.DFDL = NULL;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
@@ -177,7 +178,7 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'Postilion  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
-		END IF;     
+		END IF;
 		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
 		/*=================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
@@ -256,11 +257,11 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_reqToFrondEnd
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
-			--------------DBLogging-------------------
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			PROPAGATE TO TERMINAL 'out';
-			-----------------------------	
+--			--------------DBLogging-------------------
+--			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+--			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+--			PROPAGATE TO TERMINAL 'out';
+--			-----------------------------	
 			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG','Postilion Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		END IF;
@@ -278,12 +279,14 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_reqToFrondEnd
 		
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('BillPaymentsResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('BillPaymentResponse'); 
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
-		SET headRef = Environment.header;
+		--SET headRef = Environment.header; 
+		SET headRef.channel = 'Sosholoza';
+		SET headRef.processingCode = '502000'; 
 		SET headRef.status = 'SUCCESS';
 		SET headRef.responseCode = '200';
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
@@ -296,7 +299,6 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_reqToFrondEnd
 		CREATE LASTCHILD OF Environment.JSON AS envref NAME 'Data';
 		SET envref = OutRefer;
 	--	SET OutputRoot = NULL;
-
 		SET domainName = FIELDNAME(outDomainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.JSON = NULL;

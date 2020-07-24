@@ -38,32 +38,6 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_GenerateIsoReq
 		PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		
---		DECLARE dataLength INTEGER LENGTH(InputRoot.JSON.Data.billProvider);
---		DECLARE billProvider CHARACTER  InputRoot.JSON.Data.billProvider;
---		DECLARE i INTEGER 1;
---		DECLARE dataSpace CHARACTER;
---		IF dataLength < 25 THEN
---		WHILE dataLength < 25 DO
---			SET  billProvider = billProvider||' ';
---			SET  dataLength = dataLength + 1;
---		END WHILE;
---		ELSEIF dataLength > 25 THEN
---			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
---		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
---		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
---		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
---		SET outRef.statusCode = '000';
---		SET outRef.status = 'FAILED';
---		SET outRef.message = 'Airtime Purchase Length Exceds';
---		SET outRef.responseBody.source = 'ESB';
---		SET outRef.responseBody.applicationName = ApplicationLabel;
---		SET outRef.responseBody.applicationErrorCode = 'Airtime_001';
---		
---		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
---		PROPAGATE TO TERMINAL 'out1';
---		RETURN;
---		END IF; 
---		
 		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
 		/*=================== CALLING LOG4j  LOGGING   ==============*/
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
@@ -112,9 +86,9 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_GenerateIsoReq
 		CALL keyValueGenerator(inRef.JSON.Data.BuyAirtimeRequest.body.destinationPhone) INTO keydestinationPhoneValue;   
 		DECLARE keydestinationPhone CHARACTER '';
 		CALL keyValueGenerator(destinationPhone) INTO keydestinationPhone; 
-		
+		     
 		SET outRef.ReservedPrivate_127 = '000000';
-		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel ||keyChannelValue||comm||keydestinationPhone ||keydestinationPhoneValue;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel ||keyChannelValue||keydestinationPhone ||keydestinationPhoneValue;
 		SET OutputRoot.JSON= NULL;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
@@ -154,7 +128,7 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_ReqToT24
 	END;     
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
-		DECLARE rc BOOLEAN FALSE;
+			DECLARE rc BOOLEAN FALSE;
 		
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -188,11 +162,22 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_ReqToT24
 		
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
+		SET Environment.Variables.t24ResMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);  
 		SET Environment.dfdlData = OutputRoot.DFDL;
+		DECLARE reqMsgJson1 CHARACTER'';
+		DECLARE logRef1 REFERENCE TO OutputRoot.DFDL;
+		DECLARE jsonRef1 REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot AS jsonRef1 DOMAIN('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef1 NAME ('Data');
+		--CALL JSONLogMessage(logRef,jsonRef);
+		SET jsonRef1 = logRef1;
+		SET OutputRoot.JSON=NULL;
+		SET reqMsgJson1 = getPayLoad('JSON',jsonRef1,encodeRef,ccsid);
 		SET OutputRoot.DFDL = NULL;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'Postilion  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -200,9 +185,12 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_ReqToT24
 		/*=================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 
-			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG','Request to T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG','========= ISO TO JSON T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG','========= POSTILION RESPONSE ==========') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG',reqMsgJson1) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG',Environment.Variables.t24ResMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 
@@ -281,11 +269,11 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_ReqToFrondEnd
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
-			--------------DBLogging-------------------
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			PROPAGATE TO TERMINAL 'out';
-			-----------------------------	
+--			--------------DBLogging-------------------
+--			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+--			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+--			PROPAGATE TO TERMINAL 'out';
+--			-----------------------------	
 			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG','Postilion Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		END IF;
@@ -303,12 +291,14 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_ReqToFrondEnd
 		
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AirtimePurchaseResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AirtimePurchaseResponse'); 
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
-		SET headRef = Environment.header;
+		--SET headRef = Environment.header; 
+		SET headRef.channel = 'Sosholoza';
+		SET headRef.processingCode = '002000'; 
 		SET headRef.status = 'SUCCESS';
 		SET headRef.responseCode = '200';
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
@@ -321,7 +311,6 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_ReqToFrondEnd
 		CREATE LASTCHILD OF Environment.JSON AS envref NAME 'Data';
 		SET envref = OutRefer;
 	--	SET OutputRoot = NULL;
-
 		SET domainName = FIELDNAME(outDomainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.JSON = NULL;
