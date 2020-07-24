@@ -71,22 +71,10 @@ CREATE COMPUTE MODULE RTGSOutgoingHttp_GenerateIsoReq
 		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.RTGSRequest.body.debitAccountNumber AS INTEGER);
 
 		DECLARE keyChannelValue CHARACTER'';
-<<<<<<< HEAD
 		CALL keyValueGenerator(inRef.JSON.Data.RTGSRequest.header.channel) INTO keyChannelValue; ---- 19Soshaloza
-=======
 		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.header.channel) INTO keyChannelValue;   
->>>>>>> branch 'master' of https://github.com/eidikosys/StewardBank.git
 		DECLARE keyChannel CHARACTER '';
-<<<<<<< HEAD
 		CALL keyValueGenerator(channel) INTO keyChannel; --17channel
-
-		DECLARE keydestinationPhoneValue CHARACTER'';
-		CALL keyValueGenerator(inRef.JSON.Data.RTGSRequest.body.destinationPhone) INTO keydestinationPhoneValue;
-		DECLARE keydestinationPhone CHARACTER '';
-		CALL keyValueGenerator(destinationPhone) INTO keydestinationPhone;
-
-=======
-		CALL keyValueGenerator(channel) INTO keyChannel; 
 		
 		
 		DECLARE keyDestinationAccountValue CHARACTER'';
@@ -104,9 +92,9 @@ CREATE COMPUTE MODULE RTGSOutgoingHttp_GenerateIsoReq
 		DECLARE keyBeneficiaryName CHARACTER '';
 		CALL keyValueGenerator(beneficiaryName) INTO keyBeneficiaryName; 
 		
-		DECLARE keydestinationPhoneValue CHARACTER'';
+		DECLARE keydestinationPhoneValue CHARACTER'';   
 		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.body.destinationPhone) INTO keydestinationPhoneValue;   
-		DECLARE keydestinationPhone CHARACTER '';
+		DECLARE keydestinationPhone CHARACTER '';  
 		CALL keyValueGenerator(destinationPhone) INTO keydestinationPhone; 
 		
 		DECLARE keypayeeReferenceValue CHARACTER'';
@@ -114,17 +102,17 @@ CREATE COMPUTE MODULE RTGSOutgoingHttp_GenerateIsoReq
 		DECLARE keypayeeReference CHARACTER '';
 		CALL keyValueGenerator(payeeReference) INTO keypayeeReference; 
 		
->>>>>>> branch 'master' of https://github.com/eidikosys/StewardBank.git
+
 		SET outRef.ReservedPrivate_127 = '000000';
-<<<<<<< HEAD
+
 		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel||keyChannelValue||keydestinationPhone||keydestinationPhoneValue;
 		SET OutputRoot.JSON= NULL;
-=======
+
 		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel||keyChannelValue||keyDestinationAccount||keyDestinationAccountValue||keyDestinationInstitution||keyDestinationInstitutionValue||keyBeneficiaryName||keyBeneficiaryNameValue||keydestinationPhone||keydestinationPhoneValue||keypayeeReference||keypayeeReferenceValue;
 		
 		
 		
->>>>>>> branch 'master' of https://github.com/eidikosys/StewardBank.git
+
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);
@@ -325,11 +313,9 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_reqToFrondEnd
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 		--SET headRef = Environment.header;
 		SET headRef.channel = 'Sosholoza';
-<<<<<<< HEAD
 		SET headRef.processingCode = '542000'; 
-=======
+
 		SET headRef.processingCode = '542000';      
->>>>>>> branch 'master' of https://github.com/eidikosys/StewardBank.git
 		SET headRef.status = 'SUCCESS';
 		SET headRef.responseCode = '200';
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
