@@ -46,12 +46,11 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_GenerateIsoReq
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','..............Start BillPaymentHTTP logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','..............Start Mini Statement HTTP logging...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','Incoming Request::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
-	--	DECLARE billProviderLength INTEGER LENGTH(inRef.JSON.Data.billProvider);
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
 		SET OutputRoot.MQRFH2.usr = Environment.Variables.usr;
@@ -79,7 +78,7 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_GenerateIsoReq
 		/*=================== CALLING LOG4J LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
@@ -137,11 +136,22 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToT24
 		
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
+		SET Environment.Variables.t24ResMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);  
 		SET Environment.dfdlData = OutputRoot.DFDL;
+		DECLARE reqMsgJson1 CHARACTER'';
+		DECLARE logRef1 REFERENCE TO OutputRoot.DFDL;
+		DECLARE jsonRef1 REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot AS jsonRef1 DOMAIN('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef1 NAME ('Data');
+		--CALL JSONLogMessage(logRef,jsonRef);
+		SET jsonRef1 = logRef1;
+		SET OutputRoot.JSON=NULL;
+		SET reqMsgJson1 = getPayLoad('JSON',jsonRef1,encodeRef,ccsid);
 		SET OutputRoot.DFDL = NULL;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'Postilion  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -149,9 +159,12 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToT24
 		/*=================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','Request to T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','========= ISO TO JSON T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','========= POSTILION RESPONSE ==========') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',reqMsgJson1) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.t24ResMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 

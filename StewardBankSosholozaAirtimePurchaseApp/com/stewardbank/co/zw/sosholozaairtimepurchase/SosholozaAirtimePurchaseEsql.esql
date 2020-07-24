@@ -98,7 +98,7 @@ CREATE COMPUTE MODULE SosholozaAirtimePurchaseFlow_GenerateIsoReq
 		/*=================== CALLING LOG4J LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AirtimePurchaseHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
