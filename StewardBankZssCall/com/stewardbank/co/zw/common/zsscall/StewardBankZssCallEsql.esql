@@ -1,11 +1,13 @@
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.common.zsscall
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE MAX_RETRY_COUNT EXTERNAL INTEGER 0;
 DECLARE INIT_LOG4J_ERROR EXTERNAL CHARACTER '';
-DECLARE RETRY_INTERVAL EXTERNAL INTEGER 0; 
+DECLARE RETRY_INTERVAL EXTERNAL INTEGER 0;
 
 
 CREATE COMPUTE MODULE StewardBankZssSubFlow
@@ -61,7 +63,7 @@ CREATE COMPUTE MODULE StewardBankZssSubFlow
 END MODULE;
 
 CREATE COMPUTE MODULE StewardBankZssSubFlow_addHeaderData
-		DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 	DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -72,44 +74,45 @@ CREATE COMPUTE MODULE StewardBankZssSubFlow_addHeaderData
 			DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 			DECLARE ccsidRef INTEGER InputRoot.Properties.CodedCharSetId;
 			DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
-			DECLARE data BLOB getBlobData(inDomainDataRef,encodeRef,ccsidRef); 
-			
-		DECLARE logRef REFERENCE TO InputRoot.DFDL;
-		DECLARE jsonRef REFERENCE TO OutputRoot;
-		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
-		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
-		SET jsonRef = logRef;
-	 		DECLARE tcpHeader BLOB ;
-	 		DECLARE rc BOOLEAN FALSE;
-	 		
-	 		SET Environment.Variables.reqMsg = getPayLoad('JSON',jsonRef,encodeRef,ccsidRef);  
-			CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+			DECLARE data BLOB getBlobData(inDomainDataRef,encodeRef,ccsidRef);
+
+			DECLARE logRef REFERENCE TO InputRoot.DFDL;
+			DECLARE jsonRef REFERENCE TO OutputRoot;
+			CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
+			CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
+			SET jsonRef = logRef;
+			DECLARE tcpHeader BLOB ;
+			DECLARE rc BOOLEAN FALSE;
+
+			SET Environment.Variables.reqMsg = getPayLoad('JSON',jsonRef,encodeRef,ccsidRef);
+			SET OutputRoot.JSON = NULL;
+			CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 			IF ( rc = FALSE ) THEN
 				DECLARE msg CHARACTER ;
-				SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+				SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 			END IF;
 			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','..............Start logging ZSS sub flow...........') INTO rc;
-	 		--JAVA procedure call to get 2 byte header
-	 		SET tcpHeader = Get2ByteHeader(data);
-	 		CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','===JSON Formatted Data Request====') INTO rc;
-	 		CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-	 		CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','Data with header') INTO rc;
-	 		CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG',CAST(tcpHeader AS CHARACTER)) INTO rc;   
-	 		DECLARE hexBits CHARACTER SUBSTRING(CAST(tcpHeader AS CHARACTER) FROM 3 FOR 4);
-	 		CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','Hex Data of Header:'||hexBits) INTO rc; 
-	 		DECLARE dataWithHeader CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || hexBits || SUBSTRING(CAST(data AS CHARACTER) FROM 3);
-	 		CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','Data with Header'||dataWithHeader) INTO rc;
-	 		
-	 		SET OutputRoot.Properties.MessageType = '{}:ISO8583WithHeader';
-	 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') 
-	 		PARSE(CAST(dataWithHeader AS BLOB)  ENCODING encodeRef CCSID ccsidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader');
-	 		DECLARE outDomainRef REFERENCE TO OutputRoot.DFDL;
-	 		CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','OutputRoot:') INTO rc;
-	 		CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainRef,encodeRef,ccsidRef)) INTO rc;
+			--JAVA procedure call to get 2 byte header
+			SET tcpHeader = Get2ByteHeader(data);
+			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','===JSON Formatted Data Request====') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','Data with header') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG',CAST(tcpHeader AS CHARACTER)) INTO rc;
+			DECLARE hexBits CHARACTER SUBSTRING(CAST(tcpHeader AS CHARACTER) FROM 3 FOR 4);
+			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','Hex Data of Header:'||hexBits) INTO rc;
+			DECLARE dataWithHeader CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || hexBits || SUBSTRING(CAST(data AS CHARACTER) FROM 3);
+			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','Data with Header'||dataWithHeader) INTO rc;
+
+			SET OutputRoot.Properties.MessageType = '{}:ISO8583WithHeader';
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
+			PARSE(CAST(dataWithHeader AS BLOB) ENCODING encodeRef CCSID ccsidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader');
+			DECLARE outDomainRef REFERENCE TO OutputRoot.DFDL;
+			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','OutputRoot:') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainRef,encodeRef,ccsidRef)) INTO rc;
 		END IF;
- 		RETURN TRUE;
-	END;	
-END MODULE; 
+		RETURN TRUE;
+	END;
+END MODULE;
 
 
 CREATE COMPUTE MODULE StewardBankZssSubFlow_removeHeaderData
@@ -127,10 +130,10 @@ CREATE COMPUTE MODULE StewardBankZssSubFlow_removeHeaderData
 			DECLARE tcpHeader BLOB ;
 			DECLARE rc BOOLEAN FALSE;
 			DECLARE logRef REFERENCE TO InputRoot.DFDL;
-		DECLARE jsonRef REFERENCE TO OutputRoot;
-		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
-		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
-		SET jsonRef = logRef;
+			DECLARE jsonRef REFERENCE TO OutputRoot;
+			CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
+			CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
+			SET jsonRef = logRef;
 			SET Environment.Variables.resMsg = getPayLoad('JSON',jsonRef,encodeRef,ccsidRef);
 			CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 			IF ( rc = FALSE ) THEN
@@ -138,18 +141,18 @@ CREATE COMPUTE MODULE StewardBankZssSubFlow_removeHeaderData
 				SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 			END IF;
 			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','===JSON Formatted Data Response====') INTO rc;
-	 		CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
-	 		DECLARE isoData CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || SUBSTRING(CAST(data AS CHARACTER) FROM 7);
-			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','iso data after removing header:'||isoData) INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			DECLARE isoData CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || SUBSTRING(CAST(data AS CHARACTER) FROM 7);
+			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','iso data after removing header:'||isoData) INTO rc;
 			SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
 			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
 			PARSE(CAST(isoData AS BLOB) ENCODING encodeRef CCSID ccsidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583_1987');
 			DECLARE outDomainRef REFERENCE TO OutputRoot.DFDL;
 			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','OutputRoot:') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainRef,encodeRef,ccsidRef)) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','..............end logging ZSS sub flow...........') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'ZSSSubFlowLogger', 'DEBUG','..............end logging ZSS sub flow...........') INTO rc;
 		END IF;
-		RETURN TRUE; 
+		RETURN TRUE;
 	END;
 
 

@@ -2,6 +2,12 @@
 
 
 
+
+
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -21,12 +27,17 @@ CREATE COMPUTE MODULE AccountOpeningFlow_VerifyRequest
 	END;
 	CREATE PROCEDURE VerifyRequest() BEGIN
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
-		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE inRef REFERENCE TO InputRoot;
+		IF EXISTS(InputRoot.JSON[]) THEN
+			MOVE inRef TO InputRoot.JSON.Data;
+		ELSEIF EXISTS(InputRoot.XMLNSC[]) THEN
+			MOVE inRef TO InputRoot.XMLNSC;
+		END IF;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE accountOpeningCheck CHAR inRef.Data.*.header.accountOpeningCheck;
+		DECLARE accountOpeningCheck CHAR COALESCE(inRef.accountOpeningCheck,inRef.*.header.accountOpeningCheck,'');
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		SET Environment.Variables.header = InputRoot.JSON.Data.*.header;
 		SET Environment.Variables.body = InputRoot.JSON.Data.*.body;
@@ -392,20 +403,20 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYC_FailureResponse
 	END;
 
 	CREATE PROCEDURE GenerateKYCFailure() BEGIN
-		 CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
-			 CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-			 CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AccountOpeningResponse');
-			 CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
-			 CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
-			 DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
-			 DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
-			 SET headerRef = Environment.Variables.header;
-			 SET headerRef.Status = 'FAILED';
-			 SET headerRef.ResponseCode = '000';
-			 SET errorRef.source = 'ESB';
-			 SET errorRef.applicationName = ApplicationLabel;
-			 SET errorRef.applicationErrorCode = 'AccountOpening_002';
-			 SET errorRef.message = 'No data from DWH';
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AccountOpeningResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef = Environment.Variables.header;
+		SET headerRef.Status = 'FAILED';
+		SET headerRef.ResponseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = 'AccountOpening_002';
+		SET errorRef.message = 'No data from DWH';
 	END;
 END MODULE;
 
@@ -487,24 +498,169 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToZSS
 	END;
 
 	CREATE PROCEDURE GenerateReqToZSS() BEGIN
-		DECLARE inRef REFERENCE TO OutputRoot.JSON.Data;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE domainDataRef REFERENCE TO InputBody;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		CREATE LASTCHILD OF OutputRoot.DFDL NAME ('ISO8583_1987');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
-		--SET outRef.PrimaryAccountNumber_002 = '';
-		
+		SET outRef.MTI_Version = '0';
+		SET outRef.MTI_MessageClass = '2';
+		SET outRef.MTI_MessageFunction = '0';
+		SET outRef.MTI_MessageOrigin = '0';
 		SET outRef.PrimaryAccountNumber_002 = inRef.cardNumber;
 		SET outRef.ProcessingCode_003 = inRef.processingCode;
 		SET outRef.DateExpiration_014 = inRef.expiryDate;
 		SET outRef.CurrencyCodeTransaction_049 = inRef.currency;
 		SET outRef.AccountIdentification1_102 = inRef.accountNumber;
 		SET outRef.AccountIdentification2_103 = inRef.accountNumber;
-		
-		SET outRef.StructuredDataPostilionPrivate_127_22 = inRef.accountNumber;
-		SET outRef.AccountIdentification1_102 = inRef.accountNumber;
-		SET outRef.AccountIdentification1_102 = inRef.accountNumber;
-		
-		
+		SET outRef.ReservedPrivate_127 = '000000';
+
+		DECLARE isoKey,isoValue CHARACTER '';
+		IF FIELDNAME(inRef.mobileNumber) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.mobileNumber) INTO isoValue;
+			CALL keyValueGenerator('mobileNumber') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = isoKey || isoValue;
+		END IF;
+
+		IF FIELDNAME(inRef.idNumber) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.idNumber) INTO isoValue;
+			CALL keyValueGenerator('idNumber') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.otp) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.otp) INTO isoValue;
+			CALL keyValueGenerator('otp') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.tittle) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.tittle) INTO isoValue;
+			CALL keyValueGenerator('tittle') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.firstName) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.firstName) INTO isoValue;
+			CALL keyValueGenerator('firstName') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.lastName) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.lastName) INTO isoValue;
+			CALL keyValueGenerator('lastName') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.middlename) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.middlename) INTO isoValue;
+			CALL keyValueGenerator('middlename') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.birthDate) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.birthDate) INTO isoValue;
+			CALL keyValueGenerator('birthDate') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.emailAddress) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.emailAddress) INTO isoValue;
+			CALL keyValueGenerator('emailAddress') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.maritalStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.maritalStatus) INTO isoValue;
+			CALL keyValueGenerator('maritalStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.gender) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.gender) INTO isoValue;
+			CALL keyValueGenerator('gender') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.identificationType) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.identificationType) INTO isoValue;
+			CALL keyValueGenerator('identificationType') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.nationality) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.nationality) INTO isoValue;
+			CALL keyValueGenerator('nationality') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.residence) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.residence) INTO isoValue;
+			CALL keyValueGenerator('residence') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.city) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.city) INTO isoValue;
+			CALL keyValueGenerator('city') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.address1) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.address1) INTO isoValue;
+			CALL keyValueGenerator('address1') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.address2) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.address2) INTO isoValue;
+			CALL keyValueGenerator('address2') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.country) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.country) INTO isoValue;
+			CALL keyValueGenerator('country') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.branch) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.branch) INTO isoValue;
+			CALL keyValueGenerator('branch') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.bankingServiceStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.bankingServiceStatus) INTO isoValue;
+			CALL keyValueGenerator('bankingServiceStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.squareRegStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.squareRegStatus) INTO isoValue;
+			CALL keyValueGenerator('squareRegStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.t24CustomerId) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.t24CustomerId) INTO isoValue;
+			CALL keyValueGenerator('t24CustomerId') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.detailsAmended) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.detailsAmended) INTO isoValue;
+			CALL keyValueGenerator('detailsAmended') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.sbPostilionStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.sbPostilionStatus) INTO isoValue;
+			CALL keyValueGenerator('sbPostilionStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.zssPostilionStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.zssPostilionStatus) INTO isoValue;
+			CALL keyValueGenerator('zssPostilionStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.idNumber) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.address1) INTO isoValue;
+			CALL keyValueGenerator('address1') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		CALL UpdateMsgWithAsciiBitMap(outRef);
+		MOVE domainDataRef TO OutputRoot.DFDL;
+		SET domainName = FIELDNAME(domainDataRef);
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		CREATE LASTCHILD OF Environment DOMAIN ('DFDL');
+		SET Environment.DFDL = OutputRoot.DFDL;
+
+
 	END;
 END MODULE;
 
