@@ -4,7 +4,7 @@
 
 BROKER SCHEMA com.stewardbank.co.zw.http.zipit
 
-PATH com.stewardbank.co.zw.common.esql;
+PATH com.stewardbank.co.zw.common.esql; 
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';  
 DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
@@ -20,11 +20,11 @@ CREATE COMPUTE MODULE ZipitHttpFlow_GenerateIsoReq
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenerateReqToPostilion() BEGIN
-SET Environment.MQRFH2 = InputRoot.MQRFH2;
+	SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE DBDetails ROW;
-		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId; 
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inRef REFERENCE TO InputRoot;
 		DECLARE col CHARACTER ':';
@@ -34,27 +34,22 @@ SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
-		
-		
-		
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
-		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
-		/*=================== CALLING LOG4j  LOGGING   ==============*/
+--		IF IsLogRequired LIKE 'Y' THEN
+--		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
+--		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+--		PROPAGATE TO TERMINAL 'out1';
+--		END IF;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','..............Start ZIPIT HTTP logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','..............Start ZIPIT HTTP  logging...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','Incoming Request::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',reqMsg) INTO rc;
-		END IF;
+		END IF;				
 		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		--CALL JSONToISOMapping(inRef,,outRef);
 		SET OutputRoot.Properties = InputRoot.Properties;
@@ -108,9 +103,10 @@ SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.DFDL = Environment.dfdlData;
+		SET OutputRoot.DFDL = Environment.dfdlData;		
 	END;
 END MODULE;
+
 
 
 CREATE COMPUTE MODULE ZipitHttpFlow_ReqToT24
@@ -119,7 +115,9 @@ CREATE COMPUTE MODULE ZipitHttpFlow_ReqToT24
 		CALL GenerateReqToT24();
 		RETURN TRUE;
 	END;
+
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
+
 		DECLARE rc BOOLEAN FALSE;
 		
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
@@ -172,7 +170,7 @@ CREATE COMPUTE MODULE ZipitHttpFlow_ReqToT24
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'Postilion  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
-		END IF;     
+		END IF;
 		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
 		/*=================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
@@ -190,8 +188,8 @@ CREATE COMPUTE MODULE ZipitHttpFlow_ReqToT24
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
+
 	END;
-	
 END MODULE;
 
 CREATE COMPUTE MODULE ZipitHttpFlow_ReqToPostilion
@@ -201,7 +199,7 @@ CREATE COMPUTE MODULE ZipitHttpFlow_ReqToPostilion
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE reqToPostilion() BEGIN
-		DECLARE rc BOOLEAN FALSE;
+	DECLARE rc BOOLEAN FALSE;
 		
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -225,28 +223,27 @@ CREATE COMPUTE MODULE ZipitHttpFlow_ReqToPostilion
 		IF IsLogRequired LIKE 'Y' THEN
 
 			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','Response from T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',Environment.Variables.resISOMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',Environment.Variables.resISOMsg) INTO rc; 
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.DFDL = Environment.dfdlData;  
+		SET OutputRoot.DFDL = Environment.dfdlData;
 
 	END;
-	
 END MODULE;
 
 
 CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-				CALL GenerateResToPortalBackend();
+		CALL GenerateResToBackend();
 		RETURN TRUE;
 	END;
 
-	CREATE PROCEDURE GenerateResToPortalBackend() BEGIN 
-	DECLARE rc BOOLEAN FALSE;
+	CREATE PROCEDURE GenerateResToBackend() BEGIN
+		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
@@ -315,10 +312,11 @@ CREATE COMPUTE MODULE ZipitHttpFlow_reqToFrondEnd
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data = envref;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES; 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 	END;
 	
 END MODULE;
+
 
 CREATE COMPUTE MODULE ZipitHttpFlow_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -375,7 +373,7 @@ CREATE COMPUTE MODULE ZipitHttpFlow_BuildExceptionDetails
 		SET errorRef.message = errMsg;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES; 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;

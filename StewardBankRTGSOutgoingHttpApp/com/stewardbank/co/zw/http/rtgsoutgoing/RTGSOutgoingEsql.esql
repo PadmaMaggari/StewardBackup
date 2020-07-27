@@ -4,7 +4,7 @@
 BROKER SCHEMA com.stewardbank.co.zw.http.rtgsoutgoing
 
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER ''; 
 DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
@@ -104,11 +104,13 @@ CREATE COMPUTE MODULE RTGSOutgoingHttp_GenerateIsoReq
 		
 
 		SET outRef.ReservedPrivate_127 = '000000';
-		
+
+		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel||keyChannelValue||keydestinationPhone||keydestinationPhoneValue;
+		SET OutputRoot.JSON= NULL;
 
 		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel||keyChannelValue||keyDestinationAccount||keyDestinationAccountValue||keyDestinationInstitution||keyDestinationInstitutionValue||keyBeneficiaryName||keyBeneficiaryNameValue||keydestinationPhone||keydestinationPhoneValue||keypayeeReference||keypayeeReferenceValue;
 		
-		SET OutputRoot.JSON= NULL;
+		
 		
 
 		CALL UpdateMsgWithAsciiBitMap(outRef);
@@ -119,7 +121,7 @@ CREATE COMPUTE MODULE RTGSOutgoingHttp_GenerateIsoReq
 		/*=================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
@@ -147,12 +149,13 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToT24
 	END;
 
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
+	
 		DECLARE rc BOOLEAN FALSE;
-
+		
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
-		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;	
 		DECLARE envUsrRef REFERENCE TO Environment.MQRFH2.usr;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
@@ -164,7 +167,7 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToT24
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-
+		
 		DECLARE reqMsgJson CHARACTER'';
 		DECLARE logRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
 		DECLARE jsonRef REFERENCE TO OutputRoot;
@@ -173,16 +176,16 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToT24
 		--CALL JSONLogMessage(logRef,jsonRef);
 		SET jsonRef = logRef;
 		SET reqMsgJson = getPayLoad('JSON',jsonRef,encodeRef,ccsid);
-
+		
 		SET OutputRoot.JSON=NULL;
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
 		CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef);
 		SET Environment.DFDL = OutputRoot.DFDL;
-
+		
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
-		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
-		SET Environment.Variables.t24ResMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
+		SET Environment.Variables.t24ResMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);  
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		DECLARE reqMsgJson1 CHARACTER'';
 		DECLARE logRef1 REFERENCE TO OutputRoot.DFDL;
@@ -217,6 +220,9 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToT24
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
+		
+		
+		
 	END;
 END MODULE;
 CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToPostilion
