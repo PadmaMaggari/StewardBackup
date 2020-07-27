@@ -1,10 +1,12 @@
 
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.http.rtgsoutgoing
 
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER ''; 
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
@@ -68,50 +70,50 @@ CREATE COMPUTE MODULE RTGSOutgoingHttp_GenerateIsoReq
 		SET outRef.MTI_MessageOrigin = 0;
 		SET outRef.ProcessingCode_003 = CAST(inRef.JSON.Data.RTGSRequest.header.processingCode AS INTEGER);
 		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.RTGSRequest.body.amount AS INTEGER);
-		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.RTGSRequest.body.debitAccountNumber AS INTEGER);
+		SET outRef.AccountIdentification1_102 = CAST(inRef.JSON.Data.RTGSRequest.body.destinationAccount AS INTEGER); 
 
 		DECLARE keyChannelValue CHARACTER'';
 		CALL keyValueGenerator(inRef.JSON.Data.RTGSRequest.header.channel) INTO keyChannelValue; ---- 19Soshaloza
-		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.header.channel) INTO keyChannelValue;   
+		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.header.channel) INTO keyChannelValue;
 		DECLARE keyChannel CHARACTER '';
-		CALL keyValueGenerator(channel) INTO keyChannel; --17channel
-		
-		
+		CALL keyValueGenerator(channel) INTO keyChannel; --17channel		
+
+
 		DECLARE keyDestinationAccountValue CHARACTER'';
-		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.body.destinationAccount) INTO keyDestinationAccountValue;   
+		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.body.destinationAccount) INTO keyDestinationAccountValue;
 		DECLARE keyDestinationAccount CHARACTER '';
-		CALL keyValueGenerator(destinationAccount) INTO keyDestinationAccount; 
-		
+		CALL keyValueGenerator(destinationAccount) INTO keyDestinationAccount;
+
 		DECLARE keyDestinationInstitutionValue CHARACTER'';
-		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.body.destinationInstitution) INTO keyDestinationInstitutionValue;   
+		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.body.destinationInstitution) INTO keyDestinationInstitutionValue;
 		DECLARE keyDestinationInstitution CHARACTER '';
-		CALL keyValueGenerator(destinationInstitution) INTO keyDestinationInstitution; 
-		
+		CALL keyValueGenerator(destinationInstitution) INTO keyDestinationInstitution;
+
 		DECLARE keyBeneficiaryNameValue CHARACTER'';
-		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.body.beneficiaryName) INTO keyBeneficiaryNameValue;   
+		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.body.beneficiaryName) INTO keyBeneficiaryNameValue;
 		DECLARE keyBeneficiaryName CHARACTER '';
-		CALL keyValueGenerator(beneficiaryName) INTO keyBeneficiaryName; 
-		
-		DECLARE keydestinationPhoneValue CHARACTER'';   
-		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.body.destinationPhone) INTO keydestinationPhoneValue;   
-		DECLARE keydestinationPhone CHARACTER '';  
-		CALL keyValueGenerator(destinationPhone) INTO keydestinationPhone; 
-		
+		CALL keyValueGenerator(beneficiaryName) INTO keyBeneficiaryName;
+
+		DECLARE keydestinationPhoneValue CHARACTER'';
+		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.body.destinationPhone) INTO keydestinationPhoneValue;
+		DECLARE keydestinationPhone CHARACTER '';
+		CALL keyValueGenerator(destinationPhone) INTO keydestinationPhone;
+
 		DECLARE keypayeeReferenceValue CHARACTER'';
-		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.body.payeeReference) INTO keypayeeReferenceValue;   
+		CALL keyValueGenerator(InputRoot.JSON.Data.RTGSRequest.body.payeeReference) INTO keypayeeReferenceValue;
 		DECLARE keypayeeReference CHARACTER '';
-		CALL keyValueGenerator(payeeReference) INTO keypayeeReference; 
-		
+		CALL keyValueGenerator(payeeReference) INTO keypayeeReference;
+
 
 		SET outRef.ReservedPrivate_127 = '000000';
 
 		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel||keyChannelValue||keydestinationPhone||keydestinationPhoneValue;
 		SET OutputRoot.JSON= NULL;
 
-		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel||keyChannelValue||keyDestinationAccount||keyDestinationAccountValue||keyDestinationInstitution||keyDestinationInstitutionValue||keyBeneficiaryName||keyBeneficiaryNameValue||keydestinationPhone||keydestinationPhoneValue||keypayeeReference||keypayeeReferenceValue;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel||keyChannelValue||keyDestinationAccount||keyDestinationAccountValue||keyDestinationInstitution||keyDestinationInstitutionValue||keyBeneficiaryName||keyBeneficiaryNameValue||keydestinationPhone||keydestinationPhoneValue||keypayeeReference||keypayeeReferenceValue;		
 		
-		
-		
+
+
 
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
@@ -145,17 +147,14 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GenerateReqToT24();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
-
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
-	
 		DECLARE rc BOOLEAN FALSE;
-		
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
-		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;	
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
 		DECLARE envUsrRef REFERENCE TO Environment.MQRFH2.usr;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
@@ -167,7 +166,6 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToT24
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-		
 		DECLARE reqMsgJson CHARACTER'';
 		DECLARE logRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
 		DECLARE jsonRef REFERENCE TO OutputRoot;
@@ -176,16 +174,14 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToT24
 		--CALL JSONLogMessage(logRef,jsonRef);
 		SET jsonRef = logRef;
 		SET reqMsgJson = getPayLoad('JSON',jsonRef,encodeRef,ccsid);
-		
 		SET OutputRoot.JSON=NULL;
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
 		CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef);
 		SET Environment.DFDL = OutputRoot.DFDL;
-		
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
-		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
-		SET Environment.Variables.t24ResMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);  
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+		SET Environment.Variables.t24ResMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		DECLARE reqMsgJson1 CHARACTER'';
 		DECLARE logRef1 REFERENCE TO OutputRoot.DFDL;
@@ -197,34 +193,52 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToT24
 		SET OutputRoot.JSON=NULL;
 		SET reqMsgJson1 = getPayLoad('JSON',jsonRef1,encodeRef,ccsid);
 		SET OutputRoot.DFDL = NULL;
-		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'Postilion  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			PROPAGATE TO TERMINAL 'out1';
+		DECLARE Response ROW;
+		DECLARE sql CHARACTER '';
+		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
+		DECLARE DebitAccount CHARACTER inRef.AccountIdentification1_102;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',DebitAccount) INTO rc;
+		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(DebitAccount));
+		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(DebitAccount,'2') THEN
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'ZSS  Message',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+				PROPAGATE TO TERMINAL 'out1';
+			END IF;
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','========= ZSS MESSAGE ==========') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
+				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+				SET OutputRoot.DFDL = InputRoot.DFDL;
+			END IF;
+			PROPAGATE TO TERMINAL 'out2';
+		ELSE
+			/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'Postilion  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+				PROPAGATE TO TERMINAL 'out1';
+			END IF;
+			/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
+			/*=================== CALLING LOG4J LOGGING ==============*/
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','========= POSTILION RESPONSE ==========') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',reqMsgJson1) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',Environment.Variables.t24ResMsg) INTO rc;
+			END IF;
+			/*=================== CALLING LOG4J LOGGING END ==============*/
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputRoot.DFDL = Environment.dfdlData;
+			PROPAGATE TO TERMINAL 'out';
 		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
-		/*=================== CALLING LOG4J LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-
-			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','========= POSTILION RESPONSE ==========') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',reqMsgJson1) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',Environment.Variables.t24ResMsg) INTO rc;
-		END IF;
-		/*=================== CALLING LOG4J LOGGING END ==============*/
-
-
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.DFDL = Environment.dfdlData;
-		
-		
-		
 	END;
 END MODULE;
+
 CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -317,9 +331,9 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_reqToFrondEnd
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 		--SET headRef = Environment.header;
 		SET headRef.channel = 'Sosholoza';
-		SET headRef.processingCode = '542000'; 
+		SET headRef.processingCode = '542000';
 
-		SET headRef.processingCode = '542000';      
+		SET headRef.processingCode = '542000';
 		SET headRef.status = 'SUCCESS';
 		SET headRef.responseCode = '200';
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
@@ -330,7 +344,7 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_reqToFrondEnd
 		DECLARE envref REFERENCE TO Environment;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
 		CREATE LASTCHILD OF Environment.JSON AS envref NAME 'Data';
-		SET envref = OutRefer; 
+		SET envref = OutRefer;
 		-- SET OutputRoot = NULL;
 		SET domainName = FIELDNAME(outDomainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);

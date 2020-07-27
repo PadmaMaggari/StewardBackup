@@ -28,25 +28,25 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankRTGSOutgoingHttpApp/icons/full/obj16/RTGSOutgoingHttpFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankRTGSOutgoingHttpApp/icons/full/obj30/RTGSOutgoingHttpFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="106,150" queueName="RTGS_SB_HTTP_REQ" messageDomainProperty="JSON" transactionMode="no">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="86,232" queueName="RTGS_SB_HTTP_REQ" messageDomainProperty="JSON" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="RTGS_HTTP_REQ"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="215,31">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="206,150" computeExpression="esql://routine/com.stewardbank.co.zw.http.rtgsoutgoing#RTGSOutgoingHttp_GenerateIsoReq.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="172,232" computeExpression="esql://routine/com.stewardbank.co.zw.http.rtgsoutgoing#RTGSOutgoingHttp_GenerateIsoReq.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateISOReq"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_addheader_addHeader.subflow:FCMComposite_1" xmi:id="FCMComposite_1_4" location="272,234">
         <translation xmi:type="utility:ConstantString" string="addHeader"/>
       </nodes>
-      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="364,234" messageDomain="DFDL" messageSet="{ISO8583_Lib}" messageType="{}:ISO8583WithHeader">
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="365,234" messageDomain="DFDL" messageSet="{ISO8583_Lib}" messageType="{}:ISO8583WithHeader">
         <translation xmi:type="utility:ConstantString" string="CheckISO"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="444,238">
         <translation xmi:type="utility:ConstantString" string="PostilionCall"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="505,162" computeExpression="esql://routine/com.stewardbank.co.zw.http.rtgsoutgoing#RTGSOutgoingHttpFlow_ReqToT24.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="506,333" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.http.rtgsoutgoing#RTGSOutgoingHttpFlow_ReqToT24.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="ReqToT24"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_8" location="556,240">
@@ -61,7 +61,7 @@
       <nodes xmi:type="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_11" location="742,237">
         <translation xmi:type="utility:ConstantString" string="PostilionCall1"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="790,164" computeExpression="esql://routine/com.stewardbank.co.zw.http.rtgsoutgoing#RTGSOutgoingHttpFlow_reqToFrondEnd.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="789,334" computeExpression="esql://routine/com.stewardbank.co.zw.http.rtgsoutgoing#RTGSOutgoingHttpFlow_reqToFrondEnd.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="ReqToFrontEnd"/>
       </nodes>
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_13" location="839,30" destinationMode="list">
@@ -91,6 +91,7 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_19" targetNode="FCMComposite_1_12" sourceNode="FCMComposite_1_11" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_20" targetNode="FCMComposite_1_13" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_21" targetNode="FCMComposite_1_14" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_22" targetNode="FCMComposite_1_12" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.out2" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
