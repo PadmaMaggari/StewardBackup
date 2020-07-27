@@ -36,14 +36,13 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inputRef REFERENCE TO InputRoot.JSON.Data;
-		SET Environment.MQRFH2.RequestIdentifier = InputLocalEnvironment.Destination.HTTP.RequestIdentifier;
+		SET Environment.MQRFH2.RequestIdentifier = SUBSTRING(CAST(InputLocalEnvironment.Destination.HTTP.RequestIdentifier AS CHAR) FROM 3 FOR 48);
 		SET Environment.MQRFH2.usr.HTTPInputHeader = InputRoot.HTTPInputHeader;
 		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
 		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
 		SET Environment.MQRFH2.header = InputRoot.JSON.Data.*.header;
 		SET Environment.MQRFH2.body = InputRoot.JSON.Data.*.body;
 		SET Environment.MQRFH2.serviceName = REPLACE(serviceName,'Request','Response');
-		SET Environment.Variables.messageID = CAST(Environment.MQRFH2.RequestIdentifier AS CHAR);
 		SET Environment.Variables.reqMsg = CAST(InputRoot.JSON AS CHAR CCSID ccidRef);
 		--DECLARE procCode CHARACTER InputRoot.JSON.Data.processingCode;
 		IF 	(inputRef.processingCode IS NOT NULL) OR
@@ -69,7 +68,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Incoming Router Start ==============') INTO rc ;
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','JSON Request: '|| Environment.Variables.reqMsg) INTO rc ;
 			----------DBLogging LOGGING -------------------
-			CALL DBLogging(Environment.Variables.messageID,Environment.Variables.reqMsg,'HTTPRouter Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'HTTPRouter Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
 			----------------------------------
@@ -261,7 +260,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Outgoing Router Start ==============') INTO rc ;
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','JSON Response: '|| Environment.Variables.reqMsg) INTO rc ;
 			----------- DBLogging Properties ==============
-			CALL DBLogging(Environment.Variables.msgID,Environment.Variables.reqMsg,'HTTPRouter Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'HTTPRouter Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
 			------------------------------
@@ -375,7 +374,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_BuildExceptionDetails
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.HTTP_RESROUTER.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.HTTP_RESROUTER.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';

@@ -412,34 +412,69 @@ END MODULE;
 CREATE COMPUTE MODULE AccountOpeningFlow_CaptureException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL CopyMessageHeaders();
 		CALL BuildErrorMsg();
-		DECLARE env REFERENCE TO Environment.Variables;
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
-		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
-		DECLARE rc BOOLEAN FALSE;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Generating Exception Response::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER )) INTO rc;
 		RETURN TRUE;
 	END;
 
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
-	END;
-
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE errMsg CHARACTER;
+		IF CONTAINS(excpRef.excpText,'T24ServiceCall') THEN
+			SET errMsg = 'T24 Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'FCBServiceCall') THEN
+			SET errMsg = 'FCB Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
+			SET errMsg = 'No Response from T24 Server';
+		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
+			SET errMsg = 'No Response from Postilion Server';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'BalanceEnquiry';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'AccountOpening';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'BalanceEnquiry');
+		CALL BuildExceptionDetails(excpRef,outRef,'AccountOpening');
+		SET Environment.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AccountOpeningResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef = Environment.Variables.header;
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.UserDefinedErrorCodes.AccountOpening.ErrorCode;
+		SET errorRef.message = errMsg;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+		------------Error Logging in DB----------
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.UserDefinedErrorCodes.AccountOpening.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
+		----------------------------------
 	END;
 END MODULE;
 ----Update Account Details
@@ -447,35 +482,29 @@ END MODULE;
 CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToZSS
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL CopyMessageHeaders();
 		CALL GenerateReqToZSS();
 		RETURN TRUE;
 	END;
 
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
-	END;
-
 	CREATE PROCEDURE GenerateReqToZSS() BEGIN
-		DECLARE env REFERENCE TO Environment.Variables;
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
-		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
-		DECLARE rc BOOLEAN FALSE;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Request from MainFlow::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(InputRoot.XMLNSC ENCODING 546 CCSID 1208) AS CHARACTER)) INTO rc;
-		SET OutputRoot = InputRoot;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://localhost:7080/ecocash/?id=263785974133';
-		--SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://localhost:7080/ecocash/?id=263785974144';
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG','Request To DWH Service::') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccountOpeningDebugLogger', 'DEBUG',CAST(ASBITSTREAM(OutputRoot.XMLNSC ENCODING InputRoot.Properties.Encoding CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER )) INTO rc;
-
+		DECLARE inRef REFERENCE TO OutputRoot.JSON.Data;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		CREATE LASTCHILD OF OutputRoot.DFDL NAME ('ISO8583_1987');
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		--SET outRef.PrimaryAccountNumber_002 = '';
+		
+		SET outRef.PrimaryAccountNumber_002 = inRef.cardNumber;
+		SET outRef.ProcessingCode_003 = inRef.processingCode;
+		SET outRef.DateExpiration_014 = inRef.expiryDate;
+		SET outRef.CurrencyCodeTransaction_049 = inRef.currency;
+		SET outRef.AccountIdentification1_102 = inRef.accountNumber;
+		SET outRef.AccountIdentification2_103 = inRef.accountNumber;
+		
+		SET outRef.StructuredDataPostilionPrivate_127_22 = inRef.accountNumber;
+		SET outRef.AccountIdentification1_102 = inRef.accountNumber;
+		SET outRef.AccountIdentification1_102 = inRef.accountNumber;
+		
+		
 	END;
 END MODULE;
 
@@ -484,19 +513,8 @@ END MODULE;
 CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToPostilion
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		CALL CopyMessageHeaders();
 		CALL GenerateReqToPostilion();
 		RETURN TRUE;
-	END;
-
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
 	END;
 
 	CREATE PROCEDURE GenerateReqToPostilion() BEGIN
@@ -544,6 +562,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToT24
 		DECLARE outRef REFERENCE TO OutputRoot.JSON;
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.body;
+		SET headRef = Environment.Variables.header;
 		CREATE LASTCHILD OF headRef NAME ('override');
 		CREATE LASTCHILD OF headRef.override IDENTITY(JSON.Array)overrideDetails;
 		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)customerIds;
@@ -557,7 +576,6 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToT24
 		SET Environment.JSON = OutputRoot.JSON;
 		SET Environment.Variables.reqMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.JSON = NULL;
-		--PROPAGATE TO TERMINAL 'out1';
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- T24 Request ------') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
@@ -575,23 +593,49 @@ END MODULE;
 CREATE COMPUTE MODULE AccountOpeningFlow_GenerateFCMResponse
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		-- CALL CopyMessageHeaders();
 		CALL GenerateFCMResponse();
 		RETURN TRUE;
 	END;
 
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
-	END;
-
 	CREATE PROCEDURE GenerateFCMResponse() BEGIN
-		SET OutputRoot = InputRoot;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputBody;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- T24 Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+		END IF;
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		-----------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME('AccountOpeningResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('body');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headRef = Environment.Variables.header;
+		SET headRef.status = 'SUCCESS';
+		SET headRef.responseCode = '200';
+		SET headRef.transactionStatus = inRef.header.transactionStatus;
+		SET headRef.audit = inRef.header.audit;
+		SET headRef.aaaId = inRef.header.aaaId;
+		SET bodyRef = inRef.body;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 	END;
 END MODULE;
 
