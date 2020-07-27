@@ -43,11 +43,12 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GeneratingT24Request
 		  SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.JSON),outRef,encodeRef,ccidRef);
 		 --******************Insertingvalues into ISAVE table with T24 Request Message ************
 --		    SET OutputRoot = NULL;
-			
-			 SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
-			 SET OutputLocalEnvironment.Destination.HTTP.RequestURL = BackendT24Url||RtgsIncomingUrlPathparameters ;
+			SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = BackendT24Url||RtgsIncomingUrlPathparameters ;
 			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'');
 			IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............T24 Request Url..........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',BackendT24Url||RtgsIncomingUrlPathparameters) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............T24 Request..........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End of RTGSIncoming  ReqToT24 logging...........') INTO rc;
@@ -84,7 +85,7 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_UpdateDatabaseStatus
 		--***************Updating Database with T24 Status and Response codes***********************
 		IF FIELDNAME(InputRoot) IS NOT NULL THEN
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
-			 IF CONTAINS(CAST(Environment.Variables.Statuscode AS CHARACTER),'200') THEN
+			 IF CONTAINS(CAST(Environment.Variables.Statuscode AS CHARACTER),'200') AND CONTAINS(InputRoot.JSON.Data.header,'success') THEN
 			 	CALL UpdateDBStatus(Guid,'SUCCESS',CAST(Environment.Variables.Statuscode AS CHARACTER),' ','T24');
 			 	CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Updated Database as Success...........') INTO rc;
 			 ELSE
