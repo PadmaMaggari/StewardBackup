@@ -104,13 +104,11 @@ CREATE COMPUTE MODULE RTGSOutgoingHttp_GenerateIsoReq
 		
 
 		SET outRef.ReservedPrivate_127 = '000000';
-
-		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel||keyChannelValue||keydestinationPhone||keydestinationPhoneValue;
-		SET OutputRoot.JSON= NULL;
+		
 
 		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel||keyChannelValue||keyDestinationAccount||keyDestinationAccountValue||keyDestinationInstitution||keyDestinationInstitutionValue||keyBeneficiaryName||keyBeneficiaryNameValue||keydestinationPhone||keydestinationPhoneValue||keypayeeReference||keypayeeReferenceValue;
 		
-		
+		SET OutputRoot.JSON= NULL;
 		
 
 		CALL UpdateMsgWithAsciiBitMap(outRef);
@@ -121,7 +119,7 @@ CREATE COMPUTE MODULE RTGSOutgoingHttp_GenerateIsoReq
 		/*=================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc; 
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
