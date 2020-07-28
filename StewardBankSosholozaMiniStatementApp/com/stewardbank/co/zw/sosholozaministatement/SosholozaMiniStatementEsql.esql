@@ -149,29 +149,50 @@ CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToT24
 		SET OutputRoot.JSON=NULL;
 		SET reqMsgJson1 = getPayLoad('JSON',jsonRef1,encodeRef,ccsid);
 		SET OutputRoot.DFDL = NULL;
-		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'Postilion  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			PROPAGATE TO TERMINAL 'out1';
-		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
-		/*=================== CALLING LOG4J LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
+		DECLARE Response ROW;
+		DECLARE sql CHARACTER '';
+		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
+		DECLARE DebitAccount CHARACTER inRef.AccountIdentification1_102;
+		CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',DebitAccount) INTO rc; 
+		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(DebitAccount));
+		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(DebitAccount,'2') THEN
+				IF IsLogRequired LIKE 'Y' THEN
+					CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'ZSS  Message',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+					PROPAGATE TO TERMINAL 'out1';
+				END IF;
+				IF IsLogRequired LIKE 'Y' THEN
+					CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','========= ZSS MESSAGE ==========') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
+				END IF;
+				SET OutputRoot.Properties = InputRoot.Properties;
+					SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+					SET OutputRoot.DFDL = InputRoot.DFDL;
+				PROPAGATE TO TERMINAL 'out2';
+			ELSE
+				/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
+				IF IsLogRequired LIKE 'Y' THEN
+					CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'Postilion  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+					PROPAGATE TO TERMINAL 'out1';
+				END IF;
+				/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
+				/*=================== CALLING LOG4J LOGGING ==============*/
+				IF IsLogRequired LIKE 'Y' THEN
 
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','========= POSTILION RESPONSE ==========') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',reqMsgJson1) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.t24ResMsg) INTO rc;
-		END IF;
-		/*=================== CALLING LOG4J LOGGING END ==============*/
-
-
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.DFDL = Environment.dfdlData;
+					CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','========= POSTILION RESPONSE ==========') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',reqMsgJson1) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'MiniStatementHTTPLogger', 'DEBUG',Environment.Variables.t24ResMsg) INTO rc; 
+				END IF;
+				/*=================== CALLING LOG4J LOGGING END ==============*/
+				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+				SET OutputRoot.DFDL = Environment.dfdlData; 
+				PROPAGATE TO TERMINAL 'out';
+			END IF;
 	END;
 END MODULE;
 CREATE COMPUTE MODULE SosholozaMiniStatementFlow_ReqToPostilion
