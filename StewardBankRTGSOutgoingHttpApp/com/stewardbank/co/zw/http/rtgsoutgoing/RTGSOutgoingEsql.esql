@@ -208,10 +208,10 @@ CREATE COMPUTE MODULE RTGSOutgoingHttpFlow_ReqToT24
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG','========= ZSS MESSAGE ==========') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'RTGSHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
-				SET OutputRoot.Properties = InputRoot.Properties;
+			END IF;
+			SET OutputRoot.Properties = InputRoot.Properties;
 				SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 				SET OutputRoot.DFDL = InputRoot.DFDL;
-			END IF;
 			PROPAGATE TO TERMINAL 'out2';
 		ELSE
 			/*=================== CALLING DB RAW AUDIT LOGGING ==============*/

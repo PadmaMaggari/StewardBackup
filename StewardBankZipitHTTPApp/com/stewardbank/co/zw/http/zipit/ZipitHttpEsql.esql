@@ -193,10 +193,10 @@ CREATE COMPUTE MODULE ZipitHttpFlow_ReqToT24
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','========= ZSS MESSAGE ==========') INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
-					SET OutputRoot.Properties = InputRoot.Properties;
+				END IF;
+				SET OutputRoot.Properties = InputRoot.Properties;
 					SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 					SET OutputRoot.DFDL = InputRoot.DFDL;
-				END IF;
 				PROPAGATE TO TERMINAL 'out2';
 			ELSE
 				/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
@@ -219,33 +219,10 @@ CREATE COMPUTE MODULE ZipitHttpFlow_ReqToT24
 				/*=================== CALLING LOG4J LOGGING END ==============*/
 				SET OutputRoot.Properties = InputRoot.Properties;
 				SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-				SET OutputRoot.DFDL = Environment.dfdlData;
+				SET OutputRoot.DFDL = Environment.dfdlData; 
 				PROPAGATE TO TERMINAL 'out';
 			END IF;
-		ELSE
-			/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
-			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'Postilion  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-				PROPAGATE TO TERMINAL 'out1';
-			END IF;
-			/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
-			/*=================== CALLING LOG4J LOGGING ==============*/
-			IF IsLogRequired LIKE 'Y' THEN
-
-				CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','========= POSTILION RESPONSE ==========') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',reqMsgJson1) INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',Environment.Variables.t24ResMsg) INTO rc;
-			END IF;
-			/*=================== CALLING LOG4J LOGGING END ==============*/
-			SET OutputRoot.Properties = InputRoot.Properties;
-			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-			SET OutputRoot.DFDL = Environment.dfdlData;
-			PROPAGATE TO TERMINAL 'out';
-		END IF;
+		END IF; 
 
 	END;
 END MODULE;
