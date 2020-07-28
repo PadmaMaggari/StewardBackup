@@ -26,7 +26,6 @@ CREATE COMPUTE MODULE iftHttp_GenerateIsoReq
 		CALL GenerateIsoReq();
 		RETURN TRUE;
 	END;
-
 	CREATE PROCEDURE GenerateIsoReq() BEGIN
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
@@ -77,23 +76,16 @@ CREATE COMPUTE MODULE iftHttp_GenerateIsoReq
 		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.InternalTransferRequest.body.amount AS INTEGER);
 		SET outRef.AccountIdentification1_102 = inRef.JSON.Data.InternalTransferRequest.body.debitAccountNumber;
 		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.InternalTransferRequest.body.accountIdentification2;
-
 		DECLARE keyChannelValue CHARACTER'';
 		CALL keyValueGenerator(inRef.JSON.Data.InternalTransferRequest.header.channel) INTO keyChannelValue;
 		DECLARE keyChannel CHARACTER '';
 		CALL keyValueGenerator(channel) INTO keyChannel;		
-
-
 		DECLARE keydestinationPhoneValue CHARACTER'';
 		CALL keyValueGenerator(inRef.JSON.Data.InternalTransferRequest.body.destinationPhone) INTO keydestinationPhoneValue;
 		DECLARE keydestinationPhone CHARACTER '';
 		CALL keyValueGenerator(destinationPhone) INTO keydestinationPhone;
-
 		SET outRef.ReservedPrivate_127 = '000000';
 		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel ||keyChannelValue||keydestinationPhone ||keydestinationPhoneValue;		
-		
-
-
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);
