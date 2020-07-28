@@ -296,11 +296,8 @@ CREATE COMPUTE MODULE IncomingRouterFlow_ProcessLength
 		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','Incoming conn id:'||CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.Id AS CHARACTER)) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','server input TCP open timestamp:' ||CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.OpenTimestamp AS CHARACTER)) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','server input TCP close timestamp:' ||CAST(InputLocalEnvironment.TCPIP.Input.ConnectionDetails.CloseTimestamp AS CHARACTER)) INTO rc;
-		IF CONTAINS(portRef,'8806') THEN
-			PROPAGATE TO TERMINAL 'out';
-		ELSE
-			PROPAGATE TO TERMINAL 'out1';
-		END IF;
+		PROPAGATE TO TERMINAL 'out';
+		
 		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','..............end  logging header data...........') INTO rc;
 		RETURN FALSE;
 	END;

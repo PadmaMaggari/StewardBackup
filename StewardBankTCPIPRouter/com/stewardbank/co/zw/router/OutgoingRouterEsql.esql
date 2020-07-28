@@ -70,17 +70,7 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
  		DECLARE dataWithHeader CHARACTER SUBSTRING(CAST(data AS CHARACTER) FROM 1 FOR 2) || hexBits || SUBSTRING(CAST(data AS CHARACTER) FROM 3);
  		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG','Data with Header'||dataWithHeader) INTO rc;
  		
-		IF MTI LIKE MTI_Version||MTI_MessageClass||MTI_MessageFunction||MTI_MessageOrigin THEN
-			DECLARE outRefer REFERENCE TO OutputRoot;
-			CALL DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Router Response Zss',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.timeLocalTransaction,InputRoot.MQRFH2.usr.dateLocalTransaction,InputRoot.MQRFH2.usr.retrievalReferenceNumber,outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out1';
-			SET OutputRoot = InputRoot;
-			SET req = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','ZSS Response: '||req) INTO rc ;
-			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','ZSS Response TCPIP ID: '||tcpipDetails.Id)INTO rc;
-			PROPAGATE TO TERMINAL 'out2';
-		ELSE
+
 			-- =================== CALLING DB RAW AUDIT LOGGING ==============
 			DECLARE outRefer REFERENCE TO OutputRoot;
 			CALL DBLogging(Environment.Variables.Id,Environment.Variables.reqMsg,'Router Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
@@ -95,7 +85,6 @@ CREATE COMPUTE MODULE OutgoingRouterFlow_RouteBasedOnProtocol
 	 		CALL writeToLogFile(MessageFlowLabel, 'TCPRouterLog', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.ISO8583WithHeader),outDomainRef,encodeRef,ccidRef)) INTO rc;
  		
 			PROPAGATE TO TERMINAL 'out';
-		END IF;
 	END;
 END MODULE;
 
