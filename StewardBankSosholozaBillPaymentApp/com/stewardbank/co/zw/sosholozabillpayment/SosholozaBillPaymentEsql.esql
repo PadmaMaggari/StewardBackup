@@ -21,9 +21,6 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateIsoReq
 		CALL GenerateIsoReq();
 		RETURN TRUE;
 	END;
-
-
-
 	CREATE PROCEDURE GenerateIsoReq() BEGIN
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
@@ -39,10 +36,9 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateIsoReq
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;		
-		
-
-
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.DebitAccount = inRef.JSON.Data.ZipitRequest.body.debitAccountNumber;
+		SET Environment.Variables.CreditAccount = inRef.JSON.Data.ZipitRequest.body.billAccount; 
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
@@ -112,13 +108,6 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateIsoReq
 		SET OutputRoot.DFDL = Environment.dfdlData;
 
 	END;
-
-
-
-
-
-
-
 END MODULE;
 
 CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
@@ -159,7 +148,6 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
 		CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef);
 		SET Environment.DFDL = OutputRoot.DFDL;
-
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
@@ -178,8 +166,8 @@ CREATE COMPUTE MODULE SosholozaBillPaymentFlow_GenerateReqToT24
 		DECLARE Response ROW;
 		DECLARE sql CHARACTER '';
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
-		DECLARE DebitAccount CHARACTER inRef.AccountIdentification1_102;
-		DECLARE CreditAccount CHARACTER inRef.AccountIdentification2_103;
+		DECLARE DebitAccount CHARACTER Environment.Variables.DebitAccount;
+		DECLARE CreditAccount CHARACTER Environment.Variables.CreditAccount;
 		CALL writeToLogFile(MessageFlowLabel, 'BillPaymentHTTPLogger', 'DEBUG',CreditAccount) INTO rc;
 		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(CreditAccount));
 		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN

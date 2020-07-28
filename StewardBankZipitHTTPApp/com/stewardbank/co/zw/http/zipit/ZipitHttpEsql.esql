@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 BROKER SCHEMA com.stewardbank.co.zw.http.zipit
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -43,6 +31,8 @@ CREATE COMPUTE MODULE ZipitHttpFlow_GenerateIsoReq
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.DebitAccount = inRef.JSON.Data.ZipitRequest.body.fromAccount;
+		SET Environment.Variables.CreditAccount = inRef.JSON.Data.ZipitRequest.body.destinationAccount;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		-- IF IsLogRequired LIKE 'Y' THEN
 		-- CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
@@ -176,14 +166,16 @@ CREATE COMPUTE MODULE ZipitHttpFlow_ReqToT24
 		DECLARE Response ROW;
 		DECLARE sql CHARACTER '';
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
-		DECLARE DebitAccount CHARACTER inRef.AccountIdentification1_102;
-		DECLARE CreditAccount CHARACTER inRef.AccountIdentification2_103;
+		DECLARE DebitAccount CHARACTER Environment.Variables.DebitAccount;
+		DECLARE CreditAccount CHARACTER Environment.Variables.CreditAccount; 
 		CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',CreditAccount) INTO rc;
 		SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(CreditAccount));
+		
 		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
 			SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
 			CALL writeToLogFile(MessageFlowLabel, 'ZIPITHTTPLogger', 'DEBUG',DebitAccount) INTO rc; 
 			SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(DebitAccount));
+			
 			IF EXISTS (Response.accountEnquiry.*[]) THEN
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'ZSS  Message',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
