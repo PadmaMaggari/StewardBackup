@@ -239,7 +239,7 @@ END MODULE;
 		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CashIn.ErrorCode;
 		SET errorRef.message = errMsg;
 		MOVE domainDataRef TO OutputRoot.JSON;
-		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;  
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
