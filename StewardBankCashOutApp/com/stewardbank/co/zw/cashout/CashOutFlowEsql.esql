@@ -72,13 +72,13 @@ CREATE COMPUTE MODULE CashOutFlow_GenReqToMobiquity
 		SET outRef.transactor.mpin=inRef.transactor.mpin;
 		SET outRef.transactor.password=inRef.transactor.password;
 		SET outRef.transactor.pin=inRef.transactor.pin;
-		SET outRef.withdrawer.userRole=inRef.transactor.userRole;
-		SET outRef.withdrawer.idType=inRef.transactor.idType;
-		SET outRef.withdrawer.productId=inRef.transactor.productId;
-		SET outRef.withdrawer.idValue=inRef.transactor.idValue;
-		SET outRef.withdrawer.mpin=inRef.transactor.mpin;
-		SET outRef.withdrawer.tpin=inRef.transactor.tpin;
-		SET outRef.withdrawer.pin=inRef.transactor.pin;
+		SET outRef.withdrawer.userRole=inRef.withdrawer.userRole;
+		SET outRef.withdrawer.idType=inRef.withdrawer.idType;
+		SET outRef.withdrawer.productId=inRef.withdrawer.productId;
+		SET outRef.withdrawer.idValue=inRef.withdrawer.idValue;
+		SET outRef.withdrawer.mpin=inRef.withdrawer.mpin;
+		SET outRef.withdrawer.tpin=inRef.withdrawer.tpin;
+		SET outRef.withdrawer.pin=inRef.withdrawer.pin;
 		SET reqData=getPayLoad(FIELDNAME(InputBody),outRef,encodeRef,ccidRef);
 		SET Environment.Variables.jsonData=outRef;
 		SET OutputRoot = NULL;
@@ -91,15 +91,16 @@ CREATE COMPUTE MODULE CashOutFlow_GenReqToMobiquity
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		/* ==================== Database Logging End ==================== */
-		/* =================== CALLING  LOG4J LOGGING   ==============*/
+		
 		
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
+		/* =================== CALLING  LOG4J LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			
 			CALL writeToLogFile(MessageFlowLabel, 'CASHOUTLOGGER', 'DEBUG','Request to Mobiquity::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CASHOUTLOGGER', 'DEBUG',Environment.Variables.jsonData) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CASHOUTLOGGER', 'DEBUG',reqData) INTO rc;
 		END IF;
 		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;

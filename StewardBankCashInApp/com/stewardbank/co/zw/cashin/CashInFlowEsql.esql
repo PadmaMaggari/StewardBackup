@@ -11,7 +11,6 @@ DECLARE URL EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE CashInFlow_GenReqToMobiquity
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		-- CALL CopyMessageHeaders();
 		CALL GenerateReqToMobiquity();
 		RETURN TRUE;
 	END;
@@ -80,22 +79,23 @@ CREATE COMPUTE MODULE CashInFlow_GenReqToMobiquity
 		SET OutputRoot = NULL;
 		
 		/* =================== CALLING DB LOGGING   ==============*/
-	 /* IF IsLogRequired LIKE 'Y' THEN
+	  IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,reqData,'Mobiquity Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
 			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';*/
+		PROPAGATE TO TERMINAL 'out1';
 		/* ==================== Database Logging End ==================== */
-		/* =================== CALLING  LOG4J LOGGING   ==============*/
+	
 		
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
+			/* =================== CALLING  LOG4J LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			
 			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG','Request to Mobiquity::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG',Environment.Variables.jsonData) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG',reqData) INTO rc;
 		END IF;
 		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
 		

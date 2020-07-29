@@ -1,0 +1,146 @@
+PATH com.stewardbank.co.zw.common.esql; 
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE IsLogRequired EXTERNAL CHARACTER'';
+DECLARE ns NAMESPACE 'http://www.example.org/SmallWorldRemitWSDL/';
+
+
+CREATE COMPUTE MODULE RemittanceReq
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateReqtoSmallWorldRemit();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE GenerateReqtoSmallWorldRemit() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		--SET OutputRoot.SOAP.Context=InputRoot.SOAP.Context;
+		--SET OutputRoot.SOAP.Header=InputRoot.SOAP.Header;
+		--SET OutputRoot.SOAP.Body=InputRoot.SOAP.Body;
+		
+	 	DECLARE reqMsg CHARACTER;
+	 	DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+	 	DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inref REFERENCE TO InputRoot;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.MQRFH2.usr.HTTPInputHeader = InputRoot.HTTPInputHeader;
+		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
+		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
+		SET Environment.MQRFH2.ReplyIdentifier = SUBSTRING(CAST(InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier AS CHAR) FROM 3 FOR 48);
+		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		
+		/* =================== CALLING  LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldLogger', 'DEBUG','..............Initializing Small World logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldLogger', 'DEBUG','Application Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldLogger', 'DEBUG',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		END IF;
+		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.ReplyIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
+			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		
+		
+		/*framing Request to Remittance*/
+		DECLARE labelName,reqData CHARACTER;
+		SET labelName=InputLocalEnvironment.Destination.RouterList.DestinationData.labelName;
+		SET Environment.labelName=labelName;
+		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation = labelName;
+		SET Environment.SOAP.Envelope=InputLocalEnvironment.SOAP.Envelope;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('SOAP');
+		DECLARE outRef REFERENCE TO OutputRoot.SOAP.Body;
+		CREATE LASTCHILD OF OutputRoot.SOAP AS outRef NAME 'Body';
+		IF labelName= 'getTransactionExportTransactions' THEN
+			SET OutputRoot.SOAP.Body.ns:getTransactionExportTransactions=InputRoot.XMLNSC.ns:getTransactionExportTransactionsResponse;
+		
+		ELSEIF labelName= 'acknowledgeTransactionExport' THEN
+			SET outRef.ns:acknowledgeTransactionExport=InputRoot.XMLNSC.ns:acknowledgeTransactionExport;
+			
+		ELSEIF labelName= 'acknowledgeTransactionsExport' THEN
+			SET outRef.ns:updateTransactionExport=InputRoot.XMLNSC.ns:updateTransactionExport;
+			
+		ELSEIF labelName= 'updateTransactionExport' THEN
+			SET outRef.ns:updateTransactionExport=InputRoot.XMLNSC.ns:updateTransactionExport;
+			
+		ELSEIF labelName= 'updateTransactionsExport' THEN
+			SET outRef.ns:updateTransactionExport=InputRoot.XMLNSC.ns:updateTransactionExport;
+			
+		ELSEIF labelName= 'addTransactionNote' THEN
+			SET outRef.ns:addTransactionNote=InputRoot.XMLNSC.ns:addTransactionNote;	
+					
+		ELSEIF labelName= 'getMTNByFolio' THEN
+			SET outRef.ns:getMTNByFolio=InputRoot.XMLNSC.ns:getMTNByFolio;			
+		END IF;
+		SET reqData=getPayLoad(FIELDNAME(InputBody),outRef,encodeRef,ccidRef);
+		SET Environment.Variables.reqData=outRef;
+		SET OutputRoot=NULL;
+		/* =================== CALLING DB LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.ReplyIdentifier,reqData,'Remittance Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
+			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		/* ===================  DB LOGGING ENDED  ==============*/
+		SET OutputRoot.MQRFH2=Environment.MQRFH2;
+		SET OutputRoot.SOAP.Body=Environment.Variables.reqData;
+		/* =================== CALLING  LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldLogger', 'DEBUG','Request to Remittance::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldLogger', 'DEBUG',reqData) INTO rc;
+		END IF;
+		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE GenT24Response
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		CALL GenerateResToT24();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE GenerateResToT24() BEGIN
+		DECLARE operation CHARACTER;
+		SET OutputLocalEnvironment=InputLocalEnvironment;
+		SET OutputLocalEnvironment.SOAP.Envelope=Environment.SOAP.Envelope;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
+		SET operation = InputRoot.SOAP.Context.operation;
+		IF operation = 'getTransactionExportTransactions' THEN
+		 	DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:getTransactionExportTransactionsResponse;
+		 	SET outRef.ns:getTransactionExportTransactionsResponse=inRef;
+		ELSEIF operation = 'acknowledgeTransactionExport' THEN
+		 	DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:acknowledgeTransactionExportResponse;
+		 	SET outRef.ns:acknowledgeTransactionExportResponse=inRef;	
+		ELSEIF operation='acknowledgeTransactionsExport' THEN
+			DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:acknowledgeTransactionsExportResponse;
+			SET outRef.ns:acknowledgeTransactionsExportResponse=inRef;
+		ELSEIF operation = 'updateTransactionExport' THEN
+			DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:updateTransactionExportResponse;
+			SET outRef.ns:updateTransactionExportResponse=inRef;
+		ELSEIF operation = 'updateTransactionsExport' THEN
+			DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:updateTransactionsExportResponse;
+			SET outRef.ns:updateTransactionsExportResponse=inRef;
+		ELSEIF operation = 'addTransactionNote' THEN
+			DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:addTransactionNoteResponse;
+			SET outRef.ns:addTransactionNoteResponse=inRef;
+		ELSEIF operation = 'getMTNByFolio' THEN
+			DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:getMTNByFolioResponse;
+			SET outRef.ns:getMTNByFolioResponse=inRef;
+		END IF;	
+			 
+	END;
+END MODULE;
