@@ -1,0 +1,138 @@
+BROKER SCHEMA com.stewardbank.co.zw.remittancesimulator
+DECLARE ns NAMESPACE 'http://www.example.org/SmallWorldRemitWSDL/';
+
+
+CREATE COMPUTE MODULE RemittanceCallFlow_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL CopyEntireMessage();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET Environment.MQRFH2.ReplyIdentifier = InputRoot.MQRFH2.ReplyIdentifier;
+		DECLARE labelName CHARACTER;
+		SET labelName=InputLocalEnvironment.Destination.RouterList.DestinationData.labelName;
+		SET Environment.labelName=labelName;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('SOAP');
+		DECLARE outRef REFERENCE TO OutputRoot.SOAP.Body;
+		CREATE LASTCHILD OF OutputRoot.SOAP AS outRef NAME 'Body';
+		
+		IF labelName = 'getTransactionExportTransactions' THEN
+			DECLARE inRef REFERENCE TO InputRoot.XMLNSC.ns:getTransactionExportTransactions;
+			IF FIELDNAME(inRef.arg0) IS NOT NULL AND FIELDNAME(inRef.arg1) IS NOT NULL 
+			AND FIELDNAME(inRef.arg2) IS NOT NULL THEN
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.amountOwed='677.00';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.deliveryFee = '909001';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.rate = '55';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.settlementAmount='555';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.settlementCurrency='4552';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.firstName='MARY';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.firstLastName='CUM';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.type='AU';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.address='world';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.country='ZIM';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.bankAccountType='CHECKING';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.bankId='45';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.bankName='STEWARD';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.bankCode='551';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.bankBranchId='789';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.bankBranchName='BRANCH';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.bankBranchCode='369';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.bankBic='41123698';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.bankIban='213';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.beneficiary.bankAccountNumber='478812';
+			
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.firstName='MARY';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.firstLastName='CUM';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.type='AU';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.address='world';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.country='ZIM';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.bankAccountType='CHECKING';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.bankId='45';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.bankName='STEWARD';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.bankCode='551';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.bankBranchId='789';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.bankBranchName='BRANCH';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.bankBranchCode='369';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.bankBic='41123698';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.bankIban='213';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sender.bankAccountNumber='478812';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.creationDate='25-07=2020';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.deliveryMethod='Bank DEPOSIT';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.folioNumber='78552';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.mtn='4674';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.payerLocationCode='1231';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.payoutCountry='NGA';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.payoutCurrency='NGN';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.payoutPrincipal='584.0';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.sendingCountry='Zimbambae';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.totalSale='100';
+			SET outRef.ns:getTransactionExportTransactionsResponse.return.agentCode='254545';			
+			END IF;
+			
+		ELSEIF labelName='acknowledgeTransactionExport' THEN
+			DECLARE inRef REFERENCE TO InputRoot.XMLNSC.ns:acknowledgeTransactionExport;
+			IF FIELDNAME(inRef.arg0) IS NOT NULL AND FIELDNAME(inRef.arg1) IS NOT NULL 
+			AND FIELDNAME(inRef.arg2) IS NOT NULL THEN
+			SET OutputRoot.SOAP.Body.ns:acknowledgeTransactionExportResponse.return='true';
+			END IF;
+		
+		ELSEIF labelName= 'acknowledgeTransactionsExport' THEN
+			DECLARE inRef REFERENCE TO InputRoot.XMLNSC.ns:updateTransactionsExport;
+			IF FIELDNAME(inRef.arg0) IS NOT NULL AND FIELDNAME(inRef.arg1) IS NOT NULL 
+			AND FIELDNAME(inRef.arg2) IS NOT NULL THEN
+			SET OutputRoot.SOAP.Body.ns:acknowledgeTransactionsExportResponse.return='true';
+			SET OutputRoot.SOAP.Body.ns:acknowledgeTransactionsExportResponse.return='true';
+			END IF;
+			
+		ELSEIF labelName= 'updateTransactionsExport' THEN
+			DECLARE inRef REFERENCE TO InputRoot.XMLNSC.ns:updateTransactionsExport;
+			IF FIELDNAME(inRef.arg0) IS NOT NULL AND FIELDNAME(inRef.arg1) IS NOT NULL 
+			AND FIELDNAME(inRef.arg2) IS NOT NULL THEN
+			SET OutputRoot.SOAP.Body.ns:updateTransactionExportResponse.return='true';
+			END IF;	
+			
+		ELSEIF labelName= 'updateTransactionsExport' THEN
+			DECLARE inRef REFERENCE TO InputRoot.XMLNSC.ns:updateTransactionsExport;
+			IF FIELDNAME(inRef.arg0) IS NOT NULL AND FIELDNAME(inRef.arg1) IS NOT NULL 
+			AND FIELDNAME(inRef.arg2) IS NOT NULL THEN
+			SET OutputRoot.SOAP.Body.ns:updateTransactionsExportResponse.return.evenDate='2020-05-26';
+			SET OutputRoot.SOAP.Body.ns:updateTransactionsExportResponse.return.message='testing';
+			SET OutputRoot.SOAP.Body.ns:updateTransactionsExportResponse.return.mtn='56';
+			SET OutputRoot.SOAP.Body.ns:updateTransactionsExportResponse.return.payoutDate='2015-05-26';
+			SET OutputRoot.SOAP.Body.ns:updateTransactionsExportResponse.return.StatusCode='MT';
+			SET OutputRoot.SOAP.Body.ns:updateTransactionExportResponse.return.Reference='yes';
+			SET OutputRoot.SOAP.Body.ns:updateTransactionsExportResponse.return.evenDate='2015-05-26';
+			SET OutputRoot.SOAP.Body.ns:updateTransactionsExportResponse.return.message='testing';
+			SET OutputRoot.SOAP.Body.ns:updateTransactionsExportResponse.return.mtn='56';
+			SET OutputRoot.SOAP.Body.ns:updateTransactionsExportResponse.return.payoutDate='2019-05-26';
+			SET OutputRoot.SOAP.Body.ns:updateTransactionsExportResponse.return.StatusCode='MT';
+			SET OutputRoot.SOAP.Body.ns:updateTransactionExportResponse.return.Reference='yes';
+			END IF;
+			
+		ELSEIF labelName= 'addTransactionNote' THEN
+			DECLARE inRef REFERENCE TO InputRoot.XMLNSC.ns:addTransactionNote;
+			IF FIELDNAME(inRef.arg0) IS NOT NULL AND FIELDNAME(inRef.arg1) IS NOT NULL 
+			AND FIELDNAME(inRef.arg2) IS NOT NULL  AND FIELDNAME(inRef.arg3) IS NOT NULL  THEN
+			SET OutputRoot.SOAP.Body.ns:addTransactionNoteResponse.return='true';
+			END IF;
+			
+		ELSEIF labelName= 'getMTNByFolio' THEN
+			DECLARE inRef REFERENCE TO InputRoot.XMLNSC.ns:getMTNByFolio;
+			IF FIELDNAME(inRef.arg0) IS NOT NULL AND FIELDNAME(inRef.arg1) IS NOT NULL 
+			AND FIELDNAME(inRef.arg2) IS NOT NULL AND FIELDNAME(inRef.arg3) IS NOT NULL THEN
+			SET OutputRoot.SOAP.Body.ns:getMTNByFolioResponse.return='2366438';
+			END IF;
+			
+		ELSEIF labelName= 'updateTransactionsExport' THEN
+			DECLARE inRef REFERENCE TO InputRoot.XMLNSC.ns:updateTransactionsExport;
+			IF FIELDNAME(inRef.arg0) IS NOT NULL AND FIELDNAME(inRef.arg1) IS NOT NULL 
+			AND FIELDNAME(inRef.arg2) IS NOT NULL THEN
+			SET OutputRoot.XMLNSC.ns:updateTransactionExportResponse.return='true';
+			END IF;
+		END IF;
+	
+	
+	END;
+END MODULE;
