@@ -119,8 +119,9 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_BuildException
 		CALL BuildExceptionDetails(excpRef,outRef,'SalaryCorporatePayments');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		IF IsLogRequired LIKE 'Y' THEN
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
+		CALL UPDATE_SB_SCP_STATUS(Environment.Variables.UID,'PENDING','PENDING','PENDING','PENDING','PENDING','FAILURE','PENDING','FAILURE',CAST(Environment.Variables.CreationDate AS TIMESTAMP));     
+		IF IsLogRequired LIKE 'Y' THEN 
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
 		END IF;

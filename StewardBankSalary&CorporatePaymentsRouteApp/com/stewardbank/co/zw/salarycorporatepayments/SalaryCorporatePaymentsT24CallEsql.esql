@@ -80,11 +80,11 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		/* =================== END OF AUDIT LOGGING ==============*/
 		/*================DB Update=======================*/
 		IF Env.FileNameCheck LIKE 'PO' THEN
-			CALL INSERT_SB_ISAVE_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,T24URL,'','','','SUCCESS',
+			CALL INSERT_SB_SCP_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,T24URL,'','','','','SUCCESS',
 			Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE'); 
 		ELSE
-			CALL INSERT_SB_ISAVE_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,T24URL,'','','','SUCCESS',
-			Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+			CALL INSERT_SB_SCP_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,T24URL,'','','','','SUCCESS',
+			Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');   
 		END IF;
 		/*=============End===============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
@@ -126,13 +126,9 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 		CASE
 		WHEN responceCode LIKE '200' OR inRef.header.status LIKE 'success' THEN
 			---Success Case---
-			IF Env.FileNameCheck LIKE 'PO' THEN
-				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,responceCode,'','SUCCESS','TRUE');
-			ELSE
-				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,responceCode,'','SUCCESS','FALSE');
-			END IF; 
+				CALL UPDATE_SB_SCP_STATUS(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,responceCode,'','SUCCESS','','TRUE','');  
 			---DB Logging---
-			IF IsLogRequired LIKE 'Y' THEN
+			IF IsLogRequired LIKE 'Y' THEN 
 				CALL DBLogging(Env.UID,Env.resMsg,'T24 Success Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.body.endToEndReference,outRefer);
 			END IF;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -148,11 +144,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 			PROPAGATE TO TERMINAL 'out';
 		ELSE
 			---Failure Case---
-			IF Environment.Variables.FileNameCheck LIKE 'PO' THEN
-				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,'','','',responceCode,'','FAILURE','TRUE');
-			ELSE
-				CALL UPDATE_STATUS_SB_ISAVE(Env.UID,'','','',responceCode,'','FAILURE','FALSE'); 
-			END IF;
+				CALL UPDATE_SB_SCP_STATUS(Env.UID,'','','',responceCode,'','FAILURE','','TRUE',''); 
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','T24 Response:: FAILURE'||'/'||'ResponseCode::'||responceCode) INTO rc; 
 			END IF;
@@ -194,11 +186,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE Env REFERENCE TO Environment.Variables;
 		---Failure Case Status Tracking---
-		IF Env.FileNameCheck LIKE 'PO' THEN
-			CALL UPDATE_STATUS_SB_ISAVE(Environment.Variables.UID,'','','','','','FAILURE','TRUE');  
-		ELSE
-			CALL UPDATE_STATUS_SB_ISAVE(Environment.Variables.UID,'','','','','','FAILURE','FALSE');
-		END IF;
+			CALL UPDATE_SB_SCP_STATUS(Environment.Variables.UID,'','','','','','FAILURE','','TRUE','');    
 		/* =================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
