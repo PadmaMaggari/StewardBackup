@@ -1,0 +1,43 @@
+
+
+CREATE COMPUTE MODULE GenT24Response
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		CALL GenerateResToT24();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE GenerateResToT24() BEGIN
+		DECLARE operation CHARACTER;
+		SET OutputLocalEnvironment=InputLocalEnvironment;
+		SET OutputLocalEnvironment.SOAP.Envelope=Environment.SOAP.Envelope;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
+		SET operation = InputRoot.SOAP.Context.operation;
+		IF operation = 'getTransactionExportTransactions' THEN
+		 	DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:getTransactionExportTransactionsResponse;
+		 	SET outRef.ns:getTransactionExportTransactionsResponse=inRef;
+		ELSEIF operation = 'acknowledgeTransactionExport' THEN
+		 	DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:acknowledgeTransactionExportResponse;
+		 	SET outRef.ns:acknowledgeTransactionExportResponse=inRef;	
+		ELSEIF operation='acknowledgeTransactionsExport' THEN
+			DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:acknowledgeTransactionsExportResponse;
+			SET outRef.ns:acknowledgeTransactionsExportResponse=inRef;
+		ELSEIF operation = 'updateTransactionExport' THEN
+			DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:updateTransactionExportResponse;
+			SET outRef.ns:updateTransactionExportResponse=inRef;
+		ELSEIF operation = 'updateTransactionsExport' THEN
+			DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:updateTransactionsExportResponse;
+			SET outRef.ns:updateTransactionsExportResponse=inRef;
+		ELSEIF operation = 'addTransactionNote' THEN
+			DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:addTransactionNoteResponse;
+			SET outRef.ns:addTransactionNoteResponse=inRef;
+		ELSEIF operation = 'getMTNByFolio' THEN
+			DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.ns:getMTNByFolioResponse;
+			SET outRef.ns:getMTNByFolioResponse=inRef;
+		END IF;	
+			 
+	END;
+END MODULE;
+
+
