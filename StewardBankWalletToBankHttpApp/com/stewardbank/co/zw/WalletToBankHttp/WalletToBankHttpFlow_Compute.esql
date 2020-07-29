@@ -31,7 +31,7 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateISOReq
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenerateIsoReq() BEGIN
-		SET Environment.MQRFH2= InputRoot.MQRFH2;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE DBDetails ROW;
@@ -42,13 +42,19 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateISOReq
 		DECLARE comm CHARACTER ',';
 		DECLARE channel CHARACTER 'Channel';
 		DECLARE destinationPhone CHARACTER 'DestinationPhone';
-		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
-		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
-		SET Environment.MQRFH2.inputRequest = reqMsg;
-		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
+		SET Environment.reqMsg = reqMsg;
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		
+		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
+		/*=================== CALLING LOG4j  LOGGING   ==============*/
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
@@ -58,8 +64,8 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateISOReq
 			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','Incoming Request::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG',reqMsg) INTO rc;
 		END IF;
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
 		--***************JSON TO ISO*****************
-		  
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
@@ -89,25 +95,30 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateISOReq
 		SET outRef.StructuredDataPostilionPrivate_127_22 = keyChannel||keyChannelValue||keydestinationPhone||keydestinationPhoneValue;
 		SET OutputRoot.JSON= NULL;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
-		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
-		DECLARE T24ReqMsg CHARACTER getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);	
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
+		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);        
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		SET OutputRoot.DFDL = NULL;
+		/*=================== CALLING LOG4J LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','Generate Req in ISO 8583::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG',T24ReqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
-		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,T24ReqMsg,'Application Request with ISO',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
+		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.DFDL = Environment.dfdlData;	
-		END;	
-END MODULE;
+		SET OutputRoot.DFDL = Environment.dfdlData;
+		END;
+		END MODULE;
 CREATE COMPUTE MODULE WalletToBankHttpFlow_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -116,21 +127,21 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_BuildExceptionDetails
 	END;
 
 	CREATE PROCEDURE BuildErrorMsg() BEGIN
-		DECLARE rc BOOLEAN;
+		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-		SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') THEN
-		SET errMsg = 'T24 Server Down';
+			SET errMsg = 'T24 Server Down';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
-		SET errMsg = 'Postilion Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
-		SET errMsg = 'No Response from T24 Server';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
-		SET errMsg = 'No Response from Postilion Server';
+			SET errMsg = 'Postilion Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN 
+			SET errMsg = 'No Response from T24 Server';
+		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN 
+			SET errMsg = 'No Response from Postilion Server';	
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
@@ -140,16 +151,16 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_BuildExceptionDetails
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'WTB_HTTP';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'WTBHTTP';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'WTB_HTTP');
+		CALL BuildExceptionDetails(excpRef,outRef,'WTBHTTP');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.XMLNSC = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('WTB_HTTP');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('WTBHTTP');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
@@ -159,11 +170,11 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_BuildExceptionDetails
 		SET headerRef.responseCode = '000';
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
-		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.WTB_HTTP.ErrorCode;
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.WTBHTTP.ErrorCode;
 		SET errorRef.message = errMsg;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES ;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
@@ -171,10 +182,9 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_BuildExceptionDetails
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.MQRFH2.inputRequest,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.WTB_HTTP.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.WTBHTTP.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;    
 		----------------------------------
 		END;
 END MODULE;
@@ -219,11 +229,22 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateReqToT24
 		
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		CALL remove127(removeRefPointer);
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
+		SET Environment.Variables.t24ResMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);  
 		SET Environment.dfdlData = OutputRoot.DFDL;
+		DECLARE reqMsgJson1 CHARACTER'';
+		DECLARE logRef1 REFERENCE TO OutputRoot.DFDL;
+		DECLARE jsonRef1 REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot AS jsonRef1 DOMAIN('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef1 NAME ('Data');
+		--CALL JSONLogMessage(logRef,jsonRef);
+		SET jsonRef1 = logRef1;
+		SET OutputRoot.JSON=NULL;
+		SET reqMsgJson1 = getPayLoad('JSON',jsonRef1,encodeRef,ccsid);
 		SET OutputRoot.DFDL = NULL;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqISOMsg,'Postilion  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -231,11 +252,16 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_GenerateReqToT24
 		/*=================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 
-			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','Request to T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','========= ISO TO JSON T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','========= POSTILION RESPONSE ==========') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG',reqMsgJson) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG',reqMsgJson1) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','========= T24 REQUEST ==========') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG',Environment.Variables.t24ResMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
+
+
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
@@ -248,73 +274,86 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_reqToPostilion
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE reqToPostilion() BEGIN
-		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
-	DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
-		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE inRef REFERENCE TO InputRoot.DFDL;
 		DECLARE rc BOOLEAN FALSE;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.resISOMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inDomainDataRef,encodeRef,ccsid);
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-		DECLARE reqMsg CHARACTER ;
-		SET reqMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),inRef,encodeRef,ccsid);
-		DECLARE outRefer REFERENCE TO OutputRoot;
-		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,reqMsg,'Request To Postilion',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
+		SET Environment.dfdlData = InputRoot.DFDL;
+		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','-**********Generate Req T24**********') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','***Postilion Request Message Without Headers:'||reqMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resISOMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out1';
 		END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
+		/*=================== CALLING LOG4J LOGGING ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+
+			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','Response from T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG',Environment.Variables.resISOMsg) INTO rc;
+		END IF;
+		/*=================== CALLING LOG4J LOGGING END ==============*/
+
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.DFDL = InputRoot.DFDL;
-		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.DFDL = Environment.dfdlData;
+
 	END;
 END MODULE;
 CREATE COMPUTE MODULE WalletToBankHttpFlow_resToFrondEnd
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GenerateResToPortalBackend();
-		RETURN FALSE;
+		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenerateResToPortalBackend() BEGIN 
-		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
-		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
-		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE inRef REFERENCE TO InputRoot.DFDL;
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
+		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
-			DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
-			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','Response from Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid)) INTO rc;
+--			--------------DBLogging-------------------
+--			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+--			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+--			PROPAGATE TO TERMINAL 'out';
+--			-----------------------------	
+			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','Postilion Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		END IF;
-		--******************ISO to JSON mapping
+		--field to field mapping
+		--CALL ISOToJSONMapping(inRef,outRef);
 		IF EXISTS(inRef.*.SecondaryBitmap[]) THEN
 			MOVE inRef TO InputRoot.DFDL.*.SecondaryBitmap;
 			MOVE inRef NEXTSIBLING;
 		ELSEIF EXISTS(inRef.*.PrimaryBitmap[]) THEN
 			MOVE inRef TO InputRoot.DFDL.*.PrimaryBitmap;
 			MOVE inRef NEXTSIBLING;
-		ELSE
-		MOVE inRef TO InputRoot.DFDL.*.PrimaryAccountNumber_002;
+		ELSE	
+		MOVE inRef TO InputRoot.DFDL.*.PrimaryAccountNumber_002;	
 		END IF;
+		
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AnyWalletToBankResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AnyWalletToBankResponse'); 
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+		--SET headRef = Environment.header; 
 		SET headRef = Environment.MQRFH2.header;
 		SET headRef.status = 'SUCCESS';
 		SET headRef.responseCode = '200';
@@ -322,26 +361,28 @@ CREATE COMPUTE MODULE WalletToBankHttpFlow_resToFrondEnd
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
 		CALL ISOToJSONMapping(inRef,bodyRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON;
-		DECLARE reqMsg CHARACTER ;
-		SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.JSON),outDomainDataRef,encodeRef,ccsid);
-		CREATE LASTCHILD OF Environment DOMAIN ('JSON');
-		SET Environment.JSON = OutputRoot.JSON;
+		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
+		DECLARE envref REFERENCE TO Environment;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
+		CREATE LASTCHILD OF Environment.JSON AS envref NAME 'Data';
+		SET envref = OutRefer;
+	--	SET OutputRoot = NULL;
+		SET domainName = FIELDNAME(outDomainDataRef);
+		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.JSON = NULL;
-		DECLARE outRefer REFERENCE TO OutputRoot;
-		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,reqMsg,'Response To Frontend',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out';
-		
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','Response To Outgoing Router::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','Response to Frontend :'||reqMsg) INTO rc;
+			--------------DBLogging-------------------
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out';
+			-----------------------------
+			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG','Application Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'WTBHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON = Environment.JSON;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
-		PROPAGATE TO TERMINAL 'out'; 
+		SET OutputRoot.JSON.Data = envref;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 	END;
 END MODULE;
 	

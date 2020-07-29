@@ -24,20 +24,23 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ALL_SB_HTTP_RES" name="ALL_SB_HTTP_RES" defaultValueLiteral="ALL_SB_HTTP_RES">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.DSN" name="DSN" defaultValueLiteral="ORADSN">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="BankToWalletHttpFlow" bundleName="com/steward/co/zw/BankToWalletHttp/BankToWalletHttpFlow" pluginId="StewardBankBankToWalletHttpApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankBankToWalletHttpApp/icons/full/obj16/BankToWalletHttpFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankBankToWalletHttpApp/icons/full/obj30/BankToWalletHttpFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_33" location="515,160" computeExpression="esql://routine/com.steward.co.zw.BankToWalletHttp#BankToWalletHttpFlow_reqToPostilion.Main" computeMode="all">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_33" location="503,192" computeExpression="esql://routine/com.steward.co.zw.BankToWalletHttp#BankToWalletHttpFlow_reqToPostilion.Main" computeMode="all">
         <translation xmi:type="utility:ConstantString" string="ReqToPostilion"/>
       </nodes>
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_34" location="783,27" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="Q"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_addheader_addHeader.subflow:FCMComposite_1" xmi:id="FCMComposite_1_35" location="572,93">
+      <nodes xmi:type="com_stewardbank_co_zw_common_addheader_addHeader.subflow:FCMComposite_1" xmi:id="FCMComposite_1_35" location="566,136">
         <translation xmi:type="utility:ConstantString" string="addHeader"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_36" location="667,85" computeExpression="esql://routine/com.steward.co.zw.BankToWalletHttp#BankToWalletHttpFlow_resToFrondEnd.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_36" location="704,108" computeExpression="esql://routine/com.steward.co.zw.BankToWalletHttp#BankToWalletHttpFlow_resToFrondEnd.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="ResToFrontEnd"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_37" location="309,175">
@@ -52,16 +55,16 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_40" location="481,-3" computeExpression="esql://routine/com.steward.co.zw.BankToWalletHttp#BankToWalletHttpFlow_BuildExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_41" location="364,110" computeExpression="esql://routine/com.steward.co.zw.BankToWalletHttp#BankToWalletHttpFlow_GenerateReqToT24.Main" computeMode="all">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_41" location="364,110" dataSource="ORASDN" computeExpression="esql://routine/com.steward.co.zw.BankToWalletHttp#BankToWalletHttpFlow_GenerateReqToT24.Main" computeMode="all">
         <translation xmi:type="utility:ConstantString" string="ReqToT24"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_addheader_addHeader.subflow:FCMComposite_1" xmi:id="FCMComposite_1_42" location="202,170">
         <translation xmi:type="utility:ConstantString" string="addHeader1"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_45" location="618,164">
+      <nodes xmi:type="com_stewardbank_co_zw_common_postilioncall_StewardBankPostilionCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_45" location="618,188">
         <translation xmi:type="utility:ConstantString" string="PostilionCall1"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_46" location="427,187">
+      <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_46" location="428,196">
         <translation xmi:type="utility:ConstantString" string="T24Call"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_1" location="247,13">
@@ -94,6 +97,7 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_34" sourceNode="FCMComposite_1_41" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_34" sourceNode="FCMComposite_1_33" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_46" sourceNode="FCMComposite_1_41" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_36" sourceNode="FCMComposite_1_41" sourceTerminalName="OutTerminal.out2" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
@@ -110,6 +114,9 @@
                   <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/steward/co/zw/BankToWalletHttp/BankToWalletHttpFlow" pluginId="StewardBankBankToWalletHttpApp"/>
                   <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ALL_SB_HTTP_RES">
                     <propertyName xmi:type="utility:TranslatableString" key="Property.ALL_SB_HTTP_RES" bundleName="com/steward/co/zw/BankToWalletHttp/BankToWalletHttpFlow" pluginId="StewardBankBankToWalletHttpApp"/>
+                    <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.DSN">
+                      <propertyName xmi:type="utility:TranslatableString" key="Property.DSN" bundleName="com/steward/co/zw/BankToWalletHttp/BankToWalletHttpFlow" pluginId="StewardBankBankToWalletHttpApp"/>
+                    </propertyDescriptor>
                   </propertyDescriptor>
                 </propertyDescriptor>
               </propertyDescriptor>
