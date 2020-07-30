@@ -4,6 +4,8 @@ DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER ''; 
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER ''; 
 DECLARE rc BOOLEAN; 
+DECLARE ns1 EXTERNAL NAMESPACE '';
+DECLARE soapenv EXTERNAL NAMESPACE '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
@@ -13,9 +15,6 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		CALL CopyEntireMessage();
 		RETURN TRUE;
 	END;
-
-	
-
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -30,6 +29,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.SOAP;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.MQRFH2.requestDomain=domainName;
 		DECLARE SoapReplyIdentifier REFERENCE TO InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET Environment.id = SoapReplyIdentifier;
@@ -54,15 +54,29 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.[1];
 		IF CONTAINS(FIELDNAME(inRef),'getTransactionExportTransactions')
 			OR CONTAINS(FIELDNAME(inRef),'acknowledgeTransactionExport') THEN
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'IN';
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SM_SB_SOAP_REQ';
 		ELSEIF CONTAINS(FIELDNAME(inRef),'AccountDetails')
 			OR CONTAINS(FIELDNAME(inRef),'AmendCard') THEN
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'INDIGO_SB_SOAP_REQ';
 			
-		ELSE 
+		ELSE
+			CALL errorResponse(Environment.MQRFH2.requestDomain,'Invaild Operation','ESB_001',ApplicationLabel);
 			--other soap business flow queues
 		END IF;
 		SET OutputRoot.SOAP = InputRoot.SOAP;
+	END;
+	CREATE PROCEDURE errorResponse(IN domainName CHAR, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
+	BEGIN
+		IF domainName = 'SOAP' THEN
+			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
+    		SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
+    		SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:Message=msg;
+    		SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
+    		SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
+    		
+			SET OutputLocalEnvironment.Destination.HTTP.ReplyIdentifier = CAST(Environment.MQRFH2.ReplyIdentifier AS BLOB);
+			PROPAGATE TO TERMINAL 'out2';
+		END IF;
 	END;
 END MODULE;
 
