@@ -12,10 +12,10 @@ DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE removeHeader
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		IF domainName = 'DFDL' THEN
 			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 			DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 			DECLARE ccsidRef INTEGER InputRoot.Properties.CodedCharSetId;
 			DECLARE data BLOB ASBITSTREAM(InputRoot.DFDL ENCODING encodeRef CCSID ccsidRef SET '{ISO8583_Lib}' TYPE '{}:ISO8583WithHeader');

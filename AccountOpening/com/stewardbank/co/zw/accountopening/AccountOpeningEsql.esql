@@ -1,6 +1,8 @@
 
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -243,8 +245,8 @@ END MODULE;
 CREATE FILTER MODULE AccountOpeningFlow_VerifyEconetResponse
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		DECLARE StatusCode CHARACTER Root.XMLNSC.acknowledgement.status.code;
-		DECLARE StatusDesc CHARACTER Root.XMLNSC.acknowledgement.status.desc;
+		DECLARE StatusCode CHARACTER Root.XMLNSC.acknowledgment.status.code;
+		DECLARE StatusDesc CHARACTER Root.XMLNSC.acknowledgment.status.desc;
 		IF StatusCode <> 'SC0000' AND StatusDesc <> 'SUCCESS' THEN
 			RETURN FALSE;
 		ELSE
@@ -279,7 +281,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYCResponse
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Econet Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out1';
+			PROPAGATE TO TERMINAL 'out';
 			-----------------------------
 		END IF;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
@@ -300,7 +302,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYCResponse
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out1';
+			PROPAGATE TO TERMINAL 'out';
 			-----------------------------
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
@@ -794,9 +796,9 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToT24
 		DECLARE outRef REFERENCE TO OutputRoot.JSON;
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.body;
-		SET headRef = Environment.MQRFH2.header;
-		--CREATE LASTCHILD OF headRef NAME ('override');
-		--CREATE LASTCHILD OF headRef.override IDENTITY(JSON.Array)overrideDetails;
+		--SET headRef = Environment.MQRFH2.header;
+		CREATE LASTCHILD OF headRef NAME ('override');
+		CREATE LASTCHILD OF headRef.override IDENTITY(JSON.Array)overrideDetails;
 		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)customerIds;
 		CREATE LASTCHILD OF bodyRef.customerIds.Item[1] NAME 'customerId' VALUE customerId;
 		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)properties;
@@ -820,6 +822,9 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToT24
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.ContentType = 'application/json';
+		SET OutputRoot.HTTPInputHeader."Content-Type" = 'application/json';
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
 		SET OutputRoot.JSON = Environment.JSON;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://192.168.1.233:8080/stwbc/api/v1.0.0/product/products/loan/arrangement/NEW';
@@ -838,11 +843,11 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateFCMResponse
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE inRef REFERENCE TO InputRoot;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputBody;
-		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE domainName CHARACTER FIELDNAME(domainDataRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
@@ -854,23 +859,48 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateFCMResponse
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		-----------------------------
+		IF EXISTS(InputRoot.JSON[]) THEN
+			MOVE inRef TO InputRoot.JSON.Data;
+			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
+			CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME('AccountOpeningResponse');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('header');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('body');
+			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+			SET headRef = Environment.MQRFH2.header;
+			SET headRef.status = 'SUCCESS';
+			SET headRef.responseCode = '200';
+			SET headRef.transactionStatus = inRef.header.transactionStatus;
+			SET headRef.audit = inRef.header.audit;
+			SET headRef.aaaId = inRef.header.aaaId;
+			SET bodyRef = inRef.body;
+		ELSE
+			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON') PARSE(inRef.BLOB.BLOB);
+		END IF;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET domainName = FIELDNAME(domainDataRef);
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+		END IF;
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		-----------------------------
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
-		CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME('AccountOpeningResponse');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('header');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('body');
-		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
-		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
-		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
-		SET headRef = Environment.MQRFH2.header;
-		SET headRef.status = 'SUCCESS';
-		SET headRef.responseCode = '200';
-		SET headRef.transactionStatus = inRef.header.transactionStatus;
-		SET headRef.audit = inRef.header.audit;
-		SET headRef.aaaId = inRef.header.aaaId;
-		SET bodyRef = inRef.body;
+		SET OutputRoot.JSON = Environment.JSON;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 	END;
 END MODULE;
@@ -904,8 +934,6 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateUpdateResponse
 			PROPAGATE TO TERMINAL 'out';
 			-----------------------------
 		END IF;
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		IF inRef.ResponseCode_039 = '00' THEN
 			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
 			CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
@@ -914,8 +942,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateUpdateResponse
 			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('body');
 			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
-			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
-			--SET headRef = Environment.Variables.header;
+			--SET headRef = Environment.MQRFH2.header;
 			SET headRef.status = 'SUCCESS';
 			SET headRef.responseCode = '200';
 			SET bodyRef.Account = inRef.AccountIdentification1_102;
@@ -927,9 +954,10 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateUpdateResponse
 			CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
 			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME('AccountOpeningResponse');
 			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('header');
-			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('body');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('error');
 			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+			--SET headRef = Environment.MQRFH2.header;
 			SET headRef.status = 'FAILURE';
 			SET headRef.responseCode = '000';
 			SET errorRef.source = 'ESB';
