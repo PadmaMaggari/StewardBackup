@@ -5,33 +5,67 @@ Date of Creation:29-07-2020
 Date of Modification:
 Description:
 */
-
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE IsLogRequired EXTERNAL CHARACTER ''; 
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER ''; 
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER ''; 
+DECLARE rc BOOLEAN; 
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		-- CALL CopyMessageHeaders();
 		CALL CopyEntireMessage();
 		RETURN TRUE;
 	END;
 
-	CREATE PROCEDURE CopyMessageHeaders() BEGIN
-		DECLARE I INTEGER 1;
-		DECLARE J INTEGER;
-		SET J = CARDINALITY(InputRoot.*[]);
-		WHILE I < J DO
-			SET OutputRoot.*[I] = InputRoot.*[I];
-			SET I = I + 1;
-		END WHILE;
-	END;
+	
 
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','=====================================  INCOMMING  ROUTER =================================') INTO rc ;
+		
+		DECLARE inRefData REFERENCE TO InputRoot.SOAP;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.SOAP;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE SoapReplyIdentifier REFERENCE TO InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET Environment.id = SoapReplyIdentifier;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(CAST(Environment.id AS CHARACTER),Environment.Variables.reqMsg,'Router Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,
+			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		
+		
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP Router Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','TCPIP ID::'|| CAST(InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER)) INTO rc;
+		END IF;
+		
+		
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
 		DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.[1];
 		IF CONTAINS(FIELDNAME(inRef),'getTransactionExportTransactions')
 			OR CONTAINS(FIELDNAME(inRef),'acknowledgeTransactionExport') THEN
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'IN';
-		ELSE
+		ELSEIF CONTAINS(FIELDNAME(inRef),'AccountDetails')
+			OR CONTAINS(FIELDNAME(inRef),'AmendCard') THEN
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'INDIGO_SB_SOAP_REQ';
+			
+		ELSE 
 			--other soap business flow queues
 		END IF;
 		SET OutputRoot.SOAP = InputRoot.SOAP;
