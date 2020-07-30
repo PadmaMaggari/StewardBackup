@@ -231,8 +231,22 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_BuildException
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'SalaryCorporatePaymentsZss');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE inRefer REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+			IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') THEN
+			SET OutputLocalEnvironment.Destination.File.Directory = SCP_DBFailure||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+			SET OutputLocalEnvironment.Destination.File.Name = inRefer.Beneficiary_Account_Number||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss');  
+		ELSE
+			SET OutputLocalEnvironment.Destination.File.Directory = SCP_FormatFailure||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+			SET OutputLocalEnvironment.Destination.File.Name = inRefer.Beneficiary_Account_Number||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss');   
+		END IF;
+		SET OutputRoot.Properties.MessageSet = '{SB_CSV_Lib}';
+		SET OutputRoot.Properties.MessageType = '{}:stewardBank_CSV';
+		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
+		PARSE(Environment.Variables.csvReqMsg ENCODING encodeRef CCSID ccidRef SET '{SB_CSV_Lib}' TYPE '{}:stewardBank_CSV'); 
+		PROPAGATE TO TERMINAL 'out1';
+		SET OutputRoot.DFDL = NULL;
 		---Failure Case---
 			CALL UPDATE_SB_SCP_STATUS(Environment.Variables.UID,'PENDING','PENDING','PENDING','PENDING','PENDING','FAILURE','NOT APPLICABLE','NOT APPLICABLE',CAST(Environment.Variables.CreationDate AS TIMESTAMP));     
 		------------  
@@ -244,7 +258,6 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_BuildException
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		DECLARE inRefer REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
 		SET Environment.Variables.Date_Time = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL Error_DBLogging(Environment.Variables.UID,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),Environment.Variables.RRN,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsZss.ErrorCode,outRefer);

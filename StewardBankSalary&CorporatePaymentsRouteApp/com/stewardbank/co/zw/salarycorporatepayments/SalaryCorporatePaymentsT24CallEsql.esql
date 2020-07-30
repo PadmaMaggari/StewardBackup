@@ -1,23 +1,25 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.salarycorporatepayments
 
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE resQueueName EXTERNAL CHARACTER '';
---DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
---DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';  
+DECLARE SCP_DBFailure EXTERNAL CHARACTER '';
+DECLARE SCP_FormatFailure EXTERNAL CHARACTER ''; 
 --DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
---DECLARE IsLogRequired EXTERNAL CHARACTER''; 
+--DECLARE IsLogRequired EXTERNAL CHARACTER'';
 DECLARE URL EXTERNAL CHARACTER'';
 CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL RequestToT24();
-		RETURN FALSE; 
+		RETURN FALSE;
 	END;
 	CREATE PROCEDURE RequestToT24() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;   
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
@@ -35,7 +37,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		SET Environment.Variables.Crt_Acc = inRefer.Beneficiary_Account_Number;
 		SET Environment.Variables.CreationDate = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
 		SET Environment.Variables.RRN = inRefer.Purpose;
-		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
 		-- SET DBLogging Properties ==============
 		SET Environment.Variables.UID = InputRoot.MQRFH2.UID;
 		DECLARE Env REFERENCE TO Environment.Variables;
@@ -81,19 +83,19 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		/*================DB Update=======================*/
 		IF Env.FileNameCheck LIKE 'PO' THEN
 			CALL INSERT_SB_SCP_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,T24URL,'','','','','SUCCESS',
-			Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE'); 
+			Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
 		ELSE
 			CALL INSERT_SB_SCP_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,T24URL,'','','','','SUCCESS',
-			Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');   
+			Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
 		END IF;
 		/*=============End===============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
-		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json'; 
+		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
 		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||UrlPathparameters;
-		PROPAGATE TO TERMINAL 'out'; 
+		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -126,9 +128,9 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 		CASE
 		WHEN responceCode LIKE '200' OR inRef.header.status LIKE 'success' THEN
 			---Success Case---
-				CALL UPDATE_SB_SCP_STATUS(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,responceCode,'','SUCCESS','','TRUE','');  
+			CALL UPDATE_SB_SCP_STATUS(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,responceCode,'','SUCCESS','','TRUE','');
 			---DB Logging---
-			IF IsLogRequired LIKE 'Y' THEN 
+			IF IsLogRequired LIKE 'Y' THEN
 				CALL DBLogging(Env.UID,Env.resMsg,'T24 Success Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.body.endToEndReference,outRefer);
 			END IF;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -144,9 +146,9 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 			PROPAGATE TO TERMINAL 'out';
 		ELSE
 			---Failure Case---
-				CALL UPDATE_SB_SCP_STATUS(Env.UID,'','','',responceCode,'','FAILURE','','TRUE',''); 
+			CALL UPDATE_SB_SCP_STATUS(Env.UID,'','','',responceCode,'','FAILURE','','TRUE','');
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','T24 Response:: FAILURE'||'/'||'ResponseCode::'||responceCode) INTO rc; 
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','T24 Response:: FAILURE'||'/'||'ResponseCode::'||responceCode) INTO rc;
 			END IF;
 			SET OutputRoot.JSON.Data = Env.data;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
@@ -186,7 +188,21 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE Env REFERENCE TO Environment.Variables;
 		---Failure Case Status Tracking---
-			CALL UPDATE_SB_SCP_STATUS(Environment.Variables.UID,'','','','','','FAILURE','','TRUE','');    
+		CALL UPDATE_SB_SCP_STATUS(Environment.Variables.UID,'','','','','','FAILURE','','TRUE','');
+		--DECLARE exe_Desc CHARACTER'';
+		IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') THEN
+			SET OutputLocalEnvironment.Destination.File.Directory = SCP_DBFailure||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+			SET OutputLocalEnvironment.Destination.File.Name = inRefer.Beneficiary_Account_Number||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss');  
+		ELSE
+			SET OutputLocalEnvironment.Destination.File.Directory = SCP_FormatFailure||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+			SET OutputLocalEnvironment.Destination.File.Name = inRefer.Beneficiary_Account_Number||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss');   
+		END IF;
+		SET OutputRoot.Properties.MessageSet = '{SB_CSV_Lib}';
+		SET OutputRoot.Properties.MessageType = '{}:stewardBank_CSV';
+		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
+		PARSE(Environment.Variables.csvReqMsg ENCODING encodeRef CCSID ccidRef SET '{SB_CSV_Lib}' TYPE '{}:stewardBank_CSV'); 
+		PROPAGATE TO TERMINAL 'out1';
+		SET OutputRoot.DFDL = NULL;
 		/* =================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
