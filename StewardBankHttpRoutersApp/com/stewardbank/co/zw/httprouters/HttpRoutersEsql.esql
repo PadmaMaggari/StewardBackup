@@ -29,197 +29,243 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 
 	CREATE PROCEDURE RouteToInterfaceBasedOnProcessingCode() BEGIN
 		DECLARE inRef REFERENCE TO InputRoot;
-		DECLARE serviceName CHAR FIELDNAME(InputRoot.JSON.Data.*);
-		DECLARE procCodeData,QueueName,channel CHARACTER '';
+		DECLARE procCodeData,QueueName,channel,serviceName CHARACTER '';
 		DECLARE qDetails ROW;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE inputRef REFERENCE TO InputRoot.JSON.Data;
-		SET Environment.MQRFH2.RequestIdentifier = SUBSTRING(CAST(InputLocalEnvironment.Destination.HTTP.RequestIdentifier AS CHAR) FROM 3 FOR 48);
-		SET Environment.MQRFH2.usr.HTTPInputHeader = InputRoot.HTTPInputHeader;
-		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
-		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
-		SET Environment.MQRFH2.header = InputRoot.JSON.Data.*.header;
-		SET Environment.MQRFH2.body = InputRoot.JSON.Data.*.body;
-		SET Environment.MQRFH2.serviceName = REPLACE(serviceName,'Request','Response');
-		SET Environment.Variables.reqMsg = CAST(InputRoot.JSON AS CHAR CCSID ccidRef);
-		--DECLARE procCode CHARACTER InputRoot.JSON.Data.processingCode;
-		IF 	(inputRef.processingCode IS NOT NULL) OR
-			(inputRef.processingCode <> '') OR (inputRef.*.header.processingCode IS NOT NULL) OR
-			(inputRef.*.header.processingCode <> '')  THEN
-			SET Environment.Variables.processingCode = COALESCE(inputRef.processingCode,inputRef.*.header.processingCode,'');
-			Set Environment.MQRFH2.usr.sbPcode = Environment.Variables.processingCode;
-		END IF;
-		IF 	(inputRef.channel IS NOT NULL) OR
-			(inputRef.channel <> '') OR 
-			(inputRef.*.header.channel IS NOT NULL) OR
-			(inputRef.*.header.channel <> '') THEN
-			SET Environment.Variables.channel = COALESCE(inputRef.channel,inputRef.*.header.channel,'');
-		END IF;
-		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
-		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Incoming Router Start ==============') INTO rc ;
-			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','JSON Request: '|| Environment.Variables.reqMsg) INTO rc ;
-			----------DBLogging LOGGING -------------------
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'HTTPRouter Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out';
-			----------------------------------
-		END IF;
-		IF (FIELDNAME(Environment.Variables.processingCode) IS NULL) AND (FIELDNAME(Environment.Variables.channel) IS NULL) THEN
-			CALL errorResponse('no key[proccessingCode & Channel] in the request','ESB_006',serviceName);
-			RETURN;
-		ELSEIF (FIELDVALUE(Environment.Variables.processingCode) = '' AND FIELDVALUE(Environment.Variables.channel) = '') THEN
-			CALL errorResponse('channel & processingCode  must be specified','ESB_007',serviceName);
-			RETURN;
-		ELSEIF FIELDNAME(Environment.Variables.channel) IS NULL THEN
-			CALL errorResponse('no key[channel] in the request','ESB_008',serviceName);
-			RETURN;
-		ELSEIF FIELDVALUE(Environment.Variables.channel) = '' THEN
-			CALL errorResponse('channel name must be specified','ESB_009',serviceName);
-			RETURN;
-		ELSEIF FIELDNAME(Environment.Variables.processingCode) IS NULL THEN
-			CALL errorResponse('no key[proccessingCode] in the request','ESB_010',serviceName);
-			RETURN;
-		ELSEIF FIELDVALUE(Environment.Variables.processingCode) = '' THEN
-			CALL errorResponse('proccessingCode must be specified','ESB_011',serviceName);
-			RETURN;
-		ELSEIF NOT LENGTH(FIELDVALUE(Environment.Variables.processingCode)) = 6 THEN
-			CALL errorResponse('processing code length must be = 6','ESB_012',serviceName);
-			RETURN;
+		DECLARE domainDataRef REFERENCE TO InputBody;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF STARTSWITH(Environment.Variables.reqMsg,'{') THEN
+			SET Environment.MQRFH2.RequestDomian = 'JSON';
+			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON') PARSE(InputRoot.BLOB.BLOB);
+			SET Environment.JSON = OutputRoot.JSON;
+			MOVE inRef TO Environment.JSON.Data;
+			SET serviceName = FIELDNAME(inRef.*);
+			SET Environment.MQRFH2.header = inRef.header;
+			SET Environment.MQRFH2.body = inRef.body;
+			IF FIELDNAME(Environment.MQRFH2.body) IS NULL THEN
+				SET Environment.MQRFH2.body = inRef.*.body;
+			END IF;
+			IF FIELDNAME(Environment.MQRFH2.header) IS NULL THEN
+				SET Environment.MQRFH2.header = inRef.*.header;
+			END IF;
+		ELSEIF STARTSWITH(Environment.Variables.reqMsg,'<') THEN
+			SET Environment.MQRFH2.RequestDomian = 'XMLNSC';
+			CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC') PARSE(InputRoot.BLOB.BLOB);
+			SET Environment.XMLNSC = OutputRoot.XMLNSC;
+			MOVE inRef TO Environment.XMLNSC.request;
 		ELSE
-			SET procCodeData = SUBSTRING(Environment.Variables.processingCode FROM 1 FOR 2);
-			SET channel = Environment.Variables.channel;
+			SET Environment.MQRFH2.RequestDomian = 'Unknown';
 		END IF;
+		SET OutputRoot = NULL;
+		SET Environment.MQRFH2.RequestIdentifier = SUBSTRING(CAST(InputLocalEnvironment.Destination.HTTP.RequestIdentifier AS CHAR) FROM 3 FOR 48);
+		SET Environment.MQRFH2.usr.HTTPInputHeader = InputRoot.HTTPInputHeader;
+		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
+		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
+		SET Environment.MQRFH2.serviceName = REPLACE(serviceName,'Request','Response');
+		IF Environment.MQRFH2.RequestDomian IS NOT NULL AND FIELDVALUE(Environment.MQRFH2.RequestDomian) <> 'Unknown' THEN
+			IF (inRef.processingCode IS NOT NULL) OR
+				(inRef.processingCode <> '') OR (inRef.*.header.processingCode IS NOT NULL) OR
+				(inRef.*.header.processingCode <> '') OR (inRef.header.processingCode IS NOT NULL) OR
+				(inRef.header.processingCode <> '') THEN
+				SET Environment.Variables.processingCode = COALESCE(inRef.processingCode,inRef.header.processingCode,inRef.*.header.processingCode,'');
+				Set Environment.MQRFH2.usr.sbPcode = Environment.Variables.processingCode;
+			END IF;
+			IF (inRef.channel IS NOT NULL) OR
+				(inRef.channel <> '') OR
+				(inRef.*.header.channel IS NOT NULL) OR
+				(inRef.*.header.channel <> '') OR
+				(inRef.header.channel IS NOT NULL) OR
+				(inRef.header.channel <> '') THEN
+				SET Environment.Variables.channel = COALESCE(inRef.channel,inRef.header.channel,inRef.*.header.channel,'');
+			END IF;
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Incoming Router Start ==============') INTO rc ;
+				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','HTTPRouter Request: '|| Environment.Variables.reqMsg) INTO rc ;
+				----------DBLogging LOGGING -------------------
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'HTTPRouter Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+				PROPAGATE TO TERMINAL 'out';
+				----------------------------------
+			END IF;
+			IF (FIELDNAME(Environment.Variables.processingCode) IS NULL) AND (FIELDNAME(Environment.Variables.channel) IS NULL) THEN
+				CALL errorResponse(Environment.MQRFH2.RequestDomian,'no key[proccessingCode & Channel] in the request','ESB_006',serviceName);
+				RETURN;
+			ELSEIF (FIELDVALUE(Environment.Variables.processingCode) = '' AND FIELDVALUE(Environment.Variables.channel) = '') THEN
+				CALL errorResponse(Environment.MQRFH2.RequestDomian,'channel & processingCode  must be specified','ESB_007',serviceName);
+				RETURN;
+			ELSEIF FIELDNAME(Environment.Variables.channel) IS NULL THEN
+				CALL errorResponse(Environment.MQRFH2.RequestDomian,'no key[channel] in the request','ESB_008',serviceName);
+				RETURN;
+			ELSEIF FIELDVALUE(Environment.Variables.channel) = '' THEN
+				CALL errorResponse(Environment.MQRFH2.RequestDomian,'channel name must be specified','ESB_009',serviceName);
+				RETURN;
+			ELSEIF FIELDNAME(Environment.Variables.processingCode) IS NULL THEN
+				CALL errorResponse(Environment.MQRFH2.RequestDomian,'no key[proccessingCode] in the request','ESB_010',serviceName);
+				RETURN;
+			ELSEIF FIELDVALUE(Environment.Variables.processingCode) = '' THEN
+				CALL errorResponse(Environment.MQRFH2.RequestDomian,'proccessingCode must be specified','ESB_011',serviceName);
+				RETURN;
+			ELSEIF NOT LENGTH(FIELDVALUE(Environment.Variables.processingCode)) = 6 THEN
+				CALL errorResponse(Environment.MQRFH2.RequestDomian,'processing code length must be = 6','ESB_012',serviceName);
+				RETURN;
+			ELSE
+				SET procCodeData = SUBSTRING(Environment.Variables.processingCode FROM 1 FOR 2);
+				SET channel = Environment.Variables.channel;
+			END IF;
 
-		IF EXISTS(getDBDetailsCache.Values[]) THEN
-			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Values available in shared cache: '|| getDBDetailsCache.Values.*[])INTO rc;
-			SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES, P.MSGDOMAIN FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
-			IF EXISTS(qDetails.values[]) THEN
-				IF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NOT NULL AND FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
-					SET QueueName = qDetails.values.HTTP_REQ;
-					CALL generateEsbPcode(Environment.Variables.processingCode,Environment.Variables.channel);
-				ELSEIF FIELDVALUE(qDetails.values.HTTP_REQ) IS NULL THEN
-					CALL errorResponse('No Queues based on processingCode or Channel Name','ESB_005',serviceName);
-					RETURN;
-				ELSEIF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NULL THEN
-					CALL errorResponse('No Domain based on processingCode or Channel Name','ESB_04',serviceName);
-					RETURN;
+			IF EXISTS(getDBDetailsCache.Values[]) THEN
+				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Values available in shared cache: '|| getDBDetailsCache.Values.*[])INTO rc;
+				SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES, P.MSGDOMAIN FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
+				IF EXISTS(qDetails.values[]) THEN
+					IF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NOT NULL AND FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
+						SET QueueName = qDetails.values.HTTP_REQ;
+						CALL generateEsbPcode(Environment.Variables.processingCode,Environment.Variables.channel);
+					ELSEIF FIELDVALUE(qDetails.values.HTTP_REQ) IS NULL THEN
+						CALL errorResponse(Environment.MQRFH2.RequestDomian,'No Queues based on processingCode or Channel Name','ESB_005',serviceName);
+						RETURN;
+					ELSEIF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NULL THEN
+						CALL errorResponse(Environment.MQRFH2.RequestDomian,'No Domain based on processingCode or Channel Name','ESB_04',serviceName);
+						RETURN;
+					ELSE
+						CALL errorResponse(Environment.MQRFH2.RequestDomian,'No Domain and Queues based on processingCode or Channel Name','ESB_003',serviceName);
+						RETURN;
+					END IF;
 				ELSE
-					CALL errorResponse('No Domain and Queues based on processingCode or Channel Name','ESB_003',serviceName);
+					CALL errorResponse(Environment.MQRFH2.RequestDomian,'Invalid processingCode or Channel Name','ESB_002',serviceName);
 					RETURN;
 				END IF;
 			ELSE
-				CALL errorResponse('Invalid processingCode or Channel Name','ESB_002',serviceName);
-				RETURN;
+				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Calling the Cache')INTO rc;
+				CALL STORE_CACHE(Environment.MQRFH2.RequestDomian,serviceName);
+				SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES, P.MSGDOMAIN FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
+				IF EXISTS(qDetails.values[]) THEN
+					IF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NOT NULL AND FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
+						SET QueueName = qDetails.values.HTTP_REQ;
+						CALL generateEsbPcode(Environment.Variables.processingCode,Environment.Variables.channel);
+					ELSEIF FIELDVALUE(qDetails.values.HTTP_REQ) IS NULL THEN
+						CALL errorResponse(Environment.MQRFH2.RequestDomian,'No Queues based on processingCode or Channel Name','ESB_005',serviceName);
+						RETURN;
+					ELSEIF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NULL THEN
+						CALL errorResponse(Environment.MQRFH2.RequestDomian,'No Domain based on processingCode or Channel Name','ESB_04',serviceName);
+						RETURN;
+					ELSE
+						CALL errorResponse(Environment.MQRFH2.RequestDomian,'No Domain and Queues based on processingCode or Channel Name','ESB_003',serviceName);
+						RETURN;
+					END IF;
+				ELSE
+					CALL errorResponse(Environment.MQRFH2.RequestDomian,'Invalid processingCode or Channel Name','ESB_002',serviceName);
+					RETURN;
+				END IF;
 			END IF;
+			SET Environment.MQRFH2.usr.resQueueName = qDetails.values.HTTP_RES;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			IF EXISTS(Environment.JSON[]) THEN
+				SET OutputRoot.JSON = Environment.JSON;
+			ELSEIF EXISTS(Environment.XMLNSC[]) THEN
+				SET OutputRoot.XMLNSC = Environment.XMLNSC;
+			END IF;
+			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============Business QUEUENAME=============='' '||QueueName||'') INTO rc ;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;
+			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Incoming Router End ==============') INTO rc ;
+			PROPAGATE TO TERMINAL 'out';
+
 		ELSE
-			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Calling the Cache')INTO rc;
-			CALL STORE_CACHE(serviceName);
-			SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES, P.MSGDOMAIN FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
-			IF EXISTS(qDetails.values[]) THEN
-				IF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NOT NULL AND FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
-					SET QueueName = qDetails.values.HTTP_REQ;
-					CALL generateEsbPcode(Environment.Variables.processingCode,Environment.Variables.channel);
-				ELSEIF FIELDVALUE(qDetails.values.HTTP_REQ) IS NULL THEN
-					CALL errorResponse('No Queues based on processingCode or Channel Name','ESB_005',serviceName);
-					RETURN;
-				ELSEIF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NULL THEN
-					CALL errorResponse('No Domain based on processingCode or Channel Name','ESB_04',serviceName);
-					RETURN;
-				ELSE
-					CALL errorResponse('No Domain and Queues based on processingCode or Channel Name','ESB_003',serviceName);
-					RETURN;
-				END IF;
-			ELSE
-				CALL errorResponse('Invalid processingCode or Channel Name','ESB_002',serviceName);
-				RETURN;
-			END IF;
+
 		END IF;
-		SET Environment.MQRFH2.usr.resQueueName = qDetails.values.HTTP_RES;
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON.Data = InputRoot.JSON.Data;
-		CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============Business QUEUENAME=============='' '||QueueName||'') INTO rc ;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;
-		CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Incoming Router End ==============') INTO rc ;
-		PROPAGATE TO TERMINAL 'out';
 	END;
 	/*Retrieve application related queues from database or cache*/
-	CREATE PROCEDURE STORE_CACHE (IN serviceName CHAR)
+	CREATE PROCEDURE STORE_CACHE (IN domainName CHAR,IN serviceName CHAR)
 	BEGIN
 		SET getDBDetailsCache.Values[] = SELECT A.PROC_CODE, A.HTTP_REQ, A.HTTP_RES, A.CHANNEL, A.MSGDOMAIN FROM Database.INTEGRATION_SOL_DETAILS AS A WHERE A.MSGDOMAIN = 'JSON';
 		IF EXISTS(getDBDetailsCache.Values[]) OR getDBDetailsCache <> '' OR getDBDetailsCache IS NOT NULL THEN
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Retrieved values from Database')INTO rc;
 		ELSE
-			CALL errorResponse('No data based on domain name JSON','ESB_001',serviceName);
+			CALL errorResponse(domainName,'No data based on domain name JSON','ESB_001',serviceName);
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','No Data retrieved from Database')INTO rc;
 			RETURN;
 		END IF;
 	END;
-	CREATE PROCEDURE errorResponse (IN msg CHAR,IN errorCode CHAR,IN serviceName CHAR)
+	CREATE PROCEDURE errorResponse (IN domainName CHAR, IN msg CHAR,IN errorCode CHAR,IN serviceName CHAR)
 	BEGIN
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
-		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME REPLACE(serviceName,'Request','Response');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'header';
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'error';
-		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
-		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
-		SET headRef = Environment.MQRFH2.header;
-		SET headRef.status = 'FAILED';
-		SET headRef.responseCode = '000';
-		SET errorRef.source = 'ESB';
-		SET errorRef.applicationName = ApplicationLabel;
-		SET errorRef.applicationErrorCode = errorCode;
-		SET errorRef.message = msg;
-		SET Environment.Variables.jsonData = OutputRoot.JSON;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
-		PROPAGATE TO TERMINAL 'out1';
+		IF domainName = 'JSON' THEN
+			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+			CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME REPLACE(serviceName,'Request','Response');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'header';
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'error';
+			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+			SET headRef = Environment.MQRFH2.header;
+			SET headRef.status = 'FAILED';
+			SET headRef.responseCode = '000';
+			SET errorRef.source = 'ESB';
+			SET errorRef.applicationName = ApplicationLabel;
+			SET errorRef.applicationErrorCode = errorCode;
+			SET errorRef.message = msg;
+			SET Environment.Variables.jsonData = OutputRoot.JSON;
+			SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+			PROPAGATE TO TERMINAL 'out1';
+		ELSEIF domainName = 'XMLNSC' THEN
+			CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
+			CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'header';
+			CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'error';
+			DECLARE headRef REFERENCE TO OutputRoot.XMLNSC.header;
+			DECLARE errorRef REFERENCE TO OutputRoot.XMLNSC.error;
+			SET headRef = Environment.MQRFH2.header;
+			SET headRef.status = 'FAILED';
+			SET headRef.responseCode = '000';
+			SET errorRef.source = 'ESB';
+			SET errorRef.applicationName = ApplicationLabel;
+			SET errorRef.applicationErrorCode = errorCode;
+			SET errorRef.message = msg;
+			SET Environment.Variables.jsonData = OutputRoot.JSON;
+			SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+		END IF;
 	END;
-	
-	
+
+
 	CREATE PROCEDURE generateEsbPcode(IN pcode CHARACTER,IN channel CHARACTER)
 	BEGIN
-			/*get esb processing codes from cache if available else call database to retrive values */
-			IF EXISTS(esbPcode.val[]) THEN 
-				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','===esb pcode values available in shared cache===')INTO rc;	
-				CALL filterPcode(pcode,channel);
-			ELSE
-				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','===esb pcode values not available in shared cache calling db===')INTO rc;
-				CALL getEsbPcode(pcode,channel);
-				CALL filterPcode(pcode,channel);
-			END IF;
+		/*get esb processing codes from cache if available else call database to retrive values */
+		IF EXISTS(esbPcode.val[]) THEN
+			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','===esb pcode values available in shared cache===')INTO rc;
+			CALL filterPcode(pcode,channel);
+		ELSE
+			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','===esb pcode values not available in shared cache calling db===')INTO rc;
+			CALL getEsbPcode(pcode,channel);
+			CALL filterPcode(pcode,channel);
+		END IF;
 	END;
 	/*get esb processing code by filter processing code based on channel and postilion processing code */
 	CREATE PROCEDURE filterPcode(IN pcode CHARACTER,IN channel CHARACTER)
 	BEGIN
-			SET Environment.Variables.esbPcode.values[] = esbPcode.val[];
-			FOR pcodeRef AS Environment.Variables.esbPcode.values[] DO
-				IF (CONTAINS(channel,pcodeRef.CHANNEL) OR CONTAINS(channel,pcodeRef.CHANNEL2)
-					OR CONTAINS(channel,pcodeRef.CHANNEL3) OR CONTAINS(channel,pcodeRef.CHANNEL4)) AND pcodeRef.POSTILION_PCODE = pcode THEN
-						SET Environment.MQRFH2.usr.esbPcode = pcodeRef.ESB_PCODE;
-						CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','====filtering done successfully====')INTO rc;
-						CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','====ESB processing code===')INTO rc;
-						CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG',CAST(Environment.MQRFH2.usr.esbPcode AS CHARACTER))INTO rc;
-				END IF;
-			END FOR;
+		SET Environment.Variables.esbPcode.values[] = esbPcode.val[];
+		FOR pcodeRef AS Environment.Variables.esbPcode.values[] DO
+			IF (CONTAINS(channel,pcodeRef.CHANNEL) OR CONTAINS(channel,pcodeRef.CHANNEL2)
+				OR CONTAINS(channel,pcodeRef.CHANNEL3) OR CONTAINS(channel,pcodeRef.CHANNEL4)) AND pcodeRef.POSTILION_PCODE = pcode THEN
+				SET Environment.MQRFH2.usr.esbPcode = pcodeRef.ESB_PCODE;
+				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','====filtering done successfully====')INTO rc;
+				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','====ESB processing code===')INTO rc;
+				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG',CAST(Environment.MQRFH2.usr.esbPcode AS CHARACTER))INTO rc;
+			END IF;
+		END FOR;
 	END;
 	/* get esb processing codes from database and store it in shared variable */
-	CREATE PROCEDURE getEsbPcode(IN pcode CHARACTER,IN channel CHARACTER) 
+	CREATE PROCEDURE getEsbPcode(IN pcode CHARACTER,IN channel CHARACTER)
 	BEGIN
-		IF pcode <> '' AND pcode IS NOT NULL THEN 
-			IF channel <> '' AND channel IS NOT NULL THEN 
+		IF pcode <> '' AND pcode IS NOT NULL THEN
+			IF channel <> '' AND channel IS NOT NULL THEN
 				SET esbPcode.val[] = SELECT A.* FROM Database.SB_ESB_PCODE AS A;
 				IF EXISTS(esbPcode.val[]) THEN
-						CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','Retrieved pcode values from Database')INTO rc;
+					CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','Retrieved pcode values from Database')INTO rc;
 				ELSE
 					CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','No pcode retrieved from Database')INTO rc;
 				END IF;
@@ -230,7 +276,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','processing code is null or empty')INTO rc;
 		END IF;
 	END;
-	
+
 END MODULE;
 /*Generate json formated message and send to front end system*/
 CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
@@ -249,8 +295,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
-		SET Environment.Variables.msgID = CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER );
+		DECLARE domainDataRef REFERENCE TO InputBody;
 		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -266,7 +311,11 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 			------------------------------
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.JSON.Data = InputRoot.JSON.Data;
+		IF EXISTS(InputRoot.JSON[]) THEN
+			SET OutputRoot.JSON = InputRoot.JSON;
+		ELSEIF EXISTS(InputRoot.XMLNSC[]) THEN
+			SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
+		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','======HTTP RequestIdentifier====='|| CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER)) INTO rc ;
 		END IF;

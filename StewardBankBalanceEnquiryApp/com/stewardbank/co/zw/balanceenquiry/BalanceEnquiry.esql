@@ -336,79 +336,82 @@ CREATE COMPUTE MODULE BalanceEnquiry_HTTPFlow_GenerateReqToT24
 		END IF;
 		SET sql='SELECT * FROM '||ISAVE_TABLENAME||' WHERE ACCOUNT_ID = '''||accountNumber||'''';
 		SET Environment.ZSSData = PASSTHRU(sql);
-		IF inRef.ResponseCode_039 = '00' AND EXISTS(Environment.ZSSData[]) = FALSE THEN
-			CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
-			CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
-			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
-			DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
-			CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef);
-			DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
-			CALL remove127(removeRefPointer);
-			SET Environment.DFDL = OutputRoot.DFDL;
-			MOVE domainDataRef TO OutputRoot.DFDL;
-			SET domainName = FIELDNAME(domainDataRef);
-			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-			IF IsLogRequired = 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','T24 Request::') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
-				--------------DBLogging-------------------
-				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-				SET OutputRoot.DFDL = NULL;
-				PROPAGATE TO TERMINAL 'out1';
-				-----------------------------
-			END IF;
-			SET OutputRoot.Properties = InputRoot.Properties;
-			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-			SET OutputRoot.DFDL = Environment.DFDL;
-			PROPAGATE TO TERMINAL 'out';
-		ELSE
-			IF EXISTS(inRef.SecondaryBitmap[]) THEN
-				MOVE inRef TO InputRoot.DFDL.*.SecondaryBitmap;
-				MOVE inRef NEXTSIBLING;
-			ELSEIF EXISTS(inRef.PrimaryBitmap[]) THEN
-				MOVE inRef TO InputRoot.DFDL.*.PrimaryBitmap;
-				MOVE inRef NEXTSIBLING;
+		--IF inRef.ResponseCode_039 = '00' THEN
+			IF EXISTS(Environment.ZSSData[]) AND STARTSWITH(Environment.ZSSData.ACCOUNT_ID,'2') THEN
+				CREATE LASTCHILD OF OutputRoot DOMAIN 'DFDL';
+				CREATE LASTCHILD OF OutputRoot.DFDL NAME 'ISO8583_1987';
+				DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+				DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
+				CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef);
+				DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+				CALL remove127(removeRefPointer);
+				SET Environment.DFDL = OutputRoot.DFDL;
+				MOVE domainDataRef TO OutputRoot.DFDL;
+				SET domainName = FIELDNAME(domainDataRef);
+				SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+				IF IsLogRequired = 'Y' THEN
+					CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','T24 Request::') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+					--------------DBLogging-------------------
+					CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+					SET OutputRoot.DFDL = NULL;
+					PROPAGATE TO TERMINAL 'out1';
+					-----------------------------
+				END IF;
+				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+				SET OutputRoot.DFDL = Environment.DFDL;
+				PROPAGATE TO TERMINAL 'out';
 			ELSE
-				MOVE inRef TO InputRoot.DFDL.*.PrimaryAccountNumber_002;
-			END IF;
-			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
-			CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('BalanceEnquiryResponse');
-			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
-			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
-			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
-			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
-			SET headRef = Environment.header;
-			SET headRef.status = 'FAILURE';
-			SET headRef.responseCode = '000';
-			CALL ISOToJSONMapping(inRef,bodyRef);
-			IF EXISTS(Environment.JSON[]) OR FIELDNAME(Environment.JSON) IS NOT NULL THEN
-				SET Environment.JSON = OutputRoot.JSON;
-			ELSE
-				CREATE LASTCHILD OF Environment DOMAIN ('JSON');
-				SET Environment.JSON = OutputRoot.JSON;
-			END IF;
-			MOVE domainDataRef TO OutputRoot.JSON;
-			SET domainName = FIELDNAME(domainDataRef);
-			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-			SET OutputRoot.JSON = NULL;
-			IF IsLogRequired = 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','Application Response::') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
-				--------------DBLogging-------------------
-				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-				SET OutputRoot.DFDL = NULL;
+				IF EXISTS(inRef.SecondaryBitmap[]) THEN
+					MOVE inRef TO InputRoot.DFDL.*.SecondaryBitmap;
+					MOVE inRef NEXTSIBLING;
+				ELSEIF EXISTS(inRef.PrimaryBitmap[]) THEN
+					MOVE inRef TO InputRoot.DFDL.*.PrimaryBitmap;
+					MOVE inRef NEXTSIBLING;
+				ELSE
+					MOVE inRef TO InputRoot.DFDL.*.PrimaryAccountNumber_002;
+				END IF;
+				CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+				CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+				CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('BalanceEnquiryResponse');
+				CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+				CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
+				DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+				DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+				SET headRef = Environment.header;
+				SET headRef.status = 'FAILURE';
+				SET headRef.responseCode = '000';
+				CALL ISOToJSONMapping(inRef,bodyRef);
+				IF EXISTS(Environment.JSON[]) OR FIELDNAME(Environment.JSON) IS NOT NULL THEN
+					SET Environment.JSON = OutputRoot.JSON;
+				ELSE
+					CREATE LASTCHILD OF Environment DOMAIN ('JSON');
+					SET Environment.JSON = OutputRoot.JSON;
+				END IF;
+				MOVE domainDataRef TO OutputRoot.JSON;
+				SET domainName = FIELDNAME(domainDataRef);
+				SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+				SET OutputRoot.JSON = NULL;
+				IF IsLogRequired = 'Y' THEN
+					CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG','Application Response::') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'BalEnqHTTPLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+					--------------DBLogging-------------------
+					CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+					SET OutputRoot.DFDL = NULL;
+					PROPAGATE TO TERMINAL 'out1';
+					-----------------------------
+				END IF;
+				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+				SET OutputRoot.JSON = Environment.JSON;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 				PROPAGATE TO TERMINAL 'out1';
-				-----------------------------
 			END IF;
-			SET OutputRoot.Properties = InputRoot.Properties;
-			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-			SET OutputRoot.JSON = Environment.JSON;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
-			PROPAGATE TO TERMINAL 'out1';
-		END IF;
+--		ELSE
+--		END IF;
 	END;
 END MODULE;
 
