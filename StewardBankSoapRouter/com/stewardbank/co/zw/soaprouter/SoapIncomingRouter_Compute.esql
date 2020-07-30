@@ -1,10 +1,4 @@
-/*
-Author:Rathod Veerender/Anusha/Bobby
-Version:1.0.0
-Date of Creation:29-07-2020
-Date of Modification:
-Description:
-*/
+BROKER SCHEMA com.stewardbank.co.zw.soaprouter
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE IsLogRequired EXTERNAL CHARACTER ''; 
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER ''; 
@@ -51,7 +45,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP Router Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','TCPIP ID::'|| CAST(InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP ID::'|| CAST(InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER)) INTO rc;
 		END IF;
 		
 		
@@ -69,5 +63,44 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 			--other soap business flow queues
 		END IF;
 		SET OutputRoot.SOAP = InputRoot.SOAP;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE SoapIncomingRouter_BuildExceptionDetails
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL BuildExceptionDetails();
+		RETURN TRUE;
+	END;
+
+	
+	CREATE PROCEDURE BuildExceptionDetails() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE exe_Desc CHARACTER'';
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'InComingRouter';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'InComingRouter');
+		SET Environment.Variables.UserDefineErrorCodes = OutputRoot.XMLNSC;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q ;
+		PROPAGATE TO TERMINAL 'out';
+		-- DB Logging===================
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','=====================================  INCOMING ROUTER  EXCEPTIOPN =================================') INTO rc ;
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','SOAP ID: '||CAST(InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER))INTO rc;
+		CALL Error_DBLogging(Environment.id,Environment.Variables.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.Variables.systemsTraceAuditNumber,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefineErrorCodes.InComingRouter.ErrorCode,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
 	END;
 END MODULE;
