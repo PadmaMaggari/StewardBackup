@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" name="SmallWorldRemitWSDL" targetNamespace="http://www.example.org/SmallWorldRemitWSDL/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://www.example.org/SmallWorldRemitWSDL/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<wsdl:documentation>
+		<wsdl:appinfo source="WMQI_APPINFO">
+			<MRWSDLAppInfo imported="true">
+				<generatedXSD location="SmallWorldRemitWSDL_InlineSchema1.xsd"/>
+				<binding hasEncoding="false" imported="true" name="SmallWorldRemitWSDLSOAP" originalBindingStyle="document"/>
+			</MRWSDLAppInfo>
+		</wsdl:appinfo>
+	</wsdl:documentation>
+
+<wsdl:types>
+
+<xsd:schema targetNamespace="http://www.example.org/SmallWorldRemitWSDL/" xmlns:ibmSchExtn="http://www.ibm.com/schema/extensions">
+<xsd:include schemaLocation="SmallWorldRemitWSDL_InlineSchema1.xsd"/>
+</xsd:schema>
+</wsdl:types>
+<wsdl:message name="getTransactionExportTransactionsRequest">
+<wsdl:part element="tns:getTransactionExportTransactions" name="parameters"/>
+</wsdl:message>
+<wsdl:message name="getTransactionExportTransactionsResponse">
+<wsdl:part element="tns:getTransactionExportTransactionsResponse" name="parameters"/>
+</wsdl:message>
+<wsdl:message name="acknowledgeTransactionExportRequest">
+<wsdl:part element="tns:acknowledgeTransactionExport" name="parameters"/>
+</wsdl:message>
+<wsdl:message name="acknowledgeTransactionExportResponse">
+<wsdl:part element="tns:acknowledgeTransactionExportResponse" name="parameters"/>
+</wsdl:message>
+ <wsdl:message name="acknowledgeTransactionsExportRequest">
+  	<wsdl:part name="parameters" element="tns:acknowledgeTransactionsExport"></wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="acknowledgeTransactionsExportResponse">
+  	<wsdl:part name="parameters" element="tns:acknowledgeTransactionsExportResponse"></wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="updateTransactionsExportRequest">
+  	<wsdl:part name="parameters" element="tns:updateTransactionsExport"></wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="updateTransactionsExportResponse">
+  	<wsdl:part name="parameters" element="tns:updateTransactionsExportResponse"></wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="addTransactionNoteRequest">
+  	<wsdl:part name="parameters" element="tns:addTransactionNote"></wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="addTransactionNoteResponse">
+  	<wsdl:part name="parameters" element="tns:addTransactionNoteResponse"></wsdl:part>
+  </wsdl:message>
+
+  <wsdl:message name="updateTransactionExportRequest">
+  	<wsdl:part name="parameters" element="tns:updateTransactionExport"></wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="updateTransactionExportResponse">
+  	<wsdl:part name="parameters" element="tns:updateTransactionExportResponse"></wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getMTNByFolioRequest">
+  	<wsdl:part name="parameters" element="tns:getMTNByFolio"></wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getMTNByFolioResponse">
+  	<wsdl:part name="parameters" element="tns:getMTNByFolioResponse"></wsdl:part>
+  </wsdl:message>
+  
+<wsdl:portType name="SmallWorldRemitWSDL">
+<wsdl:operation name="getTransactionExportTransactions">
+<wsdl:input message="tns:getTransactionExportTransactionsRequest"/>
+<wsdl:output message="tns:getTransactionExportTransactionsResponse"/>
+</wsdl:operation>
+<wsdl:operation name="acknowledgeTransactionExport">
+<wsdl:input message="tns:acknowledgeTransactionExportRequest"/>
+<wsdl:output message="tns:acknowledgeTransactionExportResponse"/>
+</wsdl:operation>
+  <wsdl:operation name="acknowledgeTransactionsExport">
+    	<wsdl:input message="tns:acknowledgeTransactionsExportRequest"></wsdl:input>
+    	<wsdl:output message="tns:acknowledgeTransactionsExportResponse"></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="updateTransactionsExport">
+    	<wsdl:input message="tns:updateTransactionsExportRequest"></wsdl:input>
+    	<wsdl:output message="tns:updateTransactionsExportResponse"></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="addTransactionNote">
+    	<wsdl:input message="tns:addTransactionNoteRequest"></wsdl:input>
+    	<wsdl:output message="tns:addTransactionNoteResponse"></wsdl:output>
+    </wsdl:operation>
+
+    
+    <wsdl:operation name="updateTransactionExport">
+    	<wsdl:input message="tns:updateTransactionExportRequest"></wsdl:input>
+    	<wsdl:output message="tns:updateTransactionExportResponse"></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getMTNByFolio">
+    	<wsdl:input message="tns:getMTNByFolioRequest"></wsdl:input>
+    	<wsdl:output message="tns:getMTNByFolioResponse"></wsdl:output>
+    </wsdl:operation>
+
+</wsdl:portType>
+<wsdl:binding name="SmallWorldRemitWSDLSOAP" type="tns:SmallWorldRemitWSDL">
+<soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+<wsdl:operation name="getTransactionExportTransactions">
+<soap:operation soapAction="http://www.example.org/SmallWorldRemitWSDL/getTransactionExportTransactions"/>
+<wsdl:input>
+<soap:body use="literal"/>
+</wsdl:input>
+<wsdl:output>
+<soap:body use="literal"/>
+</wsdl:output>
+</wsdl:operation>
+<wsdl:operation name="acknowledgeTransactionExport">
+<soap:operation soapAction="http://www.example.org/SmallWorldRemitWSDL/acknowledgeTransactionExport"/>
+<wsdl:input>
+<soap:body use="literal"/>
+</wsdl:input>
+<wsdl:output>
+<soap:body use="literal"/>
+</wsdl:output>
+</wsdl:operation>
+
+<wsdl:operation name="acknowledgeTransactionsExport">
+<soap:operation soapAction="http://www.example.org/SmallWorldRemitWSDL/acknowledgeTransactionsExport"/>
+<wsdl:input>
+<soap:body use="literal"/>
+</wsdl:input>
+<wsdl:output>
+<soap:body use="literal"/>
+</wsdl:output>
+</wsdl:operation>
+ <wsdl:operation name="updateTransactionExport">
+      <soap:operation soapAction="http://www.example.org/SmallWorldRemitWSDL/updateTransactionExport"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+      <wsdl:operation name="updateTransactionsExport">
+      <soap:operation soapAction="http://www.example.org/SmallWorldRemitWSDL/updateTransactionsExport"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    
+        <wsdl:operation name="getMTNByFolio">
+      <soap:operation soapAction="http://www.example.org/SmallWorldRemitWSDL/getMTNByFolio"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="addTransactionNote">
+      <soap:operation soapAction="http://www.example.org/SmallWorldRemitWSDL/addTransactionNote"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+	</wsdl:operation>
+</wsdl:binding>
+<wsdl:service name="SmallWorldRemitWSDL">
+<wsdl:port binding="tns:SmallWorldRemitWSDLSOAP" name="SmallWorldRemitSOAP">
+<soap:address location="http://localhost:7800/"/>
+</wsdl:port>
+</wsdl:service>
+</wsdl:definitions>
