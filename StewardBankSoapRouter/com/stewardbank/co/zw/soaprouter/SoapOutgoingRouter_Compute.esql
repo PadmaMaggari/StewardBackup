@@ -59,11 +59,11 @@ END MODULE;
 CREATE COMPUTE MODULE SoapOutgoingRouter_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL BuildExceptionDetails();
+		 CALL BuildException();
 		RETURN TRUE;
 	END;
 
-	CREATE PROCEDURE BuildExceptionDetails() BEGIN
+	CREATE PROCEDURE BuildException() BEGIN
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;

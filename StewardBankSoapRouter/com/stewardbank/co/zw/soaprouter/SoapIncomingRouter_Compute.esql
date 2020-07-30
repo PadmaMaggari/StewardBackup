@@ -70,12 +70,12 @@ END MODULE;
 CREATE COMPUTE MODULE SoapIncomingRouter_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL BuildExceptionDetails();
+		 CALL BuildException();
 		RETURN TRUE;
 	END;
 
 	
-	CREATE PROCEDURE BuildExceptionDetails() BEGIN
+	CREATE PROCEDURE BuildException() BEGIN
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
@@ -101,6 +101,6 @@ CREATE COMPUTE MODULE SoapIncomingRouter_BuildExceptionDetails
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','SOAP ID: '||CAST(InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER))INTO rc;
 		CALL Error_DBLogging(Environment.id,Environment.Variables.reqMsg,'Router Request Error',ApplicationLabel,BrokerName,exe_Desc,Environment.Variables.systemsTraceAuditNumber,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefineErrorCodes.InComingRouter.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
+		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
