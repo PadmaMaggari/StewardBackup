@@ -151,10 +151,11 @@ CREATE COMPUTE MODULE CashInFlow_GenResToT24
 		IF responceCode LIKE '200' THEN
 			SET OutRefer=inRef;
 		ELSE
-			SET OutRefer.statusCode = '000';
-			SET OutRefer.message = 'FAILURE';
-			SET OutRefer.responseBody.source = 'ESB';
-			SET OutRefer.responseBody.ServiveFlow = 'CASHOUT';
+			SET OutRefer.status = 'FAILURE';
+			SET OutRefer.responseCode = '000';
+			SET OutRefer.source = 'ESB';
+			SET OutRefer.applicationName = ApplicationLabel;
+			SET OutRefer.message=inRef;
 		END IF;
 	--------------	
 		DECLARE envref REFERENCE TO Environment.JSON.Data;
@@ -229,9 +230,9 @@ END MODULE;
 		SET OutputRoot.XMLNSC = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CashIn');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
-		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		--CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CashIn');
+		--CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data;
 		SET errorRef.status = 'FAILED';
 		SET errorRef.responseCode = '000';
 		SET errorRef.source = 'ESB';
