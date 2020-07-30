@@ -1,15 +1,9 @@
-/*
-Author:Rathod Veerender/Anusha/Bobby
-Version:1.0.0
-Date of Creation:29-07-2020
-Date of Modification:
-Description:
-*/
+BROKER SCHEMA com.stewardbank.co.zw.soaprouter
 PATH com.stewardbank.co.zw.common.esql;
 
 
 
-CREATE COMPUTE MODULE SoapOutgoingRouter_Compute
+CREATE COMPUTE MODULE SoapOutgoingRouter_RouteBasedOnProtocol
 	DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
@@ -58,5 +52,45 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 		SET OutputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier = CAST(InputRoot.MQRFH2.usr.Destination.SOAP.Reply.ReplyIdentifier AS BLOB);
 		SET OutputLocalEnvironment.SOAP.Envelope = '';
 		SET OutputRoot.SOAP.Body = InputRoot.XMLNSC;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE SoapOutgoingRouter_BuildExceptionDetails
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL BuildException();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE BuildException() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.Id = InputRoot.MQRFH2.usr.Id ;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'OutGoingRouter';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'OutGoingRouter');
+		SET Environment.Variables.OutgoingRouterErrorCodes = OutputRoot.XMLNSC;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+		-- DB Logging===================
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE exe_Desc CHARACTER '';
+		SET exe_Desc = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','=====================================  OUTGOING ROUTER  EXCEPTIOPN =================================') INTO rc ;
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','TCPIP ID: '||InputRoot.MQRFH2.usr.Id)INTO rc;
+		CALL Error_DBLogging(Environment.Id,Environment.Variables.reqMsg,'Router Response Error',ApplicationLabel,BrokerName,exe_Desc,Environment.Variables.systemsTraceAuditNumber,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.OutgoingRouterErrorCodes.OutGoingRouter.ErrorCode,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q ;
+		PROPAGATE TO TERMINAL 'out1';
 	END;
 END MODULE;
