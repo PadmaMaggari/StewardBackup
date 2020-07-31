@@ -33,10 +33,12 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		DECLARE SoapReplyIdentifier REFERENCE TO InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET Environment.id = SoapReplyIdentifier;
+		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
+		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(CAST(Environment.id AS CHARACTER),Environment.Variables.reqMsg,'Router Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,
-			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+			CALL DBLogging(CAST(Environment.id AS CHARACTER),Environment.Variables.reqMsg,'Router Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
+			'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -51,12 +53,14 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
+		SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
 		DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.[1];
 		IF CONTAINS(FIELDNAME(inRef),'getTransactionExportTransactions')
 			OR CONTAINS(FIELDNAME(inRef),'acknowledgeTransactionExport') THEN
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SM_SB_SOAP_REQ';
 		ELSEIF CONTAINS(FIELDNAME(inRef),'AccountDetails')
-			OR CONTAINS(FIELDNAME(inRef),'AmendCard') THEN
+			OR CONTAINS(FIELDNAME(inRef),'AmendCard')
+			OR CONTAINS(FIELDNAME(inRef),'CardCharges') THEN
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'INDIGO_SB_SOAP_REQ';
 			
 		ELSE
