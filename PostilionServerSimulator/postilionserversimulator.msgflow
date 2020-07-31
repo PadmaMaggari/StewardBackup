@@ -6,13 +6,13 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/PostilionServerSimulator/icons/full/obj16/postilionserversimulator.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/PostilionServerSimulator/icons/full/obj30/postilionserversimulator.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmTCPIPServerInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="142,44" connectionDetails="{ESBPolicies}:PostilionServer" modifyInputStream="reserve" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583WithHeader" validateTiming="immediate" recordDetection="parsedRecordSequence">
+      <nodes xmi:type="ComIbmTCPIPServerInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="142,44" connectionDetails="{ESBPolicies}:EsbPostilionServer" modifyInputStream="reserve" messageDomainProperty="DFDL" messageSetProperty="{ISO8583_Lib}" messageTypeProperty="{}:ISO8583WithHeader" validateTiming="immediate" recordDetection="parsedRecordSequence">
         <translation xmi:type="utility:ConstantString" string="TCPIP Server Input"/>
       </nodes>
-      <nodes xmi:type="ComIbmTCPIPServerOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="318,43" connectionDetails="{ESBPolicies}:PostilionServer" modifyOutputStream="release" modifyInputStream="release">
+      <nodes xmi:type="ComIbmTCPIPServerOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="318,43" connectionDetails="{ESBPolicies}:EsbPostilionServer" modifyOutputStream="release" modifyInputStream="release">
         <translation xmi:type="utility:ConstantString" string="TCPIP Server Output"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="257,53" computeExpression="esql://routine/#postilionserversimulator_Compute.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="257,53" dataSource="ORADSN" computeExpression="esql://routine/#postilionserversimulator_Compute.Main">
         <translation xmi:type="utility:ConstantString" string="Compute"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
