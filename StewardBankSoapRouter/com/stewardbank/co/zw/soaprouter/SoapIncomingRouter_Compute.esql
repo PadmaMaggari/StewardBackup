@@ -16,23 +16,21 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
-		
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','=====================================  INCOMMING  ROUTER =================================') INTO rc ;
-		
 		DECLARE inRefData REFERENCE TO InputRoot.SOAP;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.SOAP;
-		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		SET Environment.MQRFH2.requestDomain=domainName;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);    
+		SET Environment.MQRFH2.requestDomain=domainName;     
 		DECLARE SoapReplyIdentifier REFERENCE TO InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		SET Environment.id = SoapReplyIdentifier;
+		SET Environment.id = SoapReplyIdentifier;    
 		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
 		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
 		DECLARE outRefer REFERENCE TO OutputRoot;
