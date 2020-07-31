@@ -59,6 +59,8 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			SET Environment.MQRFH2.RequestDomian = 'XMLNSC';
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC') PARSE(InputRoot.BLOB.BLOB);
 			SET Environment.XMLNSC = OutputRoot.XMLNSC;
+			SET Environment.MQRFH2.header.channel = COALESCE(OutputRoot.XMLNSC.channel,OutputRoot.XMLNSC.*.channel,'');
+			SET Environment.MQRFH2.header.processingCode = COALESCE(OutputRoot.XMLNSC.processingCode,OutputRoot.XMLNSC.*.processingCode,'');
 			MOVE inRef TO Environment.XMLNSC.request;
 		ELSE
 			SET Environment.MQRFH2.RequestDomian = 'Unknown';
@@ -195,6 +197,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 	END;
 	CREATE PROCEDURE errorResponse (IN domainName CHAR, IN msg CHAR,IN errorCode CHAR,IN serviceName CHAR)
 	BEGIN
+		SET OutputRoot.Properties = InputRoot.Properties;
 		IF domainName = 'JSON' THEN
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 			CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
@@ -215,10 +218,11 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			PROPAGATE TO TERMINAL 'out1';
 		ELSEIF domainName = 'XMLNSC' THEN
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
-			CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'header';
-			CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'error';
-			DECLARE headRef REFERENCE TO OutputRoot.XMLNSC.header;
-			DECLARE errorRef REFERENCE TO OutputRoot.XMLNSC.error;
+			CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'AccountOpeningResponse';
+			CREATE LASTCHILD OF OutputRoot.XMLNSC.* NAME 'header';
+			CREATE LASTCHILD OF OutputRoot.XMLNSC.* NAME 'error';
+			DECLARE headRef REFERENCE TO OutputRoot.XMLNSC.*.header;
+			DECLARE errorRef REFERENCE TO OutputRoot.XMLNSC.*.error;
 			SET headRef = Environment.MQRFH2.header;
 			SET headRef.status = 'FAILED';
 			SET headRef.responseCode = '000';
@@ -228,6 +232,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			SET errorRef.message = msg;
 			SET Environment.Variables.jsonData = OutputRoot.JSON;
 			SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 	END;
 
@@ -365,7 +370,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_BuildExceptionDetails
 		----------------------------------
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME Environment.MQRFH2.serviceName;
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'HTTPRouterResponse';
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'header';
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME 'error';
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
