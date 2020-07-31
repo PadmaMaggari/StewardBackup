@@ -15,7 +15,7 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERROR_AUDIT_Q" name="ERROR_AUDIT_Q" defaultValueLiteral="ERR_LOG_SB_REQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.EXCEPTIONQ" name="EXCEPTIONQ" defaultValueLiteral="SB_EXCQ">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ExceptionQ" name="ExceptionQ" defaultValueLiteral="SB_EXCQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.DSN" name="DSN" defaultValueLiteral="ORADSN">
@@ -24,32 +24,35 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG4J_INIT_ERROR_MSG" name="LOG4J_INIT_ERROR_MSG" defaultValueLiteral="Initializing the log4j path">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.Url" name="Url" defaultValueLiteral="http://localhost:7801/ProviderResponse">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LoanEligibilityUrl" name="LoanEligibilityUrl" defaultValueLiteral="http://192.168.1.60:9084/eligibility/check/">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ALL_SB_HTTP_RES" name="ALL_SB_HTTP_RES" defaultValueLiteral="ALL_SB_HTTP_RES">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="nanoLoanEligibityConsumerFlow" bundleName="com/stewardbank/co/zw/nanoloaneligibilitycheck/nanoLoanEligibityConsumerFlow" pluginId="StewardBankNanoLoanEligibilityCheckApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankNanoLoanEligibilityCheckApp/icons/full/obj16/nanoLoanEligibityConsumerFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankNanoLoanEligibilityCheckApp/icons/full/obj30/nanoLoanEligibityConsumerFlow.gif"/>
     <composition>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="192,156">
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="301,159">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="202,50" computeExpression="esql://routine/com.stewardbank.co.zw.nanoloaneligibilitycheck#nanoLoanEligibityConsumerFlow_GeneratingRequest.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="212,85" computeExpression="esql://routine/com.stewardbank.co.zw.nanoloaneligibilitycheck#nanoLoanEligibityConsumerFlow_GeneratingRequest.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="FramingRequest"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="362,165" computeExpression="esql://routine/com.stewardbank.co.zw.nanoloaneligibilitycheck#nanoLoanEligibityConsumerFlow_BuildExceptionDetails.Main" computeMode="all">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="452,156" computeExpression="esql://routine/com.stewardbank.co.zw.nanoloaneligibilitycheck#nanoLoanEligibityConsumerFlow_BuildExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GeneratingExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="476,34" computeExpression="esql://routine/com.stewardbank.co.zw.nanoloaneligibilitycheck#nanoLoanEligibityConsumerFlow_GeneratingReponse.Main" computeMode="all">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="470,13" computeExpression="esql://routine/com.stewardbank.co.zw.nanoloaneligibilitycheck#nanoLoanEligibityConsumerFlow_GeneratingReponse.Main" computeMode="all">
         <translation xmi:type="utility:ConstantString" string="GeneratingResponse"/>
       </nodes>
-      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="303,13" URLSpecifier="http://7800" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON">
+      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="269,9" URLSpecifier="http://192.168.1.60:9084/eligibility/check/263771222746" httpMethod="GET" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON">
         <translation xmi:type="utility:ConstantString" string="NanoLoanEligibilityCall"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="648,88" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="639,76" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="LogQueue"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="73,91" queueName="NANOELE_SB_HTTP_REQ" messageDomainProperty="JSON">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="95,150" queueName="NANOELE_SB_HTTP_REQ" messageDomainProperty="JSON">
         <translation xmi:type="utility:ConstantString" string="ReqQueue"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
@@ -61,6 +64,8 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
@@ -71,14 +76,17 @@
             <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_Q" bundleName="com/stewardbank/co/zw/nanoloaneligibilitycheck/nanoLoanEligibityConsumerFlow" pluginId="StewardBankNanoLoanEligibilityCheckApp"/>
             <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERROR_AUDIT_Q">
               <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_Q" bundleName="com/stewardbank/co/zw/nanoloaneligibilitycheck/nanoLoanEligibityConsumerFlow" pluginId="StewardBankNanoLoanEligibilityCheckApp"/>
-              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.EXCEPTIONQ">
-                <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTIONQ" bundleName="com/stewardbank/co/zw/nanoloaneligibilitycheck/nanoLoanEligibityConsumerFlow" pluginId="StewardBankNanoLoanEligibilityCheckApp"/>
+              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ExceptionQ">
+                <propertyName xmi:type="utility:TranslatableString" key="Property.ExceptionQ" bundleName="com/stewardbank/co/zw/nanoloaneligibilitycheck/nanoLoanEligibityConsumerFlow" pluginId="StewardBankNanoLoanEligibilityCheckApp"/>
                 <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.DSN">
                   <propertyName xmi:type="utility:TranslatableString" key="Property.DSN" bundleName="com/stewardbank/co/zw/nanoloaneligibilitycheck/nanoLoanEligibityConsumerFlow" pluginId="StewardBankNanoLoanEligibilityCheckApp"/>
                   <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4J_INIT_ERROR_MSG">
                     <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR_MSG" bundleName="com/stewardbank/co/zw/nanoloaneligibilitycheck/nanoLoanEligibityConsumerFlow" pluginId="StewardBankNanoLoanEligibilityCheckApp"/>
-                    <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.Url">
-                      <propertyName xmi:type="utility:TranslatableString" key="Property.Url" bundleName="com/stewardbank/co/zw/nanoloaneligibilitycheck/nanoLoanEligibityConsumerFlow" pluginId="StewardBankNanoLoanEligibilityCheckApp"/>
+                    <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LoanEligibilityUrl">
+                      <propertyName xmi:type="utility:TranslatableString" key="Property.LoanEligibilityUrl" bundleName="com/stewardbank/co/zw/nanoloaneligibilitycheck/nanoLoanEligibityConsumerFlow" pluginId="StewardBankNanoLoanEligibilityCheckApp"/>
+                      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ALL_SB_HTTP_RES">
+                        <propertyName xmi:type="utility:TranslatableString" key="Property.ALL_SB_HTTP_RES" bundleName="com/stewardbank/co/zw/nanoloaneligibilitycheck/nanoLoanEligibityConsumerFlow" pluginId="StewardBankNanoLoanEligibilityCheckApp"/>
+                      </propertyDescriptor>
                     </propertyDescriptor>
                   </propertyDescriptor>
                 </propertyDescriptor>
