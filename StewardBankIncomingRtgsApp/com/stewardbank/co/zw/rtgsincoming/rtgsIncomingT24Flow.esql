@@ -45,7 +45,7 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GeneratingT24Request
 --		    SET OutputRoot = NULL;
 			SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = BackendT24Url||RtgsIncomingUrlPathparameters ;
-			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'','',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'');
+			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'NA','PENDING',envRef.File.Name,'NA',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'NA','NA','PENDING',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'NA','PENDING','NA');
 			IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............T24 Request Url..........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',BackendT24Url||RtgsIncomingUrlPathparameters) INTO rc;
@@ -85,11 +85,11 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_UpdateDatabaseStatus
 		--***************Updating Database with T24 Status and Response codes***********************
 		IF FIELDNAME(InputRoot) IS NOT NULL THEN
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
-			 IF CONTAINS(CAST(Environment.Variables.Statuscode AS CHARACTER),'200') AND CONTAINS(InputRoot.JSON.Data.header,'success') THEN
-			 	CALL UpdateDBStatus(Guid,'SUCCESS',CAST(Environment.Variables.Statuscode AS CHARACTER),' ','T24');
+			 IF CONTAINS(CAST(Environment.Variables.Statuscode AS CHARACTER),'200') AND CONTAINS(InputRoot.JSON.Data.header.status,'success') THEN
+			 	CALL UpdateDBStatus(Guid,'SUCCESS',CAST(Environment.Variables.Statuscode AS CHARACTER),' NA',reqMsg,'T24');
 			 	CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Updated Database as Success...........') INTO rc;
 			 ELSE
-			 	CALL UpdateDBStatus(Guid,'FALUIRE',CAST(Environment.Variables.Statuscode AS CHARACTER),' ','T24');
+			 	CALL UpdateDBStatus(Guid,'FAILURE',CAST(Environment.Variables.Statuscode AS CHARACTER),' NA',reqMsg,'T24');
 			 	CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Updated Database as Failure...........') INTO rc;
 			 END IF;
 		END IF;	
@@ -121,6 +121,19 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GenerateExceptionDetails
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE exe_Desc CHARACTER'';  
+		IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') OR CONTAINS(excpRef.excpText,'empty name') OR CONTAINS(excpRef.excpText,'odbc')THEN
+			SET OutputLocalEnvironment.Destination.File.Directory = DBFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.File.Name;
+		ELSE
+			SET OutputLocalEnvironment.Destination.File.Directory = FormatFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.File.Name;
+		END IF;	
+		SET OutputRoot.Properties.MessageSet = '{MT103}';
+			SET OutputRoot.Properties.MessageType = '{}:MT103';
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
+			parse(Environment.Variables.mtReqMsg ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+			PROPAGATE TO TERMINAL 'out1';
+			SET OutputRoot.DFDL = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'RTGSIncoming';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;    
@@ -141,10 +154,10 @@ END MODULE;
 	CREATE PROCEDURE insertIntoSbIsaveTable(IN PAYNET_GUID CHARACTER,IN PAYNET_STAN_NUM CHARACTER, IN PAYNET_STANDATE CHARACTER
 ,IN PAYNET_RRN_REF CHARACTER,IN PAYNET_ISO_REQUEST_MSG CHARACTER,IN PAYNET_ISO_RESPONSE_CODE CHARACTER,IN PAYNET_MT103_FILENAME CHARACTER,IN PAYNET_MT103_FIELDS CHARACTER,IN PAYNET_MT103_AMOUNT CHARACTER,
 IN PAYNET_MT103_DTACCOUNT CHARACTER,IN PAYNET_MT103_CRACCOUNT CHARACTER,IN PAYNET_MT103_DTDATE CHARACTER,IN PAYNET_MT103_T24_MSG CHARACTER,IN PAYNET_ISO_FT CHARACTER,
-IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_MT103_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP,IN TAXABLE CHARACTER)
+IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_MT103_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP,IN TAXABLE CHARACTER,IN T24RESPONSE CHARACTER,IN ZSSRESPONSE CHARACTER)
 	LANGUAGE DATABASE
 	EXTERNAL NAME "INSERT_SB_ISAVE_PAYNET";
 		--*********************Procedure to Update Database Status***************
-	CREATE PROCEDURE UpdateDBStatus (IN PAYNET_ID CHARACTER,IN PAYNET_STATUS CHARACTER,IN PAYNET_RESPONSE_CODE CHARACTER,IN PAYNET_REFNUM CHARACTER,IN STR CHARACTER)
+	CREATE PROCEDURE UpdateDBStatus (IN PAYNET_ID CHARACTER,IN PAYNET_STATUS CHARACTER,IN PAYNET_RESPONSE_CODE CHARACTER,IN PAYNET_REFNUM CHARACTER,IN RESPONSE CHARACTER,IN STR CHARACTER)
 	LANGUAGE DATABASE
-	EXTERNAL NAME "UPDATE_STASUS_SB_ISAVE";
+	EXTERNAL NAME "UPDATE_STATUS_SB_RTGS";
