@@ -1,14 +1,17 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.soaprouter
 PATH com.stewardbank.co.zw.common.esql;
-DECLARE IsLogRequired EXTERNAL CHARACTER ''; 
-DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER ''; 
-DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER ''; 
-DECLARE rc BOOLEAN; 
+DECLARE IsLogRequired EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE rc BOOLEAN;
 DECLARE ns1 EXTERNAL NAMESPACE '';
 DECLARE soapenv EXTERNAL NAMESPACE '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE getDBDetailsCache SHARED ROW;
 CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -18,67 +21,138 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			DECLARE msg CHARACTER ;
+
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		DECLARE msg,PROC_CODE,MSGDOMAIN,reqQName CHARACTER ;
 		CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','=====================================  INCOMMING  ROUTER =================================') INTO rc ;
 		DECLARE inRefData REFERENCE TO InputRoot.SOAP;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.SOAP;
-		DECLARE domainName CHARACTER FIELDNAME(InputBody);    
-		SET Environment.MQRFH2.requestDomain=domainName;     
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE serviceName CHARACTER;
+		SET serviceName = FIELDNAME(domainDataRef.Body.[1]);
+		-- DECLARE qDetails ROW;
+		SET Environment.MQRFH2.requestDomain=domainName;
 		DECLARE SoapReplyIdentifier REFERENCE TO InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		SET Environment.id = SoapReplyIdentifier;    
+		SET Environment.id = SoapReplyIdentifier;
 		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
 		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(CAST(Environment.id AS CHARACTER),Environment.Variables.reqMsg,'Router Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
 			'',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
 		END IF;
-		
-		
+
+
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP Router Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP ID::'|| CAST(InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER)) INTO rc;
 		END IF;
-		
-		
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
-		SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
-		DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.[1];
-		IF CONTAINS(FIELDNAME(inRef),'getTransactionExportTransactions')
-			OR CONTAINS(FIELDNAME(inRef),'acknowledgeTransactionExport') THEN
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SM_SB_SOAP_REQ';
-		ELSEIF CONTAINS(FIELDNAME(inRef),'AccountDetails')
-			OR CONTAINS(FIELDNAME(inRef),'AmendCard')
-			OR CONTAINS(FIELDNAME(inRef),'CardCharges') THEN
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'INDIGO_SB_SOAP_REQ';
-			
+		/*======================================= Calling data base values and storeing in cache ===================================*/
+
+		IF EXISTS(getDBDetailsCache.values[])THEN
+			CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Values available in shared cache: '|| getDBDetailsCache.values.*[])INTO rc;
+
+			IF FIELDNAME(getDBDetailsCache.values.MSGDOMAIN) IS NOT NULL AND FIELDNAME(getDBDetailsCache.values.REQ_QUEUE) IS NOT NULL AND FIELDNAME(getDBDetailsCache.values.RES_QUEUE)IS NOT NULL THEN
+				SET Environment.reqQName = getDBDetailsCache.values.REQ_QUEUE;
+				SET Environment.reqServiseName = getDBDetailsCache.values.PROC_CODE;
+				SET Environment.resQName = getDBDetailsCache.values.RES_QUEUE;
+				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
+				SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
+				SET OutputRoot.MQRFH2.usr.resQ = Environment.resQName;
+				SET OutputRoot.SOAP = InputRoot.SOAP;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.reqQName;
+			ELSEIF FIELDNAME(getDBDetailsCache.values.REQ_QUEUE)  IS NULL THEN 
+				CALL errorResponse(domainName,'No Request Queue Available','ESB_001',serviceName);
+				CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Request Queue Available')INTO rc;
+				
+				ELSEIF FIELDNAME(getDBDetailsCache.values.RES_QUEUE)  IS NULL THEN 
+				CALL errorResponse(domainName,'No Response Queue Available','ESB_002',serviceName);
+				CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Response Queue Available')INTO rc;
+			ELSE
+				CALL errorResponse(domainName,'No Details','ESB_003',serviceName);
+				CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Details')INTO rc;
+			END IF;
+
+
 		ELSE
-			CALL errorResponse(Environment.MQRFH2.requestDomain,'Invaild Operation','ESB_001',ApplicationLabel);
-			--other soap business flow queues
+			CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Calling the Cache')INTO rc;
+			CALL CALL_STORED_CACHE(serviceName,domainName);
+
+			IF FIELDNAME(getDBDetailsCache.values.MSGDOMAIN) IS NOT NULL AND FIELDNAME(getDBDetailsCache.values.REQ_QUEUE) IS NOT NULL AND FIELDNAME(getDBDetailsCache.values.RES_QUEUE)IS NOT NULL THEN
+				SET Environment.reqQName = getDBDetailsCache.values.REQ_QUEUE;
+				SET Environment.reqServiseName = getDBDetailsCache.values.PROC_CODE;
+				SET Environment.resQName = getDBDetailsCache.values.RES_QUEUE;
+				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
+				SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
+				SET OutputRoot.MQRFH2.usr.resQ = Environment.resQName;
+				SET OutputRoot.SOAP = InputRoot.SOAP;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.reqQName;
+			ELSEIF FIELDNAME(getDBDetailsCache.values.REQ_QUEUE)  IS NULL THEN 
+				CALL errorResponse(domainName,'No Request Queue Available','ESB_001',serviceName);
+				CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Request Queue Available')INTO rc;
+				
+				ELSEIF FIELDNAME(getDBDetailsCache.values.RES_QUEUE)  IS NULL THEN 
+				CALL errorResponse(domainName,'No Response Queue Available','ESB_002',serviceName);
+				CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Response Queue Available')INTO rc;
+			ELSE
+				CALL errorResponse(domainName,'No Details','ESB_003',serviceName);
+				CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Details')INTO rc;
+			END IF;
+
 		END IF;
-		SET OutputRoot.SOAP = InputRoot.SOAP;
+
+		-- SET OutputRoot.Properties = InputRoot.Properties;
+		-- SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
+		-- SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
+		-- DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.[1];
+		-- IF CONTAINS(FIELDNAME(inRef),'getTransactionExportTransactions')
+		-- OR CONTAINS(FIELDNAME(inRef),'acknowledgeTransactionExport') THEN
+		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SM_SB_SOAP_REQ';
+		-- ELSEIF CONTAINS(FIELDNAME(inRef),'AccountDetails')
+		-- OR CONTAINS(FIELDNAME(inRef),'AmendCard')
+		-- OR CONTAINS(FIELDNAME(inRef),'CardCharges') THEN
+		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'INDIGO_SB_SOAP_REQ';
+		--
+		-- ELSE
+		-- CALL errorResponse(Environment.MQRFH2.requestDomain,'Invaild Operation','ESB_001',ApplicationLabel);
+		-- --other soap business flow queues
+		-- END IF;
+		-- SET OutputRoot.SOAP = InputRoot.SOAP;
 	END;
 	CREATE PROCEDURE errorResponse(IN domainName CHAR, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
 	BEGIN
 		IF domainName = 'SOAP' THEN
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
-    		SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
-    		SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:Message=msg;
-    		SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
-    		SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
-    		
+			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:Message=msg;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
+
 			SET OutputLocalEnvironment.Destination.HTTP.ReplyIdentifier = CAST(Environment.MQRFH2.ReplyIdentifier AS BLOB);
 			PROPAGATE TO TERMINAL 'out2';
 		END IF;
+	END;
+
+
+	CREATE PROCEDURE CALL_STORED_CACHE (IN serviceName CHARACTER, IN domainName CHARACTER)
+	BEGIN
+
+		SET getDBDetailsCache.values[] = SELECT Q.PROC_CODE,Q.MSGDOMAIN,Q.REQ_QUEUE,Q.RES_QUEUE FROM Database.INTEGRATION_SOL_DETAILS AS Q WHERE Q.PROC_CODE = serviceName AND Q.MSGDOMAIN = domainName;
+		IF EXISTS(getDBDetailsCache.values[]) OR getDBDetailsCache IS NOT NULL THEN
+			CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Retrieved values from Database')INTO rc;
+		ELSE
+			CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Data retrieved from Database')INTO rc;
+		END IF;
+
 	END;
 END MODULE;
 
@@ -86,11 +160,11 @@ END MODULE;
 CREATE COMPUTE MODULE SoapIncomingRouter_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL BuildException();
+		CALL BuildException();
 		RETURN TRUE;
 	END;
 
-	
+
 	CREATE PROCEDURE BuildException() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -128,7 +202,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_BuildExceptionDetails
 		--CREATE LASTCHILD OF OutputRoot.SOAP.body NAME Environment.MQRFH2.serviceName;
 		--CREATE LASTCHILD OF OutputRoot.SOAP.body.* NAME 'header';
 		CREATE LASTCHILD OF OutputRoot.SOAP.body.* NAME 'error';
-	--	DECLARE headRef REFERENCE TO OutputRoot.SOAP.body.*.header;
+		-- DECLARE headRef REFERENCE TO OutputRoot.SOAP.body.*.header;
 		DECLARE errorRef REFERENCE TO OutputRoot.SOAP.body.*.error;
 		DECLARE outSOAPRef REFERENCE TO OutputRoot.SOAP;
 		SET errorRef = Environment.MQRFH2.header;
