@@ -33,6 +33,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 			DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 			DECLARE domainName CHARACTER 'StewardBank_EcoCSV';
 			DECLARE FileName CHARACTER InputLocalEnvironment.File.Name;
+			SET Environment.Variables.CreationDate = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
 			SET Environment.Variables.FileName	= SUBSTRING(FileName BEFORE '.csv'); 
 			DECLARE reqMsg,CSV_Fields CHARACTER;
 			SET reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
@@ -102,7 +103,8 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 			END IF;
 			----db insert------
-			CALL INSERT_SB_ECOCASHLIQ(Environment.Variables.UID,Environment.Variables.outMsg,'','','','','','','EcocashLiquidation',CSV_Fields,'',reqMsg,'',FileName,'',CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyy-MM-dd HH:mm:ss. SSSSSS'),'');
+			CALL INSERT_SB_ECOCASHLIQ(Environment.Variables.UID,FileName,CSV_Fields,inRef.MSISDN,inRef.BALANCE_USD,Environment.Variables.outMsg,'PENDING','PENDING','PENDING',
+			'PENDING',inRef.BANK,'PENDING','PENDING','PENDING','PENDING','SUCCESS',Environment.Variables.CreationDate,Environment.Variables.CreationDate);   
 			-------------------------------------------			
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json'; 
@@ -158,9 +160,9 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 			END IF;
 			/* =================== END OF AUDIT LOGGING ==============*/
-			SET Environment.Variables.MobiquityRes = InputRoot.JSON.Data.COMMAND;
-			------db Update--------------
-			CALL UPDATE_SB_ECOCASH_STATUS(Env.UID,InRef.DATE,InRef.TIME,InRef.TYPE,InRef.TXNID,InRef.TXNSTATUS,InRef.TRID,'Success','','',CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyy-MM-dd HH:mm:ss. SSSSSS'));
+			SET Environment.Variables.MobiquityRes = InputRoot.JSON.Data.COMMAND;    
+			------db Update-------------- 		
+			CALL UPDATE_MOBIQUITY_STATUS(Environment.Variables.UID,InRef.TXNSTATUS,'SUCCESS',Env.resMsg,InRef.DATE||' '||InRef.TIME,'PENDING','PENDING','PENDING',Environment.Variables.CreationDate); 
 			-------------------------------------------------------
 			IF EnvRefer.BANK LIKE 'STEWARD BANK' THEN
 				DECLARE STBUrlParameters,SB_T24URL,STB_Msg CHARACTER;
@@ -250,10 +252,10 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','Mobiquity Failure Response') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','Failure Message::'||Env.resMsg) INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','TXNSTATUS::'||TxnStatus) INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc; 
 			END IF;
 			/* =================== END OF AUDIT LOGGING ==============*/
-			CALL UPDATE_SB_ECOCASH_STATUS(Env.UID,InRef.DATE,InRef.TIME,InRef.TYPE,InRef.TXNID,InRef.TXNSTATUS,InRef.TRID,'Failure','Failure',InRef.TXNSTATUS,CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyy-MM-dd HH:mm:ss. SSSSSS'));
+			CALL UPDATE_MOBIQUITY_STATUS(Environment.Variables.UID,InRef.TXNSTATUS,'FAILURE',Env.resMsg,InRef.DATE||' '||InRef.TIME,'PENDING','PENDING','PENDING',Environment.Variables.CreationDate);  
 			/* ===================T24 AUDIT LOGGING ==============*/
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL DBLogging(Env.UID,Env.resMsg,'T24 Failure Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
@@ -313,7 +315,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_T24StatusUpdate
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 			END IF;
 
-			CALL UPDATE_SB_ECOCASH_STATUS(Env.UID,envRef.DATE,envRef.TIME,envRef.TYPE,envRef.TXNID,envRef.TXNSTATUS,envRef.TRID,'Success','Success',responceCode,CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyy-MM-dd HH:mm:ss. SSSSSS'));
+			CALL UPDATE_T24_STATUS(Env.UID,responceCode,'SUCCESS',Env.resMsg,Environment.Variables.CreationDate); 
 			SET outRef = Env.data;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 			PROPAGATE TO TERMINAL 'out';
@@ -327,7 +329,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_T24StatusUpdate
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','T24 Response:: FAILURE'||'/'||'ResponseCode::'||responceCode) INTO rc;
 			END IF;
-			CALL UPDATE_SB_ECOCASH_STATUS(Env.UID,envRef.DATE,envRef.TIME,envRef.TYPE,envRef.TXNID,envRef.TXNSTATUS,envRef.TRID,'Success','Failure',responceCode,CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyy-MM-dd HH:mm:ss. SSSSSS'));
+			CALL UPDATE_T24_STATUS(Env.UID,responceCode,'FAILURE',Env.resMsg,Environment.Variables.CreationDate);  
 			SET OutputRoot.JSON.Data = Env.data;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 			PROPAGATE TO TERMINAL 'out';
@@ -414,15 +416,19 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_BuildException
 	END;
 END MODULE;
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-CREATE PROCEDURE INSERT_SB_ECOCASHLIQ(IN GUID CHARACTER,IN MOBIQUITY_MESSAGE CHARACTER, IN ECOCASH_DATE CHARACTER
-,IN ECOCASH_TIME CHARACTER,IN MOBIQUITY_TYPE CHARACTER,IN TXNID CHARACTER,IN TXNSTATUS CHARACTER,IN TRID CHARACTER,IN APPLICATION_NAME CHARACTER,
-IN CSV_FIELDS CHARACTER,IN MOBIQUITY_STATUS CHARACTER,IN T24_MESSAGE CHARACTER,IN T24_STATUS CHARACTER,IN CSV_FILENAME CHARACTER,
-IN RESPONSE_CODE CHARACTER,IN DATE_CREATED CHARACTER,IN DATE_UPDATED CHARACTER)
+  CREATE PROCEDURE INSERT_SB_ECOCASHLIQ(IN GUID CHARACTER,IN PAYNET_CSV_FILENAME CHARACTER, IN PAYNET_CSV_FIELDS CHARACTER
+,IN PAYNET_CSV_MSISDN CHARACTER,IN PAYNET_CSV_AMOUNT CHARACTER,IN MOBIQUITY_REQUEST_BODY CHARACTER,IN MOBIQUITY_RESPONSE_CODE CHARACTER,IN MOBIQUITY_STATUS CHARACTER,IN MOBIQUITY_RESPONSE_MESSAGE CHARACTER,IN MOBIQUITY_DATETIME CHARACTER,
+IN PAYNET_CSV_BANK CHARACTER,IN T24_REQUEST_URL CHARACTER,IN T24_RESPONSE_CODE CHARACTER,IN T24_STATUS CHARACTER,IN T24_RESPONSE_MESSAGE CHARACTER,
+IN PAYNET_CSV_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP) 
 LANGUAGE DATABASE
-EXTERNAL NAME "INSERT_SB_ECOCASHLIQ_TRACKING";
+EXTERNAL NAME "INSERT_SB_ECOCASHLIQ_TRACKING"; 
 
 
-CREATE PROCEDURE UPDATE_SB_ECOCASH_STATUS(IN GUID CHARACTER,IN ECOCASH_DATE CHARACTER,IN ECOCASH_TIME CHARACTER,IN MOBIQUITY_TYPE CHARACTER,
-IN TXNID CHARACTER,IN TXNSTATUS CHARACTER,IN TRID CHARACTER,IN MOBIQUITY_STATUS CHARACTER,IN T24_STATUS CHARACTER,IN RESPONSE_CODE CHARACTER,IN DATE_UPDATED CHARACTER)
+ CREATE PROCEDURE UPDATE_MOBIQUITY_STATUS(IN GUID CHARACTER,IN MOBIQUITY_RESPONSE_CODE CHARACTER,IN MOBIQUITY_STATUS CHARACTER,IN MOBIQUITY_RESPONSE_MESSAGE CHARACTER,
+IN MOBIQUITY_DATETIME CHARACTER,IN T24_RESPONSE_CODE CHARACTER,IN T24_STATUS CHARACTER,IN T24_RESPONSE_MESSAGE CHARACTER,IN PAYNET_DATEUPDATED TIMESTAMP) 
 LANGUAGE DATABASE
-EXTERNAL NAME "UPDATE_SB_ECOCASH_STATUS";
+EXTERNAL NAME "UPDATE_SB_ECOCASH_MOBIQUITY_STATUS";   
+
+ CREATE PROCEDURE UPDATE_T24_STATUS(IN GUID CHARACTER,IN T24_RESPONSE_CODE CHARACTER,IN T24_STATUS CHARACTER,IN T24_RESPONSE_MESSAGE CHARACTER,IN PAYNET_DATEUPDATED TIMESTAMP) 
+LANGUAGE DATABASE
+EXTERNAL NAME "UPDATE_SB_ECOCASH_T24_STATUS";  
