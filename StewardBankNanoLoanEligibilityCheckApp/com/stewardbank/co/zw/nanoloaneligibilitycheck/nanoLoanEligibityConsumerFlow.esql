@@ -6,7 +6,7 @@ DECLARE ExceptionQ,DSN EXTERNAL CHARACTER '';
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE IsWToBLoggerRequired EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
-DECLARE Url EXTERNAL CHARACTER '';
+DECLARE LoanEligibilityUrl,ALL_SB_HTTP_RES EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingRequest
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -16,6 +16,7 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingRequest
 	END;
 
 	CREATE PROCEDURE GenerateRequest() BEGIN
+		DECLARE mobileNumber CHARACTER;
 		SET Environment.MQRFH2= InputRoot.MQRFH2;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -38,15 +39,16 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingRequest
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-		
-		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Request Received ================') INTO rc;
+		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Request Received from HttpRouter To NanoLoan Eligibility App ================') INTO rc;
 --			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
-			CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG',Environment.reqMsg) INTO rc;
+			CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG',Environment.Variables.reqMsg) INTO rc;
 			CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Request End ================') INTO rc;
 		SET OutputRoot.Properties = InputRoot.Properties; 
-		SET OutputRoot = InputRoot;
-		SET  OutputLocalEnvironment.Destination.HTTP.RequestURL = Url;
+		--SET OutputRoot = InputRoot;
+		SET mobileNumber = domainDataRef.mobileNumber ;
+		SET  OutputLocalEnvironment.Destination.HTTP.RequestURL = LoanEligibilityUrl||mobileNumber ;
 		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Request to DWH Provider================') INTO rc;
+		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','DWH Provider Url:'||LoanEligibilityUrl||mobileNumber) INTO rc;
 	END;
 END MODULE;
 
@@ -61,10 +63,15 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingReponse
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
-		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE resMsg CHARACTER ;
-		SET resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		DECLARE resMsg CHARACTER;
+		IF FIELDNAME(InputBody) LIKE 'JSON' THEN
+			DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+			SET resMsg = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+		ELSE
+			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
+			SET resMsg = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+		END IF;
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;	
 		-- ********************Log4j ********************************
@@ -81,9 +88,15 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingReponse
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET Environment.dbLog = OutputRoot.XMLNSC;
 		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot = NULL ;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON.Data = InputRoot.JSON.Data;
+		IF CONTAINS(CAST(Environment.Variables.Statuscode AS CHARACTER),'200') THEN
+			SET OutputRoot.JSON.Data = InputRoot.JSON.Data;
+		ELSE
+			SET OutputRoot.JSON.Data.error = resMsg;
+		END IF;
+		
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Response  to HTTPResponseRouter================') INTO rc;
 		PROPAGATE TO TERMINAL 'out';
@@ -93,9 +106,11 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL BuildExceptionResponse();
-		RETURN FALSE;
+		RETURN TRUE;
 	END;
 	CREATE PROCEDURE BuildExceptionResponse() BEGIN
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE rc BOOLEAN FALSE;
@@ -104,28 +119,39 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_BuildExceptionDetails
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE errMsg CHARACTER;
+		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') OR CONTAINS(excpRef.excpText,'A connection attempt failed') THEN
+		SET errMsg = 'T24 Server Down or No connection to T24';
+		END IF;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'NanoLoanEligibility';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'NanoLoanCheck';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'NanoLoanEligibility');
+		CALL BuildExceptionDetails(excpRef,outRef,'NanoLoanCheck');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);  
+		SET OutputRoot.XMLNSC = NULL;
+		
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		SET OutputRoot.JSON.Data.error = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.NanoLoanCheck.ErrorType,'');
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES ;
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error  Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.NanoLoanEligibility.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.NanoLoanCheck.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out';
-		----------------------------------
+		
 	END;
 	END MODULE;
 	

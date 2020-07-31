@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?><!-- Published by JAX-WS RI at http://jax-ws.dev.java.net. RI's version is JAX-WS RI 2.2.8 svn-revision#13980. --><xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://temenos.com/stewardbank" version="1.0" xmlns:ibmSchExtn="http://www.ibm.com/schema/extensions" xmlns:ns1="http://temenos.com/JSLCARDACCT" xmlns:ns2="http://temenos.com/FUNDSTRANSFERCARDCHARGE" xmlns:ns3="http://temenos.com/FUNDSTRANSFER" xmlns:ns4="http://temenos.com/ACCOUNTCARDAMEND" xmlns:ns5="http://temenos.com/ACCOUNT" xmlns:ns6="http://temenos.com/GETACCTBAL" xmlns:tns="http://temenos.com/stewardbank">
+
+<xsd:import namespace="http://temenos.com/JSLCARDACCT" schemaLocation="xsd_2.xsd"/>
+
+<xsd:import namespace="http://temenos.com/FUNDSTRANSFERCARDCHARGE" schemaLocation="xsd_5.xsd"/>
+
+<xsd:import namespace="http://temenos.com/FUNDSTRANSFER" schemaLocation="xsd_6.xsd"/>
+
+<xsd:import namespace="http://temenos.com/ACCOUNTCARDAMEND" schemaLocation="xsd_7.xsd"/>
+
+<xsd:import namespace="http://temenos.com/ACCOUNT" schemaLocation="xsd_8.xsd"/>
+
+<xsd:import namespace="http://temenos.com/GETACCTBAL" schemaLocation="xsd_3.xsd"/>
+
+<xsd:element name="AccountBalance" type="tns:AccountBalance"/>
+
+<xsd:element name="AccountBalanceResponse" type="tns:AccountBalanceResponse"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="AccountDetails" type="tns:AccountDetails"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="AccountDetailsResponse" type="tns:AccountDetailsResponse"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="AmendCard" type="tns:AmendCard"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="AmendCardResponse" type="tns:AmendCardResponse"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="AmendCard_Validate" type="tns:AmendCard_Validate"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="AmendCard_ValidateResponse" type="tns:AmendCard_ValidateResponse"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="CardCharges" type="tns:CardCharges"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="CardChargesResponse" type="tns:CardChargesResponse"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="CardCharges_Validate" type="tns:CardCharges_Validate"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="CardCharges_ValidateResponse" type="tns:CardCharges_ValidateResponse"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="ReverseCharges" type="tns:ReverseCharges"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="ReverseChargesResponse" type="tns:ReverseChargesResponse"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="ReverseCharges_Validate" type="tns:ReverseCharges_Validate"/>
+
+<xsd:element ibmSchExtn:docRoot="true" name="ReverseCharges_ValidateResponse" type="tns:ReverseCharges_ValidateResponse"/>
+
+<xsd:complexType name="AccountDetails">
+<xsd:sequence>
+<xsd:element name="WebRequestCommon" type="tns:webRequestCommon"/>
+<xsd:element name="JSLCARDACCTType" type="tns:enquiryInput"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="webRequestCommon">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="company" type="xsd:string"/>
+<xsd:element name="password" type="xsd:string"/>
+<xsd:element name="userName" type="xsd:string"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="enquiryInput">
+<xsd:sequence>
+<xsd:element maxOccurs="unbounded" minOccurs="0" name="enquiryInputCollection" nillable="true" type="tns:enquiryInputCollection"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="enquiryInputCollection">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="columnName" type="xsd:string"/>
+<xsd:element minOccurs="0" name="criteriaValue" type="xsd:string"/>
+<xsd:element minOccurs="0" name="operand" type="xsd:string"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="AccountDetailsResponse">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="Status" type="tns:Status"/>
+<xsd:element maxOccurs="unbounded" minOccurs="0" name="JSLCARDACCTType" type="ns1:JSLCARDACCTType"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="Status">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="transactionId" type="xsd:string"/>
+<xsd:element minOccurs="0" name="messageId" type="xsd:string"/>
+<xsd:element minOccurs="0" name="successIndicator" type="tns:successIndicator"/>
+<xsd:element minOccurs="0" name="application" type="xsd:string"/>
+<xsd:element maxOccurs="unbounded" minOccurs="0" name="messages" nillable="true" type="xsd:string"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="CardCharges_Validate">
+<xsd:sequence>
+<xsd:element name="WebRequestCommon" type="tns:webRequestCommon"/>
+<xsd:element name="OfsFunction" type="tns:ofsFunction"/>
+<xsd:element name="FUNDSTRANSFERCARDCHARGEType" type="ns2:FUNDSTRANSFERCARDCHARGEType"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="ofsFunction">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="activityName" type="xsd:string"/>
+<xsd:element minOccurs="0" name="assignReason" type="xsd:string"/>
+<xsd:element minOccurs="0" name="dueDate" type="xsd:string"/>
+<xsd:element minOccurs="0" name="extProcess" type="xsd:string"/>
+<xsd:element minOccurs="0" name="extProcessID" type="xsd:string"/>
+<xsd:element minOccurs="0" name="gtsControl" type="xsd:string"/>
+<xsd:element minOccurs="0" name="messageId" type="xsd:string"/>
+<xsd:element minOccurs="0" name="noOfAuth" type="xsd:string"/>
+<xsd:element minOccurs="0" name="owner" type="xsd:string"/>
+<xsd:element minOccurs="0" name="replace" type="xsd:string"/>
+<xsd:element minOccurs="0" name="startDate" type="xsd:string"/>
+<xsd:element minOccurs="0" name="user" type="xsd:string"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="CardCharges_ValidateResponse">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="Status" type="tns:Status"/>
+<xsd:element minOccurs="0" name="FUNDSTRANSFERType" type="ns3:FUNDSTRANSFERType"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="CardCharges">
+<xsd:sequence>
+<xsd:element name="WebRequestCommon" type="tns:webRequestCommon"/>
+<xsd:element name="OfsFunction" type="tns:ofsFunction"/>
+<xsd:element name="FUNDSTRANSFERCARDCHARGEType" type="ns2:FUNDSTRANSFERCARDCHARGEType"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="CardChargesResponse">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="Status" type="tns:Status"/>
+<xsd:element minOccurs="0" name="FUNDSTRANSFERType" type="ns3:FUNDSTRANSFERType"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="ReverseCharges">
+<xsd:sequence>
+<xsd:element name="WebRequestCommon" type="tns:webRequestCommon"/>
+<xsd:element name="OfsFunction" type="tns:ofsFunction"/>
+<xsd:element minOccurs="0" name="FUNDSTRANSFERCARDCHARGEREVType" type="tns:transactionId"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="transactionId">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="transactionId" type="xsd:string"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="ReverseChargesResponse">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="Status" type="tns:Status"/>
+<xsd:element minOccurs="0" name="FUNDSTRANSFERType" type="ns3:FUNDSTRANSFERType"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="AmendCard_Validate">
+<xsd:sequence>
+<xsd:element name="WebRequestCommon" type="tns:webRequestCommon"/>
+<xsd:element name="OfsFunction" type="tns:ofsFunction"/>
+<xsd:element name="ACCOUNTCARDAMENDType" type="ns4:ACCOUNTCARDAMENDType"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="AmendCard_ValidateResponse">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="Status" type="tns:Status"/>
+<xsd:element minOccurs="0" name="ACCOUNTType" type="ns5:ACCOUNTType"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="AccountBalance">
+<xsd:sequence>
+<xsd:element name="WebRequestCommon" type="tns:webRequestCommon"/>
+<xsd:element name="GETACCTBALType" type="tns:enquiryInput"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="AccountBalanceResponse">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="Status" type="tns:Status"/>
+<xsd:element maxOccurs="unbounded" minOccurs="0" name="GETACCTBALType" type="ns6:GETACCTBALType"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="AmendCard">
+<xsd:sequence>
+<xsd:element name="WebRequestCommon" type="tns:webRequestCommon"/>
+<xsd:element name="OfsFunction" type="tns:ofsFunction"/>
+<xsd:element name="ACCOUNTCARDAMENDType" type="ns4:ACCOUNTCARDAMENDType"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="AmendCardResponse">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="Status" type="tns:Status"/>
+<xsd:element minOccurs="0" name="ACCOUNTType" type="ns5:ACCOUNTType"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="ReverseCharges_Validate">
+<xsd:sequence>
+<xsd:element name="WebRequestCommon" type="tns:webRequestCommon"/>
+<xsd:element name="OfsFunction" type="tns:ofsFunction"/>
+<xsd:element minOccurs="0" name="FUNDSTRANSFERCARDCHARGEREVType" type="tns:transactionId"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:complexType name="ReverseCharges_ValidateResponse">
+<xsd:sequence>
+<xsd:element minOccurs="0" name="Status" type="tns:Status"/>
+<xsd:element minOccurs="0" name="FUNDSTRANSFERType" type="ns3:FUNDSTRANSFERType"/>
+</xsd:sequence>
+</xsd:complexType>
+
+<xsd:simpleType name="successIndicator">
+<xsd:restriction base="xsd:string">
+<xsd:enumeration value="Success"/>
+<xsd:enumeration value="TWSError"/>
+<xsd:enumeration value="T24Error"/>
+<xsd:enumeration value="T24Override"/>
+<xsd:enumeration value="T24Offline"/>
+</xsd:restriction>
+</xsd:simpleType>
+</xsd:schema>

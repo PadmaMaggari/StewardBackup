@@ -94,7 +94,7 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_GeneratingReqToZss
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............RTGSIncoming calling ZSS Subflow...........') INTO rc;
 			 --******************Inserting ISAVE table with ZSS Request Message ************
-			 CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),reqMsg,'',envRef.File.Name,'',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,'','','','',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'');
+			 CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),reqMsg,'PENDING',envRef.File.Name,'NA',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,'NA','NA','PENDING','NA',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'NA','NA','PENDING');
 		END;
 		END MODULE;
 CREATE COMPUTE MODULE rtgsIncomingZssFlow_UpdateDatabaseStatus
@@ -125,10 +125,10 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_UpdateDatabaseStatus
 		IF FIELDNAME(inDomain) IS NOT NULL THEN
 			 CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','***************Updating ZSS Status in Database**********') INTO rc;
 			IF(inDomain.ResponseCode_039 LIKE '00')  THEN
-				CALL UpdateDBStatus(Guid,'SUCCESS',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS');
+				CALL UpdateDBStatus(Guid,'SUCCESS',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),reqMsg,'ZSS');
 				CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............RTGSIncoming ZSS status updated as SUCCESS in Database...........') INTO rc;
 			ELSE
-				CALL UpdateDBStatus(Guid,'FAILURE',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),'ZSS');
+				CALL UpdateDBStatus(Guid,'FAILURE',CAST(inDomain.ResponseCode_039 AS CHARACTER),CAST(inDomain.RetrievalReferenceNumber_037 AS CHARACTER),reqMsg,'ZSS');
 				CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............RTGSIncoming ZSS status updated as Failure in Database...........') INTO rc;
 			END IF;
 		END IF;
@@ -160,6 +160,19 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_GenerateExceptionDetails
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE exe_Desc CHARACTER'';  
+		IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'ZssClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') THEN
+			SET OutputLocalEnvironment.Destination.File.Directory = DBFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.File.Name;
+		ELSE
+			SET OutputLocalEnvironment.Destination.File.Directory = FormatFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.File.Name;
+		END IF;	
+		SET OutputRoot.Properties.MessageSet = '{MT103}';
+			SET OutputRoot.Properties.MessageType = '{}:MT103';
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
+			parse(Environment.Variables.mtReqMsg ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+			PROPAGATE TO TERMINAL 'out1';
+			SET OutputRoot.DFDL = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'RTGSIncoming';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;    
