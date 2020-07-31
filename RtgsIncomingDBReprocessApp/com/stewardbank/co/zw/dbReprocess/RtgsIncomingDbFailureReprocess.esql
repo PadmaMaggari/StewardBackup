@@ -1,0 +1,63 @@
+BROKER SCHEMA com.stewardbank.co.zw.dbReprocess
+path com.stewardbank.co.zw.common.esql ;
+DECLARE dbFailureFolderPath,triggerTimeHour,rtgsIncomingFolderPath  EXTERNAL CHARACTER ''; 
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,IsLogRequired EXTERNAL CHARACTER '';
+CREATE COMPUTE MODULE RtgsIncomingDbReprocess_PickFilesfrmDbFailure
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL pickFilesFrmDBFolder();
+		RETURN FALSE;
+	END;
+	CREATE PROCEDURE pickFilesFrmDBFolder() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE hr INTEGER;
+		DECLARE dateFolder CHARACTER ; 
+		SET dateFolder = CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd'); 
+		SET hr = EXTRACT(HOUR FROM CURRENT_TIMESTAMP);
+		IF (rc = FALSE) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSFileReprocess', 'DEBUG','..............Start RTGSIncoming Db Failure Reprocess logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSFileReprocess', 'DEBUG','RTGSIncoming Reprocess path :'||dbFailureFolderPath||dateFolder) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSFileReprocess', 'DEBUG','RTGSIncoming Request Reprocess time is:'||triggerTimeHour) INTO rc;
+		END IF;
+		IF hr = triggerTimeHour THEN
+			WHILE Environment.NoMatchReason IS  NULL DO 
+			SET OutputLocalEnvironment.Destination.File.Directory = dbFailureFolderPath||dateFolder;
+			PROPAGATE TO TERMINAL 'out';		
+			END WHILE;
+		END IF;
+		
+	END;
+END MODULE;
+CREATE COMPUTE MODULE RtgsIncomingDbReprocess_PlaceFilesInRtgsIncoming
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL PlaceFilesInRtgsIncoming();
+		RETURN FALSE;
+	END;
+	CREATE PROCEDURE PlaceFilesInRtgsIncoming() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+	--	DECLARE isEmpty BOOLEAN OutputLocalEnvironment.Destination.File.Read.IsEmpty ;
+		DECLARE file CHARACTER InputLocalEnvironment.File.Read.Name ;
+		DECLARE noMatch CHARACTER InputLocalEnvironment.File.Read.NoMatchReason ;
+		IF (rc = FALSE) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSFileReprocess', 'DEBUG','..............Start RTGSIncoming Db Failure Reprocess logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSFileReprocess', 'DEBUG','RTGSIncoming Application path :'||rtgsIncomingFolderPath) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'RTGSFileReprocess', 'DEBUG','End of RTGSIncoming Request Reprocess Logging') INTO rc;
+		END IF;
+		IF noMatch = 'NoFile' THEN
+			SET Environment.NoMatchReason = 'NoFile';
+		ELSE
+			SET OutputLocalEnvironment.Destination.File.Directory = rtgsIncomingFolderPath ;
+			SET OutputLocalEnvironment.Destination.File.Name = InputLocalEnvironment.File.Read.Name ;
+ 			SET OutputRoot.BLOB.BLOB = InputRoot.BLOB.BLOB;
+ 			PROPAGATE TO TERMINAL 'out';		
+		END IF;
+		END;
+END MODULE;
+

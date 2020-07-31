@@ -51,10 +51,15 @@ CREATE COMPUTE MODULE CashInFlow_GenReqToMobiquity
 		DECLARE env REFERENCE TO Environment.Variables;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
-		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data.CashIn.body;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		DECLARE outRef REFERENCE TO OutputRoot.JSON;
 		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
+		--CREATE LASTCHILD OF OutputRoot.JSON.Data AS outRef NAME 'CashIn';
+		--CREATE LASTCHILD OF OutputRoot.JSON.Data.CashIn AS outRef NAME 'header';
+		--CREATE LASTCHILD OF OutputRoot.JSON.Data.CashIn AS outRef NAME 'body';
+		--DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.CashIn.header;
+		--DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.CashIn.body;
 		DECLARE resQ CHARACTER Environment.MQRFH2.usr.resQueueName;
 		SET Environment.Variables.ResponseQ = resQ;
 		
@@ -144,20 +149,40 @@ CREATE COMPUTE MODULE CashInFlow_GenResToT24
 		PROPAGATE TO TERMINAL 'out';
 		END IF; 
 		/* =================== CALLING DB LOGGING ENDING  ==============*/
+
 		
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
-		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
-		CREATE LASTCHILD OF OutputRoot.JSON AS OutRefer NAME 'Data';
-		IF responceCode LIKE '200' THEN
-			SET OutRefer=inRef;
-		ELSE
-			SET OutRefer.status = 'FAILURE';
-			SET OutRefer.responseCode = '000';
-			SET OutRefer.source = 'ESB';
-			SET OutRefer.applicationName = ApplicationLabel;
-			SET OutRefer.message=inRef;
-		END IF;
 	--------------	
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		--DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CashIn');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.CashIn NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.CashIn NAME ('body');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.CashIn.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.CashIn.body;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.CashIn.error;
+		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
+		IF responceCode LIKE '200' AND inRef.status='SUCCEEDED' THEN
+			SET headRef.channel = 'Branch';
+			SET headRef.processingCode = '030000';
+			SET headRef.status = 'SUCCESS';
+			SET headRef.responseCode = '200';
+			SET bodyRef=inRef;
+		ELSEIF responceCode LIKE '200' AND inRef.status='FAILED' THEN
+			SET headRef.channel = 'Branch';
+			SET headRef.processingCode = '030000';
+			SET headRef.status = 'FAILED';
+			SET headRef.responseCode = responceCode;
+			SET bodyRef=inRef;
+		ELSE 
+			SET headRef.channel ='Branch';
+			SET headRef.processingCode = '030000';
+			SET headRef.status = 'FAILED';
+			SET headRef.responseCode = responceCode;
+			SET headRef.applicationName = ApplicationLabel;
+			SET bodyRef=inRef;	
+		END IF;	
+		-----------------
 		DECLARE envref REFERENCE TO Environment.JSON.Data;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
 		CREATE LASTCHILD OF envref AS envref NAME 'Data';
@@ -230,11 +255,17 @@ END MODULE;
 		SET OutputRoot.XMLNSC = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		--CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CashIn');
-		--CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
-		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data;
-		SET errorRef.status = 'FAILED';
-		SET errorRef.responseCode = '000';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CashIn');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+			SET headerRef.channel = 'Branch';
+			SET headerRef.processingCode = '030000';
+			SET headerRef.status = 'FAILED';
+			SET headerRef.responseCode = '000';
+	
+	
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
 		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CashIn.ErrorCode;

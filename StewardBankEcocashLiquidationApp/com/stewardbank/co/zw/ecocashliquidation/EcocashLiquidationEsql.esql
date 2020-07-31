@@ -76,7 +76,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 			SET outRef.COMMAND.IS_P2P_TRANSFER = 'Y';
 			SET outRef.COMMAND.PROVIDER= '101';
 			SET outRef.COMMAND.PAYID='12';
-			SET outRef.COMMAND.BANKID= InputRoot.DFDL.StewardBank_EcoCSV.record.BANK_ACC_NUMBER;
+			SET outRef.COMMAND.BANKID= 'IND0410171'; 
 			SET outRef.COMMAND.AMOUNT=InputRoot.DFDL.StewardBank_EcoCSV.record.BALANCE_USD;
 			SET outRef.COMMAND.LANGUAGE1= '1';
 			SET outRef.COMMAND.FTXNID= 'FTxnId'||value2;  
@@ -169,7 +169,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				SET outRef.debitAccountId = '1000000163'; 
 				SET outRef.debitCurrency = 'ZWL';
 				SET outRef.creditAccountId = EnvRefer.BANK_ACC_NUMBER;
-				SET outRef.orderingCustomerName = EnvRefer.MERCHANT_NAME;
+				SET outRef.orderingCustomerName = EnvRefer.MERCHANT_NAME; 
 				SET outRef.paymentCurrency = 'ZWL'; 
 				SET outRef.transactionAmount = EnvRefer.BALANCE_USD;
 				SET outRef.executionDate = CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd');
@@ -214,6 +214,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				SET outRef.orderingReference = EnvRefer.BATCH_IDENTIFIER;
 				SET outRef.orderingCustomerName = EnvRefer.BANK_ACC_NAME;
 				SET Environment.Variables.OTB_Msg = OutputRoot.JSON.Data;
+				--{merchantName}/{paymentCurrency}/{liquidationAmount}/{executionDate}/{batchIdentifier}/{branchName}/{ecocashlAcctId}/{currency}/{bankAccName}/{bank}/{bankAccNumber}				
 				--{beneficiaryAccountId}/{beneficiaryBIC}/{beneficiaryName}/{endToEndReference}/{paymentCurrency}/{transactionAmount}/{executionDate}/{orderingReference}/{orderingCustomerName}
 				SET OTBUrlParameters = EnvRefer.MSISDN||'/'||EnvRefer.BANK||'/'||EnvRefer.MERCHANT_NAME||'/'||EnvRefer.BRANCH_NAME||'/'||'ZWL'||'/'||EnvRefer.BALANCE_USD||'/'||CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd')||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.BANK_ACC_NAME;
 				SET OB_T24URL = STB_T24URL||OTBUrlParameters;
