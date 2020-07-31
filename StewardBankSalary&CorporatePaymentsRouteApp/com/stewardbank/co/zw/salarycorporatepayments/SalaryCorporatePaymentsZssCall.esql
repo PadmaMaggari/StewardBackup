@@ -242,9 +242,9 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_BuildException
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
-		SET OutputRoot.DFDL = NULL;
+		SET OutputRoot.DFDL = NULL; 
 		---Failure Case---
-		CALL UPDATE_SB_SCP_STATUS(Environment.Variables.UID,'PENDING','PENDING','PENDING','PENDING','PENDING','FAILURE','NOT APPLICABLE','NOT APPLICABLE',CAST(Environment.Variables.CreationDate AS TIMESTAMP));
+		--CALL UPDATE_SB_SCP_STATUS(Environment.Variables.UID,'PENDING','PENDING','PENDING','PENDING','PENDING','FAILURE','NOT APPLICABLE','NOT APPLICABLE',CAST(Environment.Variables.CreationDate AS TIMESTAMP));
 		------------
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','#..............Start of Logging Exception ...........#') INTO rc; 

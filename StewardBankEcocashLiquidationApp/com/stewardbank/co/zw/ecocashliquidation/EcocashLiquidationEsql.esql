@@ -8,7 +8,7 @@ DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
 DECLARE MobiquityURL EXTERNAL CHARACTER'';
-DECLARE STB_T24URL EXTERNAL CHARACTER'';
+DECLARE STB_T24URL,Eco_FormatFailure,Eco_DBFailure EXTERNAL CHARACTER''; 
 DECLARE OTB_T24URL EXTERNAL CHARACTER'';
 DECLARE UUID SHARED CHARACTER '';
 CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
@@ -33,12 +33,14 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 			DECLARE domainDataRef REFERENCE TO InputRoot.DFDL;
 			DECLARE domainName CHARACTER 'StewardBank_EcoCSV';
 			DECLARE FileName CHARACTER InputLocalEnvironment.File.Name;
+			SET Environment.Variables.FileName	= SUBSTRING(FileName BEFORE '.csv'); 
 			DECLARE reqMsg,CSV_Fields CHARACTER;
 			SET reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 			SET Environment.Variables.reqMsg = reqMsg;
 			SET CSV_Fields = 'MERCHANT_NAME,MSISDN,CODE,BANK_ACC_NAME,BRANCH_CODE,BANK_ACC_NUMBER,BANK,BRANCH_NAME,BALANCE_USD,TRANSFER_CHARGE_USD,BANK_CHARGE_USD,BATCH_DENTIFIER';
 			DECLARE inRef REFERENCE TO InputRoot.DFDL.StewardBank_EcoCSV.record;
-			SET Environment.Variables.csvData = inRef;
+--			SET Environment.Variables.CSVData = InputRoot.DFDL; 
+			SET Environment.Variables.csvData = inRef; 
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL DBLogging(Environment.Variables.UID,reqMsg,'Incomming Message',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -347,9 +349,21 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_BuildException
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE inRefer REFERENCE TO  Environment.Variables.csvData;   
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') THEN  
+			SET OutputLocalEnvironment.Destination.File.Directory = Eco_DBFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.FileName||'_'||inRefer.BANK_ACC_NUMBER||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss')||'.csv';   
+		ELSE
+			SET OutputLocalEnvironment.Destination.File.Directory = Eco_FormatFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd'); 
+			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.FileName||'_'||inRefer.BANK_ACC_NUMBER||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss')||'.csv';   
+		END IF;
+		SET OutputRoot.Properties.MessageSet = InputRoot.Properties.MessageSet;
+		SET OutputRoot.Properties.MessageType = InputRoot.Properties.MessageType;    
+		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')PARSE(Environment.Variables.reqMsg ENCODING encodeRef CCSID ccidRef SET '{SB_EcoCSV_Lib}' TYPE '{}:StewardBank_EcoCSV');   
+		PROPAGATE TO TERMINAL 'out1'; 
 		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
@@ -359,7 +373,6 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_BuildException
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		DECLARE inRefer REFERENCE TO InputRoot.DFDL.StewardBank_EcoCSV.record;
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE Env REFERENCE TO Environment.Variables;

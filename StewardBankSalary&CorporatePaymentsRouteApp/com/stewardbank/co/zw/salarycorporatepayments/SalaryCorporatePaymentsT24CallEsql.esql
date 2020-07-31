@@ -35,6 +35,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		SET Environment.Variables.Crt_Acc = inRefer.Beneficiary_Account_Number;
 		SET Environment.Variables.CreationDate = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
 		SET Environment.Variables.RRN = inRefer.Purpose;
+		SET Environment.Variables.TaxableCheck = inRefer.Purpose;  
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
 		-- SET DBLogging Properties ==============
 		SET Environment.Variables.UID = InputRoot.MQRFH2.UID;
@@ -79,12 +80,12 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		END IF;
 		/* =================== END OF AUDIT LOGGING ==============*/
 		/*================DB Update=======================*/
-		IF Env.FileNameCheck LIKE 'PO' THEN
-			CALL INSERT_SB_SCP_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,T24URL,'','','','','SUCCESS',
-			Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'TRUE');
+		IF Env.TaxableCheck LIKE 'SALARY%' THEN 
+			CALL INSERT_SB_SCP_TRACKING(Env.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Salary Payments',Env.Fields,Env.Amount, 
+			Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'FALSE'); 			
 		ELSE
-			CALL INSERT_SB_SCP_TRACKING(Env.UID,'','','','','',Env.FileName,Env.Fields,Env.Amount,Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,T24URL,'','','','','SUCCESS',
-			Env.CreationDate,CAST(CURRENT_TIMESTAMP AS TIMESTAMP),'FALSE');
+			CALL INSERT_SB_SCP_TRACKING(Env.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Corporate Payments',Env.Fields,Env.Amount,
+			Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'TRUE');  
 		END IF;
 		/*=============End===============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
@@ -126,10 +127,12 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 		CASE
 		WHEN responceCode LIKE '200' OR inRef.header.status LIKE 'success' THEN
 			---Success Case---
-			CALL UPDATE_SB_SCP_STATUS(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,responceCode,'','SUCCESS','','TRUE','');
+			CALL UPDATE_SB_SCP_STATUS(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,responceCode,
+			'NOT APPLICABLE','NOT APPLICABLE','Env.data','SUCCESS',CAST(Env.CreationDate AS CHARACTER)); 		
 			---DB Logging---
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(Env.UID,Env.resMsg,'T24 Success Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.body.endToEndReference,outRefer);
+				CALL DBLogging(Env.UID,Env.resMsg,'T24 Success Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),
+				CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.body.endToEndReference,outRefer);
 			END IF;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
@@ -144,7 +147,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 			PROPAGATE TO TERMINAL 'out';
 		ELSE
 			---Failure Case---
-			CALL UPDATE_SB_SCP_STATUS(Env.UID,'','','',responceCode,'','FAILURE','','TRUE','');
+			CALL UPDATE_SB_SCP_STATUS(Env.UID,'PENDING','PENDING','PENDING',responceCode,'NOT APPLICABLE','NOT APPLICABLE','Env.data','FAILURE',CAST(Env.CreationDate AS TIMESTAMP)); 
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','T24 Response:: FAILURE'||'/'||'ResponseCode::'||responceCode) INTO rc;
 			END IF;
