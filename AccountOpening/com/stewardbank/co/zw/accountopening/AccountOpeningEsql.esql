@@ -551,7 +551,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToPostilion
 			-----------------------------
 		END IF;
 		SET Environment.MQRFH2.ZssResponseCode = InputRoot.DFDL.ISO8583_1987.ResponseCode_039;
-		IF InputRoot.DFDL.ISO8583_1987.ResponseCode_039 = '00' THEN
+		--IF InputRoot.DFDL.ISO8583_1987.ResponseCode_039 = '00' THEN
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 			CREATE LASTCHILD OF OutputRoot.DFDL NAME ('ISO8583_1987');
 			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
@@ -724,47 +724,46 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToPostilion
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 			SET OutputRoot.DFDL = Environment.DFDL;
 			PROPAGATE TO TERMINAL 'out';
-		ELSE
-			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
-			CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
-			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME('AccountOpeningResponse');
-			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('header');
-			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('error');
-			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
-			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
-			SET headRef.status = 'FAILURE';
-			SET headRef.responseCode = '000';
-			SET errorRef.source = 'ESB';
-			SET errorRef.applicationName = ApplicationLabel;
-			SET errorRef.applicationErrorCode = 'AccountOpening_020';
-			SET errorRef.message = 'ZSS update Failed';
-			MOVE domainDataRef TO OutputRoot.JSON;
-			SET domainName = FIELDNAME(domainDataRef);
-			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-			PROPAGATE TO TERMINAL 'out';
-			IF EXISTS(Environment.JSON[]) OR FIELDNAME(Environment.JSON) IS NOT NULL THEN
-				SET Environment.JSON = OutputRoot.JSON;
-			ELSE
-				CREATE LASTCHILD OF Environment DOMAIN ('JSON');
-				SET Environment.JSON = OutputRoot.JSON;
-			END IF;
-			SET OutputRoot.JSON = NULL;
-			IF IsLogRequired = 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
-				--------------DBLogging-------------------
-				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-				PROPAGATE TO TERMINAL 'out1';
-				-----------------------------
-			END IF;
-			SET OutputRoot.Properties = InputRoot.Properties;
-			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-			CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
-			SET OutputRoot.DFDL = Environment.DFDL;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
-			PROPAGATE TO TERMINAL 'out1';
-		END IF;
+--		ELSE
+--			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
+--			CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
+--			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME('AccountOpeningResponse');
+--			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('header');
+--			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('error');
+--			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+--			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+--			SET headRef.status = 'FAILURE';
+--			SET headRef.responseCode = '000';
+--			SET errorRef.source = 'ESB';
+--			SET errorRef.applicationName = ApplicationLabel;
+--			SET errorRef.applicationErrorCode = 'AccountOpening_020';
+--			SET errorRef.message = 'ZSS update Failed';
+--			MOVE domainDataRef TO OutputRoot.JSON;
+--			SET domainName = FIELDNAME(domainDataRef);
+--			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+--			IF EXISTS(Environment.JSON[]) OR FIELDNAME(Environment.JSON) IS NOT NULL THEN
+--				SET Environment.JSON = OutputRoot.JSON;
+--			ELSE
+--				CREATE LASTCHILD OF Environment DOMAIN ('JSON');
+--				SET Environment.JSON = OutputRoot.JSON;
+--			END IF;
+--			SET OutputRoot.JSON = NULL;
+--			IF IsLogRequired = 'Y' THEN
+--				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
+--				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+--				--------------DBLogging-------------------
+--				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+--				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+--				PROPAGATE TO TERMINAL 'out1';
+--				-----------------------------
+--			END IF;
+--			SET OutputRoot.Properties = InputRoot.Properties;
+--			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+--			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+--			SET OutputRoot.JSON = Environment.JSON;
+--			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+--			PROPAGATE TO TERMINAL 'out1';
+--		END IF;
 	END;
 END MODULE;
 -----FCM Compute Module

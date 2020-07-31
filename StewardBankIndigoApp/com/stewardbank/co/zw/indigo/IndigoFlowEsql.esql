@@ -1,0 +1,131 @@
+BROKER SCHEMA com.stewardbank.co.zw.indigo
+
+PATH  com.stewardbank.co.zw.common.esql; 
+
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';	
+DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';     
+DECLARE IsLogRequired EXTERNAL CHARACTER'';
+DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER'';
+DECLARE URL EXTERNAL CHARACTER'';  
+CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN     
+		 CALL GenerateReqToT24();
+		RETURN FALSE;
+	END;
+
+	
+
+	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		SET Environment.MQRFH2= InputRoot.MQRFH2;
+		DECLARE reqMsg,bindingOperatingName CHARACTER '';
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE DBDetails ROW;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inRef REFERENCE TO InputRoot;
+		DECLARE serviseName REFERENCE TO InputRoot.SOAP.Body.[1];
+		SET bindingOperatingName = FIELDNAME(serviseName);
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP.Body,encodeRef,ccsid);
+		-- SET DBLogging Properties ==============
+		SET Environment.reqMsg = reqMsg;
+		 SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		-- =================== CALLING DB RAW AUDIT LOGGING ==============
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(InputRoot.MQRFH2.usr.Destination.SOAP.Reply.ReplyIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF; 
+			
+			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+			/* =================== CALLING LOG4J LOGGING  ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		SET Environment.data = InputRoot.XMLNSC;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','..............Start Application Request logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','Incoming Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG',reqMsg) INTO rc;
+		END IF;
+		
+		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','..............Start T24 Request logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','T24 Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG',reqMsg) INTO rc;
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(InputRoot.MQRFH2.usr.Destination.SOAP.Reply.ReplyIdentifier,Environment.reqMsg,'T24  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF; 
+		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+		SET OutputRoot.SOAP = InputRoot.SOAP;
+		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation  = bindingOperatingName;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
+		PROPAGATE TO TERMINAL 'out';
+	END;
+END MODULE;
+CREATE COMPUTE MODULE IndigoFlow_ReqToFrondEnd
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL ReqToFrondEnd();
+		RETURN FALSE;
+	END;
+
+	
+	CREATE PROCEDURE ReqToFrondEnd() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+			/* =================== CALLING LOG4J LOGGING  ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inRef REFERENCE TO InputRoot;
+		SET Environment.t24resMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP.Body,encodeRef,ccsid);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		-- =================== CALLING DB RAW AUDIT LOGGING ==============
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.usr.Destination.SOAP.Reply.ReplyIdentifier,Environment.t24resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF; 
+			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+		
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','..............Start T24 Response  logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','T24 Response::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG',Environment.t24resMsg) INTO rc;
+		END IF;
+		
+		
+		
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.SOAP = InputRoot.SOAP;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
+		PROPAGATE TO TERMINAL 'out';
+	END;
+END MODULE;
+CREATE COMPUTE MODULE IndigoFlow_BuildExceptionDetails
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL BuildException();
+		RETURN TRUE;
+	END;
+
+	
+
+	CREATE PROCEDURE BuildException() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
