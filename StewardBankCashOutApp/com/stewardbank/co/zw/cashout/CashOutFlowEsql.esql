@@ -152,18 +152,34 @@ CREATE COMPUTE MODULE CashOutFlow_GenResToT24
 		/* =================== CALLING DB LOGGING ENDING  ==============*/
 		
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CashIn');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.CashIn NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.CashIn NAME ('body');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.CashIn.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.CashIn.body;
 		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
-		CREATE LASTCHILD OF OutputRoot.JSON AS OutRefer NAME 'Data';
-		IF responceCode LIKE '200' THEN
-			SET OutRefer=inRef;
-		ELSE
-			SET OutRefer.status = 'FAILURE';
-			SET OutRefer.responseCode = '000';
-			SET OutRefer.source = 'ESB';
-			SET OutRefer.applicationName = ApplicationLabel;
-			SET OutRefer.message=inRef;
-			
-		END IF;
+		IF responceCode LIKE '200' AND inRef.status='SUCCEEDED' THEN
+			SET headRef.channel = 'Branch';
+			SET headRef.processingCode = '020000';
+			SET headRef.status = 'SUCCESS';
+			SET headRef.responseCode = '200';
+			SET bodyRef=inRef;
+		ELSEIF responceCode LIKE '200' AND inRef.status='FAILED' THEN
+			SET headRef.channel = 'Branch';
+			SET headRef.processingCode = '020000';
+			SET headRef.status = 'FAILED';
+			SET headRef.responseCode = responceCode;
+			SET bodyRef=inRef;
+		ELSE 
+			SET headRef.channel ='Branch';
+			SET headRef.processingCode = '020000';
+			SET headRef.status = 'FAILED';
+			SET headRef.responseCode = responceCode;
+			SET headRef.applicationName = ApplicationLabel;
+			SET bodyRef=inRef;	
+		END IF;	
+		
 	--------------	
 		DECLARE envref REFERENCE TO Environment.JSON.Data;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
@@ -234,14 +250,18 @@ CREATE COMPUTE MODULE CashOutFlow_BuildException
 		SET OutputRoot.XMLNSC = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		--CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CashOut');
-		--CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
-		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data;
-		SET errorRef.status = 'FAILED';
-		SET errorRef.responseCode = '000';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CashOut');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef.channel = 'Branch';
+		SET headerRef.processingCode = '020000';
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
-		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CashOut.ErrorCode;
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CashIn.ErrorCode;
 		SET errorRef.message = errMsg;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
