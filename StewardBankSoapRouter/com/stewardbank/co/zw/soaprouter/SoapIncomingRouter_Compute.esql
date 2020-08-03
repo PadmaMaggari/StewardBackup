@@ -126,7 +126,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		-- CALL errorResponse(Environment.MQRFH2.requestDomain,'Invaild Operation','ESB_001',ApplicationLabel);
 		-- --other soap business flow queues
 		-- END IF;
-		-- SET OutputRoot.SOAP = InputRoot.SOAP;
+		-- SET OutputRoot.SOAP = InputRoot.SOAP;  
 	END;
 	CREATE PROCEDURE errorResponse(IN domainName CHAR, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
 	BEGIN
@@ -136,7 +136,6 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:Message=msg;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
-
 			SET OutputLocalEnvironment.Destination.HTTP.ReplyIdentifier = CAST(Environment.MQRFH2.ReplyIdentifier AS BLOB);
 			PROPAGATE TO TERMINAL 'out2';
 		END IF;
