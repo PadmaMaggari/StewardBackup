@@ -322,6 +322,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYC_FailureResponse
 	END;
 
 	CREATE PROCEDURE GenerateKYCFailure() BEGIN
+		DECLARE outRefer REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AccountOpeningResponse');
@@ -329,13 +330,35 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYC_FailureResponse
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
-		SET headerRef = Environment.Variables.header;
+		SET headerRef = Environment.MQRFH2.header;
 		SET headerRef.Status = 'FAILED';
 		SET headerRef.ResponseCode = '000';
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
 		SET errorRef.applicationErrorCode = 'AccountOpening_002';
-		SET errorRef.message = 'No data from DWH';
+		SET errorRef.message = 'No data from Econet';
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayLoad('JSON',domainDataRef,InputRoot.Properties.Encoding,InputRoot.Properties.CodedCharSetId);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+		END IF;
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		-----------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 	END;
 END MODULE;
 ----Update Account Details

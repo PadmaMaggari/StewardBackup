@@ -41,6 +41,20 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		DECLARE domainDataRef REFERENCE TO InputBody;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET Environment.MQRFH2.RequestIdentifier = SUBSTRING(CAST(InputLocalEnvironment.Destination.HTTP.RequestIdentifier AS CHAR) FROM 3 FOR 48);
+		SET Environment.MQRFH2.usr.HTTPInputHeader = InputRoot.HTTPInputHeader;
+		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
+		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
+		SET Environment.MQRFH2.serviceName = REPLACE(serviceName,'Request','Response');
+		IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Incoming Router Start ==============') INTO rc ;
+				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','HTTPRouter Request: '|| Environment.Variables.reqMsg) INTO rc ;
+				----------DBLogging LOGGING -------------------
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'HTTPRouter Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+				PROPAGATE TO TERMINAL 'out';
+				----------------------------------
+			END IF;
 		IF STARTSWITH(Environment.Variables.reqMsg,'{') THEN
 			SET Environment.MQRFH2.RequestDomian = 'JSON';
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON') PARSE(InputRoot.BLOB.BLOB);
@@ -66,11 +80,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			SET Environment.MQRFH2.RequestDomian = 'Unknown';
 		END IF;
 		SET OutputRoot = NULL;
-		SET Environment.MQRFH2.RequestIdentifier = SUBSTRING(CAST(InputLocalEnvironment.Destination.HTTP.RequestIdentifier AS CHAR) FROM 3 FOR 48);
-		SET Environment.MQRFH2.usr.HTTPInputHeader = InputRoot.HTTPInputHeader;
-		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
-		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
-		SET Environment.MQRFH2.serviceName = REPLACE(serviceName,'Request','Response');
+		
 		IF Environment.MQRFH2.RequestDomian IS NOT NULL AND FIELDVALUE(Environment.MQRFH2.RequestDomian) <> 'Unknown' THEN
 			IF (inRef.processingCode IS NOT NULL) OR
 				(inRef.processingCode <> '') OR (inRef.*.header.processingCode IS NOT NULL) OR
@@ -87,15 +97,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 				(inRef.header.channel <> '') THEN
 				SET Environment.Variables.channel = COALESCE(inRef.channel,inRef.header.channel,inRef.*.header.channel,'');
 			END IF;
-			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Incoming Router Start ==============') INTO rc ;
-				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','HTTPRouter Request: '|| Environment.Variables.reqMsg) INTO rc ;
-				----------DBLogging LOGGING -------------------
-				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'HTTPRouter Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-				PROPAGATE TO TERMINAL 'out';
-				----------------------------------
-			END IF;
+			
 			IF (FIELDNAME(Environment.Variables.processingCode) IS NULL) AND (FIELDNAME(Environment.Variables.channel) IS NULL) THEN
 				CALL errorResponse(Environment.MQRFH2.RequestDomian,'no key[proccessingCode & Channel] in the request','ESB_006',serviceName);
 				RETURN;
@@ -197,7 +199,8 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 	END;
 	CREATE PROCEDURE errorResponse (IN domainName CHAR, IN msg CHAR,IN errorCode CHAR,IN serviceName CHAR)
 	BEGIN
-		SET OutputRoot.Properties = InputRoot.Properties;
+
+		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF domainName = 'JSON' THEN
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 			CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
@@ -213,9 +216,25 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			SET errorRef.applicationName = ApplicationLabel;
 			SET errorRef.applicationErrorCode = errorCode;
 			SET errorRef.message = msg;
-			SET Environment.Variables.jsonData = OutputRoot.JSON;
-			SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
-			PROPAGATE TO TERMINAL 'out1';
+			IF EXISTS(Environment.JSON[]) THEN
+				SET Environment.JSON = OutputRoot.JSON;
+			ELSE
+				CREATE LASTCHILD OF Environment DOMAIN ('JSON');
+				SET Environment.JSON = OutputRoot.JSON;
+			END IF;
+			DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,InputRoot.Properties.Encoding,InputRoot.Properties.CodedCharSetId);
+			SET OutputRoot.JSON = NULL;
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','HTTPRouter Response: '|| Environment.Variables.resMsg) INTO rc ;
+				----------DBLogging LOGGING -------------------
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'HTTPRouter Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+				PROPAGATE TO TERMINAL 'out';
+				----------------------------------
+			END IF;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.JSON = Environment.JSON;
 		ELSEIF domainName = 'XMLNSC' THEN
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
 			CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'AccountOpeningResponse';
@@ -230,10 +249,28 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			SET errorRef.applicationName = ApplicationLabel;
 			SET errorRef.applicationErrorCode = errorCode;
 			SET errorRef.message = msg;
-			SET Environment.Variables.jsonData = OutputRoot.JSON;
-			SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
-			PROPAGATE TO TERMINAL 'out1';
+			IF EXISTS(Environment.XMLNSC[]) THEN
+				SET Environment.XMLNSC = OutputRoot.XMLNSC;
+			ELSE
+				CREATE LASTCHILD OF Environment DOMAIN ('XMLNSC');
+				SET Environment.XMLNSC = OutputRoot.XMLNSC;
+			END IF;
+			DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,InputRoot.Properties.Encoding,InputRoot.Properties.CodedCharSetId);
+			SET OutputRoot.XMLNSC = NULL;
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','HTTPRouter Response: '|| Environment.Variables.resMsg) INTO rc ;
+				----------DBLogging LOGGING -------------------
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'HTTPRouter Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+				PROPAGATE TO TERMINAL 'out';
+				----------------------------------
+			END IF;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.XMLNSC = Environment.XMLNSC;
 		END IF;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+		PROPAGATE TO TERMINAL 'out1';
 	END;
 
 
