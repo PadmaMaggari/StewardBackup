@@ -3,7 +3,7 @@
     xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/cashin/CashInFlow.msgflow" nsPrefix="com_stewardbank_co_zw_cashin_CashInFlow.msgflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log\Log4jConfig.xml">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="/log/log4j/Log4jConfigurationFile.xml">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_Q" name="RAW_AUDIT_Q" defaultValueLiteral="RAW_LOG_SB_REQ">
@@ -31,7 +31,7 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankCashInApp/icons/full/obj16/CashInFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankCashInApp/icons/full/obj30/CashInFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="94,114" queueName="CI_SB_HTTP_REQ" destinationQueueManagerName="QM" messageDomainProperty="JSON" transactionMode="no">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="94,114" queueName="CI_SB_HTTP_REQ" messageDomainProperty="JSON" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="CI_SB_HTTP_REQ"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="210,110" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.cashin#CashInFlow_GenReqToMobiquity.Main" computeMode="destinationAndMessage">
@@ -40,7 +40,7 @@
       <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="339,113" URLSpecifier="http://192.168.92.69:9999/jigsaw/serviceRequest/CASHIN" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON">
         <translation xmi:type="utility:ConstantString" string="HTTP Request"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="587,203" destinationQueueManagerName="QM" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="587,203" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="MQ Output"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="490,110" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.cashin#CashInFlow_GenResToT24.Main" computeMode="destinationAndMessage">

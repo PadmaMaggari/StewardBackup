@@ -50,7 +50,7 @@ CREATE COMPUTE MODULE CashOutFlow_GenReqToMobiquity
 		DECLARE env REFERENCE TO Environment.Variables;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
-		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data.CashOut.body;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		DECLARE outRef REFERENCE TO OutputRoot.JSON;
 		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
@@ -153,11 +153,11 @@ CREATE COMPUTE MODULE CashOutFlow_GenResToT24
 		
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CashIn');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.CashIn NAME ('header');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.CashIn NAME ('body');
-		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.CashIn.header;
-		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.CashIn.body;
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CashOut');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.CashOut NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.CashOut NAME ('body');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.CashOut.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.CashOut.body;
 		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
 		IF responceCode LIKE '200' AND inRef.status='SUCCEEDED' THEN
 			SET headRef.channel = 'Branch';
@@ -261,7 +261,7 @@ CREATE COMPUTE MODULE CashOutFlow_BuildException
 		SET headerRef.responseCode = '000';
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
-		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CashIn.ErrorCode;
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CashOut.ErrorCode;
 		SET errorRef.message = errMsg;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
