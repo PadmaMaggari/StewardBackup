@@ -33,7 +33,6 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE serviceName CHARACTER;
 		SET serviceName = FIELDNAME(domainDataRef.Body.[1]);
-		-- DECLARE qDetails ROW;
 		SET Environment.MQRFH2.requestDomain=domainName;
 		DECLARE SoapReplyIdentifier REFERENCE TO InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
@@ -41,6 +40,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
 		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		/* =========================== DB LOGGING =========================== */
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(CAST(Environment.id AS CHARACTER),Environment.Variables.reqMsg,'Router Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
 			'',outRefer);
@@ -48,13 +48,13 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 
-
+/* ==================================== LOG4J LOGGING =================================*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP Router Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP ID::'|| CAST(InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER)) INTO rc;
 		END IF;
-		/*======================================= Calling data base values and storeing in cache ===================================*/
+		/*======================================= Calling data base values Existed  in cache ===================================*/
 
 		IF EXISTS(getDBDetailsCache.values[])THEN
 			CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Values available in shared cache: '|| getDBDetailsCache.values.*[])INTO rc;
