@@ -35,7 +35,7 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(CAST(InputRoot.MQRFH2.usr.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER),Environment.Variables.reqMsg,'Router Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,
+			CALL DBLogging(CAST(InputRoot.MQRFH2.usr.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER),Environment.Variables.reqMsg,'Router Response',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.dbLog.dbLogTime,InputRoot.MQRFH2.usr.dbLog.dbLogDate,
 			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';

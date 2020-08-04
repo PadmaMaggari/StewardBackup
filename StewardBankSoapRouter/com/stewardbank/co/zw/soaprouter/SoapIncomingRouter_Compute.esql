@@ -61,9 +61,9 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 			SET qDetails.Values[] = SELECT A.PROC_CODE,A.MSGDOMAIN,A.REQ_QUEUE,A.RES_QUEUE FROM getDBDetailsCache.values[] AS A WHERE A.PROC_CODE = serviceName AND A.MSGDOMAIN = domainName ;
 			IF EXISTS(qDetails.Values[]) THEN
 				IF FIELDNAME(qDetails.Values.MSGDOMAIN) IS NOT NULL AND FIELDNAME(qDetails.Values.REQ_QUEUE) IS NOT NULL AND FIELDNAME(qDetails.Values.RES_QUEUE)IS NOT NULL THEN
-					SET Environment.reqQName = getDBDetailsCache.values.REQ_QUEUE;
-					SET Environment.reqServiseName = getDBDetailsCache.values.PROC_CODE;
-					SET Environment.resQName = getDBDetailsCache.values.RES_QUEUE;
+					SET Environment.reqQName = qDetails.Values.REQ_QUEUE;
+					SET Environment.reqServiseName = qDetails.Values.PROC_CODE;
+					SET Environment.resQName = qDetails.Values.RES_QUEUE;
 					SET OutputRoot.Properties = InputRoot.Properties;
 					SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
 					SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
@@ -91,9 +91,9 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 				SET qDetails.Values[] = SELECT A.PROC_CODE,A.MSGDOMAIN,A.REQ_QUEUE,A.RES_QUEUE FROM getDBDetailsCache.values[] AS A WHERE A.PROC_CODE = serviceName AND A.MSGDOMAIN = domainName ;
 				IF EXISTS(qDetails.Values[]) THEN
 					IF FIELDNAME(qDetails.Values.MSGDOMAIN) IS NOT NULL AND FIELDNAME(qDetails.Values.REQ_QUEUE) IS NOT NULL AND FIELDNAME(qDetails.Values.RES_QUEUE)IS NOT NULL THEN
-						SET Environment.reqQName = getDBDetailsCache.values.REQ_QUEUE;
-						SET Environment.reqServiseName = getDBDetailsCache.values.PROC_CODE;
-						SET Environment.resQName = getDBDetailsCache.values.RES_QUEUE;
+						SET Environment.reqQName = qDetails.Values.REQ_QUEUE;
+						SET Environment.reqServiseName = qDetails.Values.PROC_CODE;
+						SET Environment.resQName = qDetails.Values.RES_QUEUE;
 						SET OutputRoot.Properties = InputRoot.Properties;
 						SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
 						SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
@@ -149,14 +149,12 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 
 	CREATE PROCEDURE CALL_STORED_CACHE (IN serviceName CHARACTER, IN domainName CHARACTER)
 	BEGIN
-
-		SET getDBDetailsCache.values[] = SELECT  Q.PROC_CODE,Q.MSGDOMAIN,Q.REQ_QUEUE,Q.RES_QUEUE FROM Database.INTEGRATION_SOL_DETAILS AS Q WHERE Q.PROC_CODE = serviceName AND Q.MSGDOMAIN = domainName;
+		SET getDBDetailsCache.values[] = SELECT  * FROM Database.INTEGRATION_SOL_DETAILS ;
 		IF EXISTS(getDBDetailsCache.values[]) OR getDBDetailsCache IS NOT NULL THEN
 			CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Retrieved values from Database')INTO rc;
 		ELSE
 			CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Data retrieved from Database')INTO rc;
 		END IF;
-
 	END;
 END MODULE;
 
