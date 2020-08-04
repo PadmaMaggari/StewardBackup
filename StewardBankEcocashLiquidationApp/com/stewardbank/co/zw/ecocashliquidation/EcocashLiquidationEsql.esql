@@ -160,9 +160,9 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 			END IF;
 			/* =================== END OF AUDIT LOGGING ==============*/
-			SET Environment.Variables.MobiquityRes = InputRoot.JSON.Data.COMMAND;    
+			SET Environment.Variables.MobiquityRes = InputRoot.JSON.Data.COMMAND;     
 			------db Update-------------- 		
-			CALL UPDATE_MOBIQUITY_STATUS(Environment.Variables.UID,InRef.TXNSTATUS,'SUCCESS',Env.resMsg,InRef.DATE||' '||InRef.TIME,'PENDING','PENDING','PENDING',Environment.Variables.CreationDate); 
+			CALL DbUpdateMobiquityStatus(Environment.Variables.UID,InRef.TXNSTATUS,'SUCCESS',Env.resMsg,InRef.DATE||' '||InRef.TIME,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));  
 			-------------------------------------------------------
 			IF EnvRefer.BANK LIKE 'STEWARD BANK' THEN
 				DECLARE STBUrlParameters,SB_T24URL,STB_Msg CHARACTER;
@@ -208,21 +208,22 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				DECLARE outRef REFERENCE TO OutputRoot.JSON;
 				CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
 				SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
-				SET outRef.beneficiaryAccountId = EnvRefer.MSISDN;
-				SET outRef.beneficiaryBIC = EnvRefer.BANK;
-				SET outRef.beneficiaryName = EnvRefer.MERCHANT_NAME;
-				SET outRef.endToEndReference = EnvRefer.BRANCH_NAME;
+				SET outRef.merchantName = EnvRefer.MERCHANT_NAME;
 				SET outRef.paymentCurrency = 'ZWL';
-				SET outRef.transactionAmount = EnvRefer.BALANCE_USD;
+				SET outRef.liquidationAmount = EnvRefer.BALANCE_USD;
 				SET outRef.executionDate = CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd');
-				SET outRef.orderingReference = EnvRefer.BATCH_IDENTIFIER;
-				SET outRef.orderingCustomerName = EnvRefer.BANK_ACC_NAME;
-				SET Environment.Variables.OTB_Msg = OutputRoot.JSON.Data;
+				SET outRef.batchIdentifier = EnvRefer.BATCH_IDENTIFIER;
+				SET outRef.branchName = EnvRefer.BRANCH_NAME;
+				SET outRef.ecocashlAcctId = '1000000047'; 
+				SET outRef.currency = 'ZWL';
+				SET outRef.bankAccName = EnvRefer.BANK_ACC_NAME;
+				SET outRef.bank =  EnvRefer.BANK;
+				SET outRef.bankAccNumber = EnvRefer.BANK_ACC_NUMBER; 
+				SET Environment.Variables.OTB_Msg = OutputRoot.JSON.Data; 
 				--{merchantName}/{paymentCurrency}/{liquidationAmount}/{executionDate}/{batchIdentifier}/{branchName}/{ecocashlAcctId}/{currency}/{bankAccName}/{bank}/{bankAccNumber}				
-				--{beneficiaryAccountId}/{beneficiaryBIC}/{beneficiaryName}/{endToEndReference}/{paymentCurrency}/{transactionAmount}/{executionDate}/{orderingReference}/{orderingCustomerName}
-				SET OTBUrlParameters = EnvRefer.MSISDN||'/'||EnvRefer.BANK||'/'||EnvRefer.MERCHANT_NAME||'/'||EnvRefer.BRANCH_NAME||'/'||'ZWL'||'/'||EnvRefer.BALANCE_USD||'/'||CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd')||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.BANK_ACC_NAME;
-				SET OB_T24URL = STB_T24URL||OTBUrlParameters;
-				SET OTB_Msg = getPayLoad(FIELDNAME(OutputRoot.JSON),OutputRoot.JSON.Data,encodeRef,ccidRef);
+				SET OTBUrlParameters = EnvRefer.MERCHANT_NAME||'/'||outRef.paymentCurrency||'/'||EnvRefer.BALANCE_USD||'/'||outRef.executionDate||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.BRANCH_NAME||'/'||outRef.ecocashlAcctId||'/'||outRef.currency||'/'||EnvRefer.BANK_ACC_NAME||'/'||EnvRefer.BANK||'/'||EnvRefer.BANK_ACC_NUMBER;
+				SET OB_T24URL = OTB_T24URL||OTBUrlParameters;  
+				SET OTB_Msg = getPayLoad(FIELDNAME(OutputRoot.JSON),OutputRoot.JSON.Data,encodeRef,ccidRef); 
 				SET OutputRoot = NULL;
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL DBLogging(Environment.Variables.UID,OTB_Msg,'OTB T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
@@ -255,7 +256,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc; 
 			END IF;
 			/* =================== END OF AUDIT LOGGING ==============*/
-			CALL UPDATE_MOBIQUITY_STATUS(Environment.Variables.UID,InRef.TXNSTATUS,'FAILURE',Env.resMsg,InRef.DATE||' '||InRef.TIME,'PENDING','PENDING','PENDING',Environment.Variables.CreationDate);  
+			CALL DbUpdateMobiquityStatus(Environment.Variables.UID,InRef.TXNSTATUS,'FAILURE',Env.resMsg,InRef.DATE||' '||InRef.TIME,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));     
 			/* ===================T24 AUDIT LOGGING ==============*/
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL DBLogging(Env.UID,Env.resMsg,'T24 Failure Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
@@ -315,9 +316,9 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_T24StatusUpdate
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 			END IF;
 
-			CALL UPDATE_T24_STATUS(Env.UID,responceCode,'SUCCESS',Env.resMsg,Environment.Variables.CreationDate); 
+			CALL DbUpdateT24Status(Env.UID,responceCode,'SUCCESS',Env.resMsg,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));  
 			SET outRef = Env.data;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName; 
 			PROPAGATE TO TERMINAL 'out';
 		ELSE
 			---Failure Case---
@@ -329,8 +330,8 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_T24StatusUpdate
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','T24 Response:: FAILURE'||'/'||'ResponseCode::'||responceCode) INTO rc;
 			END IF;
-			CALL UPDATE_T24_STATUS(Env.UID,responceCode,'FAILURE',Env.resMsg,Environment.Variables.CreationDate);  
-			SET OutputRoot.JSON.Data = Env.data;
+			CALL DbUpdateT24Status(Env.UID,responceCode,'FAILURE',Env.resMsg,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));    
+			SET OutputRoot.JSON.Data = Env.data;  
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
 			PROPAGATE TO TERMINAL 'out';
 		END CASE;
@@ -424,11 +425,11 @@ LANGUAGE DATABASE
 EXTERNAL NAME "INSERT_SB_ECOCASHLIQ_TRACKING"; 
 
 
- CREATE PROCEDURE UPDATE_MOBIQUITY_STATUS(IN GUID CHARACTER,IN MOBIQUITY_RESPONSE_CODE CHARACTER,IN MOBIQUITY_STATUS CHARACTER,IN MOBIQUITY_RESPONSE_MESSAGE CHARACTER,
-IN MOBIQUITY_DATETIME CHARACTER,IN T24_RESPONSE_CODE CHARACTER,IN T24_STATUS CHARACTER,IN T24_RESPONSE_MESSAGE CHARACTER,IN PAYNET_DATEUPDATED TIMESTAMP) 
+ CREATE PROCEDURE DbUpdateMobiquityStatus(IN GUID CHARACTER,IN MOBIQUITY_RESPONSE_CODE CHARACTER,IN MOBIQUITY_STATUS CHARACTER,IN MOBIQUITY_RESPONSE_MESSAGE CHARACTER,
+IN MOBIQUITY_DATETIME CHARACTER,IN PAYNET_DATEUPDATED TIMESTAMP)  
 LANGUAGE DATABASE
-EXTERNAL NAME "UPDATE_SB_ECOCASH_MOBIQUITY_STATUS";   
+EXTERNAL NAME "UPDATE_ECOCASH_MOBIQUITY_STATUS";       
 
- CREATE PROCEDURE UPDATE_T24_STATUS(IN GUID CHARACTER,IN T24_RESPONSE_CODE CHARACTER,IN T24_STATUS CHARACTER,IN T24_RESPONSE_MESSAGE CHARACTER,IN PAYNET_DATEUPDATED TIMESTAMP) 
+ CREATE PROCEDURE DbUpdateT24Status(IN GUID CHARACTER,IN T24_RESPONSE_CODE CHARACTER,IN T24_STATUS CHARACTER,IN T24_RESPONSE_MESSAGE CHARACTER,IN PAYNET_DATEUPDATED TIMESTAMP) 
 LANGUAGE DATABASE
-EXTERNAL NAME "UPDATE_SB_ECOCASH_T24_STATUS";  
+EXTERNAL NAME "UPDATE_ECOCASH_T24_STATUS";    
