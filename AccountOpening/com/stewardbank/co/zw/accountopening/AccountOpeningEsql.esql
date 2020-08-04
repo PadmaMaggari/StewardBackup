@@ -336,7 +336,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYC_FailureResponse
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
 		SET errorRef.applicationErrorCode = 'AccountOpening_002';
-		SET errorRef.message = 'No data from Econet';
+		SET errorRef.message = 'no data found for the given customer';
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayLoad('JSON',domainDataRef,InputRoot.Properties.Encoding,InputRoot.Properties.CodedCharSetId);
 		IF EXISTS(Environment.JSON[]) THEN
