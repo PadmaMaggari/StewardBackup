@@ -35,7 +35,7 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(CAST(InputRoot.MQRFH2.usr.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER),Environment.Variables.reqMsg,'Router Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,
+			CALL DBLogging(CAST(InputRoot.MQRFH2.usr.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER),Environment.Variables.reqMsg,'Router Response',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.dbLog.dbLogTime,InputRoot.MQRFH2.usr.dbLog.dbLogDate,
 			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
@@ -73,7 +73,7 @@ CREATE COMPUTE MODULE SoapOutgoingRouter_BuildExceptionDetails
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		SET Environment.Variables.Id = InputRoot.MQRFH2.usr.Id ;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'OutGoingRouter';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'OutGoingRouter';     
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'OutGoingRouter');
 		SET Environment.Variables.OutgoingRouterErrorCodes = OutputRoot.XMLNSC;
@@ -89,7 +89,7 @@ CREATE COMPUTE MODULE SoapOutgoingRouter_BuildExceptionDetails
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','=====================================  OUTGOING ROUTER  EXCEPTIOPN =================================') INTO rc ;
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','TCPIP ID: '||InputRoot.MQRFH2.usr.Id)INTO rc;
-		CALL Error_DBLogging(Environment.Id,Environment.Variables.reqMsg,'Router Response Error',ApplicationLabel,BrokerName,exe_Desc,Environment.Variables.systemsTraceAuditNumber,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.OutgoingRouterErrorCodes.OutGoingRouter.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Id,Environment.Variables.reqMsg,'OutGoing Router Error',ApplicationLabel,BrokerName,exe_Desc,Environment.Variables.systemsTraceAuditNumber,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.OutgoingRouterErrorCodes.OutGoingRouter.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q ;
 		PROPAGATE TO TERMINAL 'out1';
 	END;
