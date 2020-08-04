@@ -17,8 +17,6 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_GenerateReqToT24
 		RETURN FALSE;
 	END;     
 
-	
-
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
 		SET Environment.MQRFH2= InputRoot.MQRFH2;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
@@ -222,14 +220,8 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_BuildExceptionDetails
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') THEN
-			SET errMsg = 'T24 Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
-			SET errMsg = 'Postilion Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN 
+		IF CONTAINS(excpRef.excpText,'SocketException') THEN
 			SET errMsg = 'No Response from T24 Server';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN 
-			SET errMsg = 'No Response from Postilion Server';	
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
@@ -239,40 +231,41 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_BuildExceptionDetails
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'FullStatementResponse';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'FullStatement';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'FullStatementResponse');
+		CALL BuildExceptionDetails(excpRef,outRef,'FullStatement');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.XMLNSC = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('FullStatementResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('FullStatement');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
-		SET headerRef = Environment.MQRFH2.header;
+		SET headerRef.channel = 'MobileApp';
+		SET headerRef.processingCode = '902020';
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '000';
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
-		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.FullStatementResponse.ErrorCode;
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.FullStatement.ErrorCode;
 		SET errorRef.message = errMsg;
 		MOVE domainDataRef TO OutputRoot.JSON;
-		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;  
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc; 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.FullStatementResponse.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.FullStatement.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;    
-		----------------------------------		
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;  
+	
 		END;
 END MODULE;
