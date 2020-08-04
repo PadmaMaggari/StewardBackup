@@ -73,7 +73,7 @@ CREATE COMPUTE MODULE SoapOutgoingRouter_BuildExceptionDetails
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		SET Environment.Variables.Id = InputRoot.MQRFH2.usr.Id ;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'OutGoingRouter';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'OutGoingRouter';     
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'OutGoingRouter');
 		SET Environment.Variables.OutgoingRouterErrorCodes = OutputRoot.XMLNSC;
