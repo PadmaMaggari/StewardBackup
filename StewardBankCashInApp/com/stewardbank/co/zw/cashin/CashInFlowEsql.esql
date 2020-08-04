@@ -31,6 +31,7 @@ CREATE COMPUTE MODULE CashInFlow_GenReqToMobiquity
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		SET Environment.MQRFH2.RequestIdentifier = InputRoot.MQRFH2.RequestIdentifier;
+		SET Environment.Variables.RequestIdentifier=Environment.MQRFH2.RequestIdentifier;
 		/* =================== CALLING DB LOGGING   ==============*/
 	    IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
@@ -223,10 +224,8 @@ END MODULE;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'MobiquityClientOut,connection refused') THEN
-			SET errMsg = 'T24 Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'MobiquityReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from T24 Server';
+		IF CONTAINS(excpRef.excpText,'connection refused') THEN
+			SET errMsg = 'Mobiquity Server Down';
 
 		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
 			SET errMsg = 'No Response from Mobiquity Server';
