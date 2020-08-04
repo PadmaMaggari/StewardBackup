@@ -128,8 +128,8 @@ CREATE COMPUTE MODULE ExceptionHandling
 			IF (CONTAINS(exceptionTxt,'Connection refused') OR
 				CONTAINS(exceptionTxt,'Connection Dead') OR
 				CONTAINS(exceptionTxt,'your session has been killed') OR
-				CONTAINS(exceptionTxt,'Unexpected Network Error')) AND CONTAINS(flowName,'OutgoingRouterFlow')= FALSE THEN
-				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Connection refused or Connection Dead or your session has been killed or Unexpected Network Error') INTO rc;
+				CONTAINS(exceptionTxt,'SocketException') OR CONTAINS(exceptionTxt,'Unexpected Network Error')) AND CONTAINS(flowName,'OutgoingRouterFlow')= FALSE THEN
+				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Connection refused or Connection Dead or your session has been killed or Socket Expection or Unexpected Network Error') INTO rc;
 				IF Environment.Variables.RequestIdentifier IS NULL THEN
 					IF Environment.Variables.Counter IS NULL THEN
 						SET Environment.Variables.Counter = 1;
@@ -145,10 +145,10 @@ CREATE COMPUTE MODULE ExceptionHandling
 					CALL CopyMessageHeaders();
 					SET OutputRoot = InputRoot;
 					SET Environment.Variables.Counter = Environment.Variables.Counter + 1;
-					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','tcp connection exception retry count:'||CAST(Environment.Variables.Counter AS CHARACTER)) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','connection exception retry count:'||CAST(Environment.Variables.Counter AS CHARACTER)) INTO rc;
 					RETURN TRUE;
 				ELSE
-					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','tcp connection exception retry count reached send response') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','connection exception retry count reached send response') INTO rc;
 					SET OutputRoot = NULL;
 					CALL CopyMessageHeaders();
 					IF FIELDNAME(Environment.Variables.RequestIdentifier) IS NULL OR FIELDVALUE(Environment.Variables.RequestIdentifier) = '' THEN
