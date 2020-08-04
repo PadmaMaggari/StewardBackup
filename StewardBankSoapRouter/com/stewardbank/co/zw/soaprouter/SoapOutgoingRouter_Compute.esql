@@ -89,7 +89,7 @@ CREATE COMPUTE MODULE SoapOutgoingRouter_BuildExceptionDetails
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','=====================================  OUTGOING ROUTER  EXCEPTIOPN =================================') INTO rc ;
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','TCPIP ID: '||InputRoot.MQRFH2.usr.Id)INTO rc;
-		CALL Error_DBLogging(Environment.Id,Environment.Variables.reqMsg,'Router Response Error',ApplicationLabel,BrokerName,exe_Desc,Environment.Variables.systemsTraceAuditNumber,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.OutgoingRouterErrorCodes.OutGoingRouter.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Id,Environment.Variables.reqMsg,'OutGoing Router Error',ApplicationLabel,BrokerName,exe_Desc,Environment.Variables.systemsTraceAuditNumber,Environment.Variables.dateLocalTransaction,Environment.Variables.retrievalReferenceNumber,CAST(excpRef.excpNumber AS CHARACTER),Environment.OutgoingRouterErrorCodes.OutGoingRouter.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q ;
 		PROPAGATE TO TERMINAL 'out1';
 	END;
