@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "C:\Users\usufw\git\StewardBank\AccountOpening\log4j.dtd">
+
+<log4j:configuration xmlns:log4j='http://jakarta.apache.org/log4j/'>
+
+        
+    <appender name="FILE_WITH_FILTER" class="org.apache.log4j.FileAppender">
+        <param name="Threshold" value="WARN"/>
+        <param name="File" value="C:/temp/Log4jTest_filterMyFlow.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+        <filter class="com.ibm.log4j.filter.ThreadFilter">
+        	<param name="matchPattern" value="/MyFlow/"/>
+        	<param name="acceptOnMatch" value="true"/>
+        </filter>
+        <filter class="com.ibm.log4j.filter.ThreadFilter">
+        	<param name="matchPattern" value="/.*/"/>
+        	<param name="acceptOnMatch" value="false"/>
+        </filter>
+    </appender>
+
+    <appender name="ACCOPN_DEBUG" class="org.apache.log4j.FileAppender">
+        <param name="Threshold" value="DEBUG"/>
+        <param name="File" value="C:/temp/AccountOpeningDebug.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    </appender>
+
+    <appender name="ACCOPN_WARN" class="org.apache.log4j.FileAppender">
+        <param name="Threshold" value="WARN"/>
+        <param name="File" value="C:/temp/AccountOpeningWarn.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5p [%-10t] %m%n"/>
+        </layout>
+    </appender>
+	
+	
+
+    <logger name="AccountOpeningWarnLogger">
+	<level value="WARN"/>
+	<appender-ref ref="ACCOPN_WARN"/>
+    </logger>
+
+    <logger name="AccountOpeningDebugLogger">
+	<level value="DEBUG"/>
+	<appender-ref ref="ACCOPN_DEBUG"/>
+    </logger>
+
+    <root>
+        <appender-ref ref="FILE_WITH_FILTER"/>
+    </root>
+
+</log4j:configuration>
