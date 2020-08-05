@@ -43,8 +43,8 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankEcocashLiquidationApp/icons/full/obj16/EcocashLiquidationFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankEcocashLiquidationApp/icons/full/obj30/EcocashLiquidationFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="78,81" inputDirectory="C:\Users\Sreenivas Bandaru\Documents\Eco_Input" processedFileAction="moveToArchiveWithTimestamp" messageDomainProperty="DFDL" messageSetProperty="{SB_EcoCSV_Lib}" messageTypeProperty="{}:StewardBank_EcoCSV" recordDetection="delimited" recordDelimiter="customDelimiter" customDelimiter="0D0A">
-        <translation xmi:type="utility:ConstantString" string="File Input"/>
+      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="129,220" inputDirectory="C:\Users\Sreenivas Bandaru\Documents\Eco_Input" processedFileAction="moveToArchiveWithTimestamp" messageDomainProperty="DFDL" messageTypeProperty="{}:StewardBank_EcoCSV" recordDetection="delimited" recordDelimiter="customDelimiter" customDelimiter="0D0A">
+        <translation xmi:type="utility:ConstantString" string="Ecocash File Input"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="146,78" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.ecocashliquidation#EcocashLiquidationFlow_GenerateRequesttoMobiquity.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="Generating Req to Mobiquity"/>
@@ -52,13 +52,13 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="415,81" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.ecocashliquidation#EcocashLiquidationFlow_MobiquityStatus_GenerateToT24.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="Mobiquity Status/Generating Req to T24"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="863,230" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="854,230" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="MQ Output"/>
       </nodes>
-      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="654,82" URLSpecifier="http://t24" httpVersion="1.1" protocol="TLS">
+      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="638,82" URLSpecifier="http://t24" httpVersion="1.1" protocol="TLS">
         <translation xmi:type="utility:ConstantString" string="T24 Call"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="794,82" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.ecocashliquidation#EcocashLiquidationFlow_T24StatusUpdate.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="786,83" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.ecocashliquidation#EcocashLiquidationFlow_T24StatusUpdate.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="T24 Status Update"/>
       </nodes>
       <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="315,79" URLSpecifier="http://192.168.92.69:8081/TxnWebapp/JsonSelector?LOGIN=Ussd_Bearer1&amp;PASSWORD=MPtc1ToayCkCMZZeHUu0snA3aUaPbSFQ9UzIkNGbVRU=&amp;REQUEST_GATEWAY_CODE=USSD&amp;REQUEST_GATEWAY_TYPE=USSD&amp;requestText=" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON" acceptCompressedResponses="true">
@@ -70,7 +70,7 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_14" location="704,229" computeExpression="esql://routine/com.stewardbank.co.zw.ecocashliquidation#EcocashLiquidationFlow_BuildException.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildException"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="840,332" outputDirectory="C:\Users\Sreenivas Bandaru\Documents\Eco_Failure">
+      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="765,335" outputDirectory="C:\Users\Sreenivas Bandaru\Documents\Eco_Failure">
         <translation xmi:type="utility:ConstantString" string="File Output"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>

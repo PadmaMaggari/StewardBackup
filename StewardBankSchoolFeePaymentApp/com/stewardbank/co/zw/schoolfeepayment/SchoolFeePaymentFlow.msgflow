@@ -31,28 +31,28 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSchoolFeePaymentApp/icons/full/obj16/SchoolFeePaymentFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSchoolFeePaymentApp/icons/full/obj30/SchoolFeePaymentFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="641,9" messageDomain="JSON" resetMessageDomain="true">
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="613,122" messageDomain="JSON" resetMessageDomain="true">
         <translation xmi:type="utility:ConstantString" string="Validate JSON"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="614,230" computeExpression="esql://routine/com.stewardbank.co.zw.schoolfeepayment#SchoolFeePaymentFlow_CaptureException.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="653,238" computeExpression="esql://routine/com.stewardbank.co.zw.schoolfeepayment#SchoolFeePaymentFlow_CaptureException.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="350,75" computeExpression="esql://routine/com.stewardbank.co.zw.schoolfeepayment#SchoolFeePaymentFlow_GenerateReqToT24.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="256,122" computeExpression="esql://routine/com.stewardbank.co.zw.schoolfeepayment#SchoolFeePaymentFlow_GenerateReqToT24.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateReqToT24"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="201,146" queueName="SFP_SB_HTTP_REQ" messageDomainProperty="JSON" transactionMode="no">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="193,231" queueName="SFP_SB_HTTP_REQ" messageDomainProperty="JSON" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="School Fee Payment_REQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="809,160" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="807,239" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="School Fee Payment_RES"/>
       </nodes>
-      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="513,65" URLSpecifier="http://host" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON">
+      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="459,123" URLSpecifier="http://host" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON">
         <translation xmi:type="utility:ConstantString" string="HTTP Request"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="384,231">
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="476,238">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="743,81" computeExpression="esql://routine/com.stewardbank.co.zw.schoolfeepayment#SchoolFeePaymentFlow_GenerateResToPostilion.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="766,125" computeExpression="esql://routine/com.stewardbank.co.zw.schoolfeepayment#SchoolFeePaymentFlow_GenerateResToPostilion.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="Generating Response"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
@@ -66,7 +66,9 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.in">
+        <bendPoints>160,37,-164,38</bendPoints>
+      </connections>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">

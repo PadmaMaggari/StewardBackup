@@ -31,29 +31,29 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankCurrencyConverterApp/icons/full/obj16/CurrencyConverterFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankCurrencyConverterApp/icons/full/obj30/CurrencyConverterFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="559,230" computeExpression="esql://routine/com.stewardbank.co.zw.currencyconverter#CurrencyConverter_CaptureException.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="515,227" computeExpression="esql://routine/com.stewardbank.co.zw.currencyconverter#CurrencyConverter_CaptureException.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="329,231">
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="359,228">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="754,160" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="718,227" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="Currency_Converter_RES"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="688,81" computeExpression="esql://routine/com.stewardbank.co.zw.currencyconverter#CurrencyConverter_GenerateResToPostilion.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="676,123" computeExpression="esql://routine/com.stewardbank.co.zw.currencyconverter#CurrencyConverter_GenerateResToPostilion.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="Generating Response"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="145,145" queueName="CURCON_SB_HTTP_REQ" messageDomainProperty="JSON" transactionMode="no">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="193,230" queueName="CURCON_SB_HTTP_REQ" messageDomainProperty="JSON" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="Currency_Converter_REQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="586,68" messageDomain="JSON" resetMessageDomain="true">
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="584,120" messageDomain="JSON" resetMessageDomain="true">
         <translation xmi:type="utility:ConstantString" string="Validate JSON"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="295,75" computeExpression="esql://routine/com.stewardbank.co.zw.currencyconverter#CurrencyConverter_GenerateReqToT24.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="255,125" computeExpression="esql://routine/com.stewardbank.co.zw.currencyconverter#CurrencyConverter_GenerateReqToT24.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateReqToT24"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_httpcall_HttpRetrySubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="420,66">
-        <translation xmi:type="utility:ConstantString" string="HttpRetrySubFlow"/>
+      <nodes xmi:type="com_stewardbank_co_zw_common_httpcall_HttpRetrySubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="482,125">
+        <translation xmi:type="utility:ConstantString" string="HTTP T24 Req"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
