@@ -1,0 +1,1083 @@
+
+
+
+
+
+BROKER SCHEMA com.stewardbank.co.zw.accountopening
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE ALL_SB_HTTP_RES EXTERNAL CHAR '';
+DECLARE IsLogRequired EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE TABLENAME EXTERNAL CHARACTER '';
+DECLARE rc BOOLEAN FALSE;
+CREATE COMPUTE MODULE AccountOpeningFlow_VerifyRequest
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL VerifyRequest();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE VerifyRequest() BEGIN
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot;
+		IF EXISTS(InputRoot.JSON[]) THEN
+			MOVE inRef TO InputRoot.JSON.Data;
+			SET Environment.JSON = InputRoot.JSON;
+		ELSEIF EXISTS(InputRoot.XMLNSC[]) THEN
+			MOVE inRef TO InputRoot.XMLNSC.request;
+			SET Environment.Variables.InputRequest = InputRoot.XMLNSC;
+			SET Environment.XMLNSC = InputRoot.XMLNSC;
+		END IF;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputBody;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE accountOpeningCheck CHAR COALESCE(inRef.accountOpeningCheck,inRef.header.accountOpeningCheck,inRef.*.header.accountOpeningCheck,'');
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.MQRFH2.ChannelRequest = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET Environment.Variables.reqMsg = Environment.MQRFH2.ChannelRequest;
+		------------DBLogging-------------------
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Request------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		---------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		IF EXISTS(InputRoot.JSON[]) THEN
+			SET OutputRoot.JSON = InputRoot.JSON;
+		ELSEIF EXISTS(InputRoot.XMLNSC[]) THEN
+			SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
+		END IF;
+		IF accountOpeningCheck = 'KYC_CHECK' THEN
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'KYC';
+		ELSEIF accountOpeningCheck = 'FCM_CHECK' THEN
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'FCM';
+		ELSEIF accountOpeningCheck = 'Zss/Postilion Update' THEN
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'UPDATE';
+		ELSE
+			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'Unknown';
+		END IF;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateUnknownResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateUnknownResponse();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateUnknownResponse() BEGIN
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AccountOpeningResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef = Environment.MQRFH2.header;
+		SET headerRef.Status = 'FAILED';
+		SET headerRef.ResponseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = 'AccountOpening_001';
+		SET errorRef.message = 'Unknown Request';
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		SET Environment.jsonData = OutputRoot.JSON;
+		SET OutputRoot.JSON = NULL;
+		------------DBLogging-------------------
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
+		---------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		SET OutputRoot.JSON = Environment.jsonData;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToKYC
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE national_ID CHARACTER inRef.request.national_Id;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE query CHAR;
+		SET query = 'SELECT * FROM  '||TABLENAME||' WHERE NATIONAL_ID = '''||national_ID||'''';
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Calling DWH Service ------') INTO rc;
+		END IF;
+		SET Environment.KYC_Data[] = PASSTHRU(query);
+		IF EXISTS(Environment.KYC_Data[]) THEN
+			CALL GenerateDWHResponse();
+			RETURN TRUE;
+		ELSE
+			CALL GenerateReqToEconet();
+			RETURN FALSE;
+		END IF;
+	END;
+
+	CREATE PROCEDURE GenerateDWHResponse() BEGIN
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC.request;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE national_ID CHARACTER InputRoot.XMLNSC.national_Id;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE firstName,lastName CHAR;
+		SET firstName = SUBSTRING(Environment.KYC_Data.FULL_NAME BEFORE ' ');
+		SET lastName = SUBSTRING(Environment.KYC_Data.FULL_NAME AFTER ' ');
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME ('AccountOpeningResponse');
+		CREATE LASTCHILD OF OutputRoot.XMLNSC.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.XMLNSC.* NAME ('body');
+		DECLARE headerRef REFERENCE TO OutputRoot.XMLNSC.*.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.XMLNSC.*.body;
+		SET headerRef.channel = inRef.channel;
+		SET headerRef.processingCode = inRef.processingCode;
+		SET headerRef.accountOpeningCheck = inRef.accountOpeningCheck;
+		SET headerRef.status = 'SUCCESS';
+		SET headerRef.responseCode = '200';
+		--SET bodyRef.msisdn = '263772984803';
+		SET bodyRef.firstname = firstName;
+		SET bodyRef.lastname = lastName;
+		SET bodyRef.nationalid = national_ID;
+		SET bodyRef.dob = Environment.KYC_Data.DATE_OF_BIRTH;
+		SET bodyRef.gender = Environment.KYC_Data.GENDER;
+		SET bodyRef.address = Environment.KYC_Data.ADDRESS;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		SET Environment.Variables.resMsg = getPayload('XMLNSC',domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.XMLNSC[]) THEN
+			SET Environment.XMLNSC = OutputRoot.XMLNSC;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('XMLNSC');
+			SET Environment.XMLNSC = OutputRoot.XMLNSC;
+		END IF;
+		SET OutputRoot.XMLNSC = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- DWH Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'DWH Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.XMLNSC = Environment.XMLNSC;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+	END;
+
+	CREATE PROCEDURE GenerateReqToEconet() BEGIN
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC.request;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME ('request');
+		DECLARE env REFERENCE TO Environment.Variables;
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE reqRef REFERENCE TO OutputRoot.XMLNSC.request;
+		SET reqRef.requestId = inRef.requestId; --'2';
+		SET reqRef.transactionId = inRef.transactionId; ---it Should be a random Number
+		SET reqRef.featureId = inRef.featureId; --'search-msisdn';
+		SET reqRef.timeStamp = inRef.timeStamp; --CURRENT_TIMESTAMP;
+		SET reqRef.channelId = inRef.channelId; --'6';
+		SET reqRef.languageId = inRef.languageId; --'1';
+		SET reqRef.username = inRef.username; --'Steward';
+		SET reqRef.password = inRef.password; --'@St3ward';
+		SET reqRef.data.param.name = inRef.data.param.name; --'msisdn';
+		SET reqRef.data.param.value = inRef.data.param.value; --'777991604';
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		SET Environment.Variables.reqMsg = getPayLoad('XMLNSC',domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.XMLNSC[]) THEN
+			SET Environment.XMLNSC = OutputRoot.XMLNSC;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('XMLNSC');
+			SET Environment.XMLNSC = OutputRoot.XMLNSC;
+		END IF;
+		SET OutputRoot.XMLNSC = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Econet Request------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			--------------DBLogging-------------------
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Econet Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+			-----------------------------
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		SET OutputRoot.XMLNSC = Environment.XMLNSC;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://192.168.104.3:19181/Engrafi/MOAdapter'; --'http://localhost:7080/econet';
+		PROPAGATE TO TERMINAL 'out1';
+	END;
+END MODULE;
+
+CREATE FILTER MODULE AccountOpeningFlow_VerifyEconetResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE StatusCode CHARACTER Root.XMLNSC.acknowledgment.status.code;
+		DECLARE StatusDesc CHARACTER Root.XMLNSC.acknowledgment.status.desc;
+		IF StatusCode <> 'SC0000' AND StatusDesc <> 'SUCCESS' THEN
+			RETURN FALSE;
+		ELSE
+			RETURN TRUE;
+		END IF;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYCResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateKYCResponse();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateKYCResponse() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputBody;
+		DECLARE domainName CHARACTER FIELDNAME(domainDataRef);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Econet Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			--------------DBLogging-------------------
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Econet Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+			-----------------------------
+		END IF;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
+		SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
+		MOVE domainDataRef TO OutputRoot.XMLNSC;
+		SET domainName = FIELDNAME(domainDataRef);
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.XMLNSC[]) THEN
+			SET Environment.XMLNSC = OutputRoot.XMLNSC;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN ('XMLNSC');
+			SET Environment.XMLNSC = OutputRoot.XMLNSC;
+		END IF;
+		SET OutputRoot.XMLNSC = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			--------------DBLogging-------------------
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+			-----------------------------
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.XMLNSC = Environment.XMLNSC;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+	END;
+END MODULE;
+
+
+
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYC_FailureResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateKYCFailure();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateKYCFailure() BEGIN
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AccountOpeningResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef = Environment.MQRFH2.header;
+		SET headerRef.Status = 'FAILED';
+		SET headerRef.ResponseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = 'AccountOpening_002';
+		SET errorRef.message = 'No data from Econet';
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayLoad('JSON',domainDataRef,InputRoot.Properties.Encoding,InputRoot.Properties.CodedCharSetId);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+		END IF;
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		-----------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+	END;
+END MODULE;
+----Update Account Details
+
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToZSS
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateReqToZSS();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateReqToZSS() BEGIN
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		CREATE LASTCHILD OF OutputRoot.DFDL NAME ('ISO8583_1987');
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		SET outRef.MTI_Version = '0';
+		SET outRef.MTI_MessageClass = '2';
+		SET outRef.MTI_MessageFunction = '0';
+		SET outRef.MTI_MessageOrigin = '0';
+		SET outRef.PrimaryAccountNumber_002 = inRef.cardNumber;
+		SET outRef.ProcessingCode_003 = inRef.processingCode;
+		SET outRef.DateExpiration_014 = inRef.expiryDate;
+		SET outRef.CurrencyCodeTransaction_049 = inRef.currency;
+		SET outRef.AccountIdentification1_102 = inRef.accountNumber;
+		SET outRef.AccountIdentification2_103 = inRef.accountNumber;
+		SET outRef.ReservedPrivate_127 = '000000';
+
+		DECLARE isoKey,isoValue CHARACTER '';
+		IF FIELDNAME(inRef.mobileNumber) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.mobileNumber) INTO isoValue;
+			CALL keyValueGenerator('mobileNumber') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = isoKey || isoValue;
+		END IF;
+
+		IF FIELDNAME(inRef.idNumber) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.idNumber) INTO isoValue;
+			CALL keyValueGenerator('idNumber') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.otp) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.otp) INTO isoValue;
+			CALL keyValueGenerator('otp') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.tittle) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.tittle) INTO isoValue;
+			CALL keyValueGenerator('tittle') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.firstName) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.firstName) INTO isoValue;
+			CALL keyValueGenerator('firstName') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.lastName) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.lastName) INTO isoValue;
+			CALL keyValueGenerator('lastName') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.middlename) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.middlename) INTO isoValue;
+			CALL keyValueGenerator('middlename') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.birthDate) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.birthDate) INTO isoValue;
+			CALL keyValueGenerator('birthDate') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.emailAddress) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.emailAddress) INTO isoValue;
+			CALL keyValueGenerator('emailAddress') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.maritalStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.maritalStatus) INTO isoValue;
+			CALL keyValueGenerator('maritalStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.gender) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.gender) INTO isoValue;
+			CALL keyValueGenerator('gender') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.identificationType) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.identificationType) INTO isoValue;
+			CALL keyValueGenerator('identificationType') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.nationality) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.nationality) INTO isoValue;
+			CALL keyValueGenerator('nationality') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.residence) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.residence) INTO isoValue;
+			CALL keyValueGenerator('residence') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.city) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.city) INTO isoValue;
+			CALL keyValueGenerator('city') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.address1) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.address1) INTO isoValue;
+			CALL keyValueGenerator('address1') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.address2) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.address2) INTO isoValue;
+			CALL keyValueGenerator('address2') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.country) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.country) INTO isoValue;
+			CALL keyValueGenerator('country') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.branch) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.branch) INTO isoValue;
+			CALL keyValueGenerator('branch') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.bankingServiceStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.bankingServiceStatus) INTO isoValue;
+			CALL keyValueGenerator('bankingServiceStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.squareRegStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.squareRegStatus) INTO isoValue;
+			CALL keyValueGenerator('squareRegStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.t24CustomerId) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.t24CustomerId) INTO isoValue;
+			CALL keyValueGenerator('t24CustomerId') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.detailsAmended) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.detailsAmended) INTO isoValue;
+			CALL keyValueGenerator('detailsAmended') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.sbPostilionStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.sbPostilionStatus) INTO isoValue;
+			CALL keyValueGenerator('sbPostilionStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.zssPostilionStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.zssPostilionStatus) INTO isoValue;
+			CALL keyValueGenerator('zssPostilionStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(inRef.idNumber) IS NOT NULL THEN
+			CALL keyValueGenerator(inRef.address1) INTO isoValue;
+			CALL keyValueGenerator('address1') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		CALL UpdateMsgWithAsciiBitMap(outRef);
+		DECLARE domainDataRef REFERENCE TO OutputRoot.DFDL;
+		DECLARE domainName CHARACTER FIELDNAME(domainDataRef);
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.DFDL[]) OR FIELDNAME(Environment.DFDL) IS NOT NULL THEN
+			SET Environment.DFDL = OutputRoot.DFDL;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN ('DFDL');
+			SET Environment.DFDL = OutputRoot.DFDL;
+		END IF;
+		SET OutputRoot.DFDL = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----ZSS Request------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			--------------DBLogging-------------------
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+			-----------------------------
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		SET OutputRoot.DFDL = Environment.DFDL;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToPostilion
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateReqToPostilion();
+		RETURN FALSE;
+	END;
+
+	CREATE PROCEDURE GenerateReqToPostilion() BEGIN
+		DECLARE envRef REFERENCE TO Environment.JSON.Data;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE domainDataRef REFERENCE TO InputBody;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----ZSS Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			--------------DBLogging-------------------
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'ZSS Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+			-----------------------------
+		END IF;
+		SET Environment.MQRFH2.ZssResponseCode = InputRoot.DFDL.ISO8583_1987.ResponseCode_039;
+		--IF InputRoot.DFDL.ISO8583_1987.ResponseCode_039 = '00' THEN
+			CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+			CREATE LASTCHILD OF OutputRoot.DFDL NAME ('ISO8583_1987');
+			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+			SET outRef.MTI_Version = '0';
+			SET outRef.MTI_MessageClass = '2';
+			SET outRef.MTI_MessageFunction = '0';
+			SET outRef.MTI_MessageOrigin = '0';
+			SET outRef.PrimaryAccountNumber_002 = envRef.cardNumber;
+			SET outRef.ProcessingCode_003 = envRef.processingCode;
+			SET outRef.DateExpiration_014 = envRef.expiryDate;
+			SET outRef.CurrencyCodeTransaction_049 = envRef.currency;
+			SET outRef.AccountIdentification1_102 = envRef.accountNumber;
+			SET outRef.AccountIdentification2_103 = envRef.accountNumber;
+			SET outRef.ReservedPrivate_127 = '000000';
+
+			DECLARE isoKey,isoValue CHARACTER '';
+			IF FIELDNAME(envRef.mobileNumber) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.mobileNumber) INTO isoValue;
+				CALL keyValueGenerator('mobileNumber') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = isoKey || isoValue;
+			END IF;
+
+			IF FIELDNAME(envRef.idNumber) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.idNumber) INTO isoValue;
+				CALL keyValueGenerator('idNumber') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.otp) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.otp) INTO isoValue;
+				CALL keyValueGenerator('otp') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.tittle) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.tittle) INTO isoValue;
+				CALL keyValueGenerator('tittle') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.firstName) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.firstName) INTO isoValue;
+				CALL keyValueGenerator('firstName') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.lastName) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.lastName) INTO isoValue;
+				CALL keyValueGenerator('lastName') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.middlename) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.middlename) INTO isoValue;
+				CALL keyValueGenerator('middlename') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.birthDate) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.birthDate) INTO isoValue;
+				CALL keyValueGenerator('birthDate') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.emailAddress) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.emailAddress) INTO isoValue;
+				CALL keyValueGenerator('emailAddress') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.maritalStatus) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.maritalStatus) INTO isoValue;
+				CALL keyValueGenerator('maritalStatus') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.gender) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.gender) INTO isoValue;
+				CALL keyValueGenerator('gender') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.identificationType) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.identificationType) INTO isoValue;
+				CALL keyValueGenerator('identificationType') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.nationality) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.nationality) INTO isoValue;
+				CALL keyValueGenerator('nationality') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.residence) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.residence) INTO isoValue;
+				CALL keyValueGenerator('residence') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.city) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.city) INTO isoValue;
+				CALL keyValueGenerator('city') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.address1) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.address1) INTO isoValue;
+				CALL keyValueGenerator('address1') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.address2) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.address2) INTO isoValue;
+				CALL keyValueGenerator('address2') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.country) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.country) INTO isoValue;
+				CALL keyValueGenerator('country') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.branch) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.branch) INTO isoValue;
+				CALL keyValueGenerator('branch') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.bankingServiceStatus) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.bankingServiceStatus) INTO isoValue;
+				CALL keyValueGenerator('bankingServiceStatus') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.squareRegStatus) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.squareRegStatus) INTO isoValue;
+				CALL keyValueGenerator('squareRegStatus') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.t24CustomerId) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.t24CustomerId) INTO isoValue;
+				CALL keyValueGenerator('t24CustomerId') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.detailsAmended) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.detailsAmended) INTO isoValue;
+				CALL keyValueGenerator('detailsAmended') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.sbPostilionStatus) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.sbPostilionStatus) INTO isoValue;
+				CALL keyValueGenerator('sbPostilionStatus') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.zssPostilionStatus) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.zssPostilionStatus) INTO isoValue;
+				CALL keyValueGenerator('zssPostilionStatus') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			IF FIELDNAME(envRef.idNumber) IS NOT NULL THEN
+				CALL keyValueGenerator(envRef.address1) INTO isoValue;
+				CALL keyValueGenerator('address1') INTO isoKey;
+				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+			END IF;
+			CALL UpdateMsgWithAsciiBitMap(outRef);
+			MOVE domainDataRef TO OutputRoot.DFDL;
+			SET domainName = FIELDNAME(domainDataRef);
+			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+			IF EXISTS(Environment.DFDL[]) OR FIELDNAME(Environment.DFDL) IS NOT NULL THEN
+				SET Environment.DFDL = OutputRoot.DFDL;
+			ELSE
+				CREATE LASTCHILD OF Environment DOMAIN ('DFDL');
+				SET Environment.DFDL = OutputRoot.DFDL;
+			END IF;
+			SET OutputRoot.DFDL = NULL;
+			IF IsLogRequired = 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Postilion Request------') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+				--------------DBLogging-------------------
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+				PROPAGATE TO TERMINAL 'out1';
+				-----------------------------
+			END IF;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+			SET OutputRoot.DFDL = Environment.DFDL;
+			PROPAGATE TO TERMINAL 'out';
+--		ELSE
+--			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
+--			CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
+--			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME('AccountOpeningResponse');
+--			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('header');
+--			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('error');
+--			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+--			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+--			SET headRef.status = 'FAILURE';
+--			SET headRef.responseCode = '000';
+--			SET errorRef.source = 'ESB';
+--			SET errorRef.applicationName = ApplicationLabel;
+--			SET errorRef.applicationErrorCode = 'AccountOpening_020';
+--			SET errorRef.message = 'ZSS update Failed';
+--			MOVE domainDataRef TO OutputRoot.JSON;
+--			SET domainName = FIELDNAME(domainDataRef);
+--			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+--			IF EXISTS(Environment.JSON[]) OR FIELDNAME(Environment.JSON) IS NOT NULL THEN
+--				SET Environment.JSON = OutputRoot.JSON;
+--			ELSE
+--				CREATE LASTCHILD OF Environment DOMAIN ('JSON');
+--				SET Environment.JSON = OutputRoot.JSON;
+--			END IF;
+--			SET OutputRoot.JSON = NULL;
+--			IF IsLogRequired = 'Y' THEN
+--				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
+--				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+--				--------------DBLogging-------------------
+--				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+--				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+--				PROPAGATE TO TERMINAL 'out1';
+--				-----------------------------
+--			END IF;
+--			SET OutputRoot.Properties = InputRoot.Properties;
+--			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+--			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+--			SET OutputRoot.JSON = Environment.JSON;
+--			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+--			PROPAGATE TO TERMINAL 'out1';
+--		END IF;
+	END;
+END MODULE;
+-----FCM Compute Module
+
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToT24
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateReqToT24();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE customerId CHARACTER inRef.body.customerIds.Item[1].customerId;
+		DECLARE productId CHARACTER inRef.body.productId;
+		DECLARE currencyId CHARACTER inRef.body.currencyId;
+		DECLARE activityId CHARACTER inRef.body.activityId;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('body');
+		DECLARE outRef REFERENCE TO OutputRoot.JSON;
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.body;
+		--SET headRef = Environment.MQRFH2.header;
+		CREATE LASTCHILD OF headRef NAME ('override');
+		CREATE LASTCHILD OF headRef.override IDENTITY(JSON.Array)overrideDetails;
+		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)customerIds;
+		CREATE LASTCHILD OF bodyRef.customerIds.Item[1] NAME 'customerId' VALUE customerId;
+		CREATE LASTCHILD OF bodyRef IDENTITY(JSON.Array)properties;
+		CREATE LASTCHILD OF bodyRef NAME 'productId' VALUE productId;
+		CREATE LASTCHILD OF bodyRef NAME 'currencyId' VALUE currencyId;
+		CREATE LASTCHILD OF bodyRef NAME 'activityId' VALUE activityId;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+		SET Environment.Variables.reqMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- T24 Request ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.ContentType = 'application/json';
+		SET OutputRoot.HTTPInputHeader."Content-Type" = 'application/json';
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = 'http://192.168.1.233:8080/stwbc/api/v1.0.0/product/products/loan/arrangement/NEW';
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateFCMResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateFCMResponse();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateFCMResponse() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputBody;
+		DECLARE domainName CHARACTER FIELDNAME(domainDataRef);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- T24 Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+		END IF;
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		-----------------------------
+		IF EXISTS(InputRoot.JSON[]) THEN
+			MOVE inRef TO InputRoot.JSON.Data;
+			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
+			CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME('AccountOpeningResponse');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('header');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('body');
+			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+			SET headRef = Environment.MQRFH2.header;
+			SET headRef.status = 'SUCCESS';
+			SET headRef.responseCode = '200';
+			SET headRef.transactionStatus = inRef.header.transactionStatus;
+			SET headRef.audit = inRef.header.audit;
+			SET headRef.aaaId = inRef.header.aaaId;
+			SET bodyRef = inRef.body;
+		ELSE
+			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON') PARSE(inRef.BLOB.BLOB);
+		END IF;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET domainName = FIELDNAME(domainDataRef);
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+		END IF;
+		--------------DBLogging-------------------
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		-----------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE AccountOpeningFlow_GenerateUpdateResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateUpdateResponse();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateUpdateResponse() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputBody;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Postilion Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			--------------DBLogging-------------------
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+			-----------------------------
+		END IF;
+		IF inRef.ResponseCode_039 = '00' THEN
+			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
+			CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME('AccountOpeningResponse');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('header');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('body');
+			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+			--SET headRef = Environment.MQRFH2.header;
+			SET headRef.status = 'SUCCESS';
+			SET headRef.responseCode = '200';
+			SET bodyRef.Account = inRef.AccountIdentification1_102;
+			SET bodyRef.mobileNumber = inRef.AccountIdentification1_102;
+			SET bodyRef.sbPostilionResponseCode = inRef.ResponseCode_039;
+			SET bodyRef.zssPostilionResponseCode = Environment.MQRFH2.ZssResponseCode;
+		ELSE
+			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
+			CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME('AccountOpeningResponse');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('header');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('error');
+			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+			--SET headRef = Environment.MQRFH2.header;
+			SET headRef.status = 'FAILURE';
+			SET headRef.responseCode = '000';
+			SET errorRef.source = 'ESB';
+			SET errorRef.applicationName = ApplicationLabel;
+			SET errorRef.applicationErrorCode = 'AccountOpening_021';
+			SET errorRef.message = 'Postilion update Failed';
+		END IF;
+		IF EXISTS(Environment.JSON[]) OR FIELDNAME(Environment.JSON) IS NOT NULL THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN ('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET domainName = FIELDNAME(domainDataRef);
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			--------------DBLogging-------------------
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+			-----------------------------
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE AccountOpeningFlow_CaptureException
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL BuildErrorMsg();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE BuildErrorMsg() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE errMsg CHARACTER;
+		IF CONTAINS(excpRef.excpText,'T24ServiceCall') THEN
+			SET errMsg = 'T24 Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'FCBServiceCall') THEN
+			SET errMsg = 'FCB Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
+			SET errMsg = 'No Response from T24 Server';
+		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
+			SET errMsg = 'No Response from Postilion Server';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'AccountOpening';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'AccountOpening');
+		SET Environment.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AccountOpeningResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef = Environment.Variables.header;
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.UserDefinedErrorCodes.AccountOpening.ErrorCode;
+		SET errorRef.message = errMsg;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+		------------Error Logging in DB----------
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.UserDefinedErrorCodes.AccountOpening.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
+		----------------------------------
+	END;
+END MODULE;
