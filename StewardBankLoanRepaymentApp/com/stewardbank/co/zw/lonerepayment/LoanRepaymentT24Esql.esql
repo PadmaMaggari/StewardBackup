@@ -85,16 +85,24 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE rc BOOLEAN FALSE;
-		DECLARE outRefer REFERENCE TO OutputRoot;
-		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		DECLARE outRefer REFERENCE TO OutputRoot;		
 		DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		IF FIELDNAME(InputBody) LIKE 'JSON' THEN
+			DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		ELSE
+			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
+			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(inRef,encodeRef,ccidRef); 
+			SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);  
+		END IF;
+		SET OutputRoot = NULL;
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',' ----- Response from T24 ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',Environment.Variables.resMsg) INTO rc; 
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'LoneRepayment T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out';
@@ -111,7 +119,7 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 		IF status LIKE 'success' AND responceCode LIKE '200' THEN
 			SET headRef.channel = '*236#';
 			SET headRef.processingCode = '120000';
-			SET headRef.status = status;
+			SET headRef.status = 'Success'; 
 			SET headRef.responseCode = responceCode;
 			SET bodyRef = Inrefer;
 			-- CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
@@ -126,9 +134,9 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 		ELSE
 			SET headRef.channel = '*236#';
 			SET headRef.processingCode = '120000';
-			SET headRef.status = status;
+			SET headRef.status = 'Failure';
 			SET headRef.responseCode = responceCode;
-			SET bodyRef = Inrefer;
+			SET bodyRef = Environment.Variables.resMsg;   
 			-- DECLARE myBlob REFERENCE TO InputRoot.BLOB.BLOB;
 			-- CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(myBlob, InputRoot.Properties.Encoding, InputRoot.Properties.CodedCharSetId);
 			-- DECLARE domainDataRef REFERENCE TO OutputRoot.JSON.Data;
@@ -147,7 +155,8 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 		CREATE LASTCHILD OF envref AS envref NAME 'Data';
 		SET envref = OutputRoot.JSON.Data;
 		SET domainName = FIELDNAME(OutputRoot.JSON);
-		MOVE domainDataRef TO OutputRoot.JSON.Data;
+		MOVE domainDataRef TO OutputRoot.JSON; 
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
 		SET OutputRoot = NULL;
 		--SET Environment.Variables.resMsg = getPayload(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
@@ -188,6 +197,8 @@ CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 			SET errMsg = 'No Response from T24 Server';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN 
 			SET errMsg = 'No Response from Postilion Server';	
+			ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN 
+			SET errMsg = 'JSON parsing errors have occurred'; 
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;

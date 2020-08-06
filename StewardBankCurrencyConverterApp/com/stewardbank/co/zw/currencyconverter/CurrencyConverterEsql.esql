@@ -229,6 +229,8 @@ CREATE COMPUTE MODULE CurrencyConverter_CaptureException
 			SET errMsg = 'No Response from Postilion Server';
 		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
 			SET errMsg = 'No Response from T24 Server';
+			ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN 
+			SET errMsg = 'JSON parsing errors have occurred'; 
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;

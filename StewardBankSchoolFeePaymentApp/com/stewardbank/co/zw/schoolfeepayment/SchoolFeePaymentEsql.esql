@@ -4,6 +4,12 @@
 
 
 
+
+
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.schoolfeepayment
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -126,7 +132,7 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 		SET Environment.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET Environment.MQMD = InputRoot.MQMD;
-		DECLARE resData CHARACTER;
+		DECLARE resData,reqMsg,myBlob CHARACTER;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
@@ -134,11 +140,14 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 		DECLARE OutRef REFERENCE TO OutputRoot;
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
-
-		SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-		DECLARE myBlob REFERENCE TO InputRoot.BLOB.BLOB;
-		CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(myBlob, InputRoot.Properties.Encoding, InputRoot.Properties.CodedCharSetId);
-		SET Environment.Variables.blobData = OutputRoot.JSON.Data;
+		IF FIELDNAME(InputBody) LIKE 'JSON' THEN
+			DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+			SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+		ELSE
+			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
+			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(inRef,encodeRef,ccidRef); 
+			SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef); 
+		END IF;
 		SET OutputRoot = NULL;
 		---------DBLogging------------
 		IF IsLogRequired LIKE 'Y' THEN
@@ -155,32 +164,38 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.Variables.usr.Id) INTO rc;
 		END IF;
 		------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
-		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
-		DECLARE OutRefer REFERENCE to OutputRoot.JSON.Data;
-		DECLARE Inrefer REFERENCE to InputRoot.JSON.Data.body;
-		IF domainName LIKE 'JSON' OR responceCode LIKE '200' THEN
-
-			SET OutRefer.statusCode = '200';
-			SET OutRefer.message = 'SUCCESS';
-			SET OutRefer.responseBody.source = 'ESB';
-			SET OutRefer.responseBody.applicationName = 'SchoolFeePayment';
-			SET OutRefer.responseBody = Inrefer;
+		DECLARE Inrefer REFERENCE to InputRoot.JSON.Data;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('SchoolFeePayment');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('responseBody');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.responseBody;
+		DECLARE status CHARACTER InputRoot.JSON.Data.header.status;
+		IF status LIKE 'success' AND responceCode LIKE '200' THEN
+			SET headRef.channel = '*236#';
+			SET headRef.processingCode = '180000';
+			SET headRef.status = 'Success';
+			SET headRef.responseCode = responceCode;
+			SET bodyRef = Inrefer;
 		ELSE
-			SET OutRefer.statusCode = '000';
-			SET OutRefer.message = 'FAILURE';
-			SET OutRefer.responseBody.source = 'ESB';
-			SET OutRefer.responseBody.applicationName = 'SchoolFeePayment';
-			SET OutRefer.body.responseBody = Environment.Variables.blobData;
+			SET headRef.channel = '*236#';
+			SET headRef.processingCode = '180000';
+			SET headRef.status = 'Failure'; 
+			SET headRef.responseCode = responceCode;
+			SET bodyRef = Environment.Variables.resData; 
 		END IF;
 		DECLARE envref REFERENCE TO Environment.JSON.Data;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
 		CREATE LASTCHILD OF envref AS envref NAME 'Data';
-		SET envref = OutRefer;
+		SET envref = OutputRoot.JSON.Data;
+		SET domainDataRef = OutputRoot.JSON; 
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
 		SET OutputRoot = NULL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.Variables.usr.Id,getPayLoad(FIELDNAME(InputBody),envref,encodeRef,ccidRef),'Application Response',ApplicationLabel,BrokerName,
+			CALL DBLogging(Environment.Variables.usr.Id,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,
 			CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',OutRef);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -193,7 +208,7 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 		SET OutputRoot.JSON.Data=envref;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','SchoolFeePayment Response To Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',Environment.jsonData) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.Variables.usr.Id) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
@@ -225,6 +240,8 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_CaptureException
 			SET errMsg = 'No Response from Postilion Server';
 		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
 			SET errMsg = 'No Response from T24 Server';
+		ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN 
+			SET errMsg = 'JSON parsing errors have occurred'; 
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
