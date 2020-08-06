@@ -130,7 +130,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 				CONTAINS(exceptionTxt,'your session has been killed') OR
 				CONTAINS(exceptionTxt,'SocketException') OR CONTAINS(exceptionTxt,'Unexpected Network Error')) AND CONTAINS(flowName,'OutgoingRouterFlow')= FALSE THEN
 				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Connection refused or Connection Dead or your session has been killed or Socket Expection or Unexpected Network Error') INTO rc;
-				IF Environment.Variables.RequestIdentifier IS NULL THEN
+				IF Environment.Variables.RequestIdentifier IS NULL OR FIELDVALUE( Environment.Variables.RequestIdentifier) IS NULL THEN
 					IF Environment.Variables.Counter IS NULL THEN
 						SET Environment.Variables.Counter = 1;
 					END IF;
