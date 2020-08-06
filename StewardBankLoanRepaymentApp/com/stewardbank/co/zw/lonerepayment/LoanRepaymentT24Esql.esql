@@ -47,8 +47,9 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_RequestToT24
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		DECLARE T24_URL CHARACTER;
-		SET T24_URL = RepayURL||inRef.creditAccountNumber||'/'||inRef.debitCurrency||'/'||inRef.debitAmount||'/'||inRef.debitAccountNumber||'/'||'20200705'||'/'||inRef.thirdPartyReference;
-		--{creditAccountId}/{debitCurrency}/{transactionAmount}/{debitAccount}/{executionDate}/{customer} exchange in debit and credit account
+		--{debitAccount}/{debitCurrency}/{transactionAmount}/{creditAccountId}/{executionDate}/{customer} exchange in debit and credit account 
+		--SET T24_URL = RepayURL||inRef.creditAccountNumber||'/'||inRef.debitCurrency||'/'||inRef.debitAmount||'/'||inRef.debitAccountNumber||'/'||executionDate||'/'||inRef.thirdPartyReference; 
+		SET T24_URL = RepayURL||inRef.creditAccountNumber||'/'||inRef.debitCurrency||'/'||inRef.debitAmount||'/'||inRef.debitAccountNumber||'/'||executionDate||'/'||inRef.thirdPartyReference;  
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','Generate URL Req T24::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',T24_URL) INTO rc;

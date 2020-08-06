@@ -81,8 +81,8 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_RequestToT24
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		DECLARE T24_URL CHARACTER;
-		--{debitAccount}/{debitCurrency}/{transactionAmount}/{creditAccountId}/{executionDate}
-		SET T24_URL = DisburseURL||inRef.debitAccountNumber||'/'||inRef.debitCurrency||'/'||inRef.debitAmount||'/'||inRef.creditAccountNumber||'/'||executionDate; 
+		--{debitAccount}/{debitCurrency}/{transactionAmount}/{creditAccountId}/{executionDate}/{customer}
+		SET T24_URL = DisburseURL||inRef.debitAccountNumber||'/'||inRef.debitCurrency||'/'||inRef.debitAmount||'/'||inRef.creditAccountNumber||'/'||executionDate||'/'||inRef.thirdPartyReference;  
 		--SET T24_URL = DisburseURL||inRef.debitAccountNumber||'/'||inRef.debitCurrency||'/'||inRef.debitAmount||'/'||inRef.creditAccountNumber||'/'||'20200705'||'/'||inRef.thirdPartyReference;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','Generate URL Req T24::') INTO rc;
