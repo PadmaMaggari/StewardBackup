@@ -15,7 +15,7 @@ CREATE COMPUTE MODULE StewardBankHttpCall_Compute
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR',INIT_LOG4J_ERROR) INTO rc;
 		END IF;
 		IF Environment.Variables.Counter IS NULL THEN
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Environment.Variables.Counter is null maybe didnt capture tcp exceptionMsg') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Environment.Variables.Counter is null maybe didnt capture exceptionMsg') INTO rc;
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 			SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
