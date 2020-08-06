@@ -45,11 +45,11 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP Router Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','TCPIP ID::'|| CAST(InputRoot.MQRFH2.usr.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP ID::'|| CAST(InputRoot.MQRFH2.usr.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER)) INTO rc;
 		END IF;
 		
 		
-		SET OutputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier = CAST(InputRoot.MQRFH2.usr.Destination.SOAP.Reply.ReplyIdentifier AS BLOB);
+		SET OutputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier = CAST(InputRoot.MQRFH2.usr.SoapReplyIdentifier AS BLOB);
 		SET OutputLocalEnvironment.SOAP.Envelope = '';
 		SET OutputRoot.SOAP.Body = InputRoot.XMLNSC;
 	END;

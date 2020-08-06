@@ -66,6 +66,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 					SET Environment.resQName = qDetails.Values.RES_QUEUE;
 					SET OutputRoot.Properties = InputRoot.Properties;
 					SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
+					SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = SoapReplyIdentifier;
 					SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
 					SET OutputRoot.MQRFH2.usr.resQ = Environment.resQName;
 					SET OutputRoot.SOAP = InputRoot.SOAP;
@@ -96,6 +97,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 						SET Environment.resQName = qDetails.Values.RES_QUEUE;
 						SET OutputRoot.Properties = InputRoot.Properties;
 						SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
+						SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = SoapReplyIdentifier;
 						SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
 						SET OutputRoot.MQRFH2.usr.resQ = Environment.resQName;
 						SET OutputRoot.SOAP = InputRoot.SOAP;
