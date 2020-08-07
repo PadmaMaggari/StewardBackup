@@ -21,15 +21,18 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.EXCEPTION_Q" name="EXCEPTION_Q" defaultValueLiteral="SB_EXCQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ns1" name="ns1" defaultValueLiteral="http://stewardBank.org/error">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.soapenv" name="soapenv" defaultValueLiteral="http://schemas.xmlsoap.org/soap/envelope">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="SoapOutgoingRouter" bundleName="com/stewardbank/co/zw/soaprouter/SoapOutgoingRouter" pluginId="StewardBankSoapRouter"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSoapRouter/icons/full/obj16/SoapOutgoingRouter.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSoapRouter/icons/full/obj30/SoapOutgoingRouter.gif"/>
     <composition>
       <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="49,100" queueName="SOAP_RES_Q" messageDomainProperty="XMLNSC" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="MQ Input"/>
-      </nodes>
-      <nodes xmi:type="ComIbmSOAPReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="359,178">
-        <translation xmi:type="utility:ConstantString" string="SOAP Reply"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="181,169" computeExpression="esql://routine/com.stewardbank.co.zw.soaprouter#SoapOutgoingRouter_RouteBasedOnProtocol.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="RouteBasedOnProtocol"/>
@@ -43,13 +46,17 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="298,30" computeExpression="esql://routine/com.stewardbank.co.zw.soaprouter#SoapOutgoingRouter_BuildExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionDetails"/>
       </nodes>
+      <nodes xmi:type="ComIbmSOAPReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="437,167">
+        <translation xmi:type="utility:ConstantString" string="SOAP Reply"/>
+      </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
@@ -64,6 +71,12 @@
                 <propertyName xmi:type="utility:TranslatableString" key="Property.ERR_AUDIT_Q" bundleName="com/stewardbank/co/zw/soaprouter/SoapOutgoingRouter" pluginId="StewardBankSoapRouter"/>
                 <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.EXCEPTION_Q">
                   <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_Q" bundleName="com/stewardbank/co/zw/soaprouter/SoapOutgoingRouter" pluginId="StewardBankSoapRouter"/>
+                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ns1">
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.ns1" bundleName="com/stewardbank/co/zw/soaprouter/SoapOutgoingRouter" pluginId="StewardBankSoapRouter"/>
+                    <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.soapenv">
+                      <propertyName xmi:type="utility:TranslatableString" key="Property.soapenv" bundleName="com/stewardbank/co/zw/soaprouter/SoapOutgoingRouter" pluginId="StewardBankSoapRouter"/>
+                    </propertyDescriptor>
+                  </propertyDescriptor>
                 </propertyDescriptor>
               </propertyDescriptor>
             </propertyDescriptor>

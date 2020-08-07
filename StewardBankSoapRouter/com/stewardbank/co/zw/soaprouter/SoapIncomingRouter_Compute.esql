@@ -34,9 +34,8 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		DECLARE serviceName CHARACTER;
 		SET serviceName = FIELDNAME(domainDataRef.Body.[1]);
 		SET Environment.MQRFH2.requestDomain=domainName;
-		DECLARE SoapReplyIdentifier REFERENCE TO InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier;
+		SET Environment.MQRFH2.RequestIdentifier = SUBSTRING(CAST(InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier  AS CHAR) FROM 3 FOR 48);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		SET Environment.id = SoapReplyIdentifier;
 		SET Environment.MQRFH2.usr.dbLogTime = CAST(CURRENT_TIME AS CHAR FORMAT 'HHmmss');
 		SET Environment.MQRFH2.usr.dbLogDate = CAST(CURRENT_DATE AS CHAR FORMAT 'ddMM');
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -53,7 +52,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP Router Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP ID::'|| CAST(InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier AS CHARACTER)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP ID::'|| Environment.MQRFH2.RequestIdentifier) INTO rc;
 		END IF;
 		/*======================================= Calling data base values Existed  in cache ===================================*/
 		IF EXISTS(getDBDetailsCache.values[])THEN
@@ -65,8 +64,8 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 					SET Environment.reqServiseName = qDetails.Values.PROC_CODE;
 					SET Environment.resQName = qDetails.Values.RES_QUEUE;
 					SET OutputRoot.Properties = InputRoot.Properties;
-					SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
-					SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = SoapReplyIdentifier;
+--					SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
+					SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = Environment.MQRFH2.RequestIdentifier;
 					SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
 					SET OutputRoot.MQRFH2.usr.resQ = Environment.resQName;
 					SET OutputRoot.SOAP = InputRoot.SOAP;
@@ -96,8 +95,8 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 						SET Environment.reqServiseName = qDetails.Values.PROC_CODE;
 						SET Environment.resQName = qDetails.Values.RES_QUEUE;
 						SET OutputRoot.Properties = InputRoot.Properties;
-						SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
-						SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = SoapReplyIdentifier;
+--						SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
+						SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = Environment.MQRFH2.RequestIdentifier;
 						SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
 						SET OutputRoot.MQRFH2.usr.resQ = Environment.resQName;
 						SET OutputRoot.SOAP = InputRoot.SOAP;
@@ -175,53 +174,62 @@ CREATE COMPUTE MODULE SoapIncomingRouter_BuildExceptionDetails
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		DECLARE mqrfRef REFERENCE TO InputRoot.MQRFH2;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE exe_Desc ,exe_Desc_Data,ErrorCode CHARACTER'';
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'HTTP_REQROUTER';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SOAP_REQROUTER';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'HTTP_REQROUTER');
+		CALL BuildExceptionDetails(excpRef,outRef,'SOAP_REQROUTER');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
-		SET Environment.MQRFH2.usr.Id = CAST(COALESCE(InputLocalEnvironment.Destination.HTTP.RequestIdentifier,Environment.MQRFH2.RequestIdentifier,'') AS CHARACTER);
+		SET Environment.MQRFH2.usr.Id =  Environment.MQRFH2.RequestIdentifier;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
-		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET exe_Desc = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET exe_Desc_Data = CAST(exe_Desc AS CHARACTER);
+		
+		SET ErrorCode = CAST( Environment.Variables.UserDefinedErrorCodes.SOAP_REQROUTER.ErrorCode AS CHARACTER);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Start Logging Application Related Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Incomming Router Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.HTTP_REQROUTER.ErrorCode,outRefer);
+		CALL Error_DBLogging( Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'SOAP Router Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SOAP_REQROUTER.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('SOAP');
-		CREATE LASTCHILD OF OutputRoot.SOAP NAME ('body');
-		--CREATE LASTCHILD OF OutputRoot.SOAP.body NAME Environment.MQRFH2.serviceName;
-		--CREATE LASTCHILD OF OutputRoot.SOAP.body.* NAME 'header';
-		CREATE LASTCHILD OF OutputRoot.SOAP.body.* NAME 'error';
-		-- DECLARE headRef REFERENCE TO OutputRoot.SOAP.body.*.header;
-		DECLARE errorRef REFERENCE TO OutputRoot.SOAP.body.*.error;
-		DECLARE outSOAPRef REFERENCE TO OutputRoot.SOAP;
-		SET errorRef = Environment.MQRFH2.header;
-		SET errorRef.status = 'FAILED';
-		SET errorRef.responseCode = '000';
-		SET errorRef.source = 'ESB';
-		SET errorRef.applicationName = ApplicationLabel;
-		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.HTTP_REQROUTER.ErrorCode;
-		SET errorRef.message = Environment.Variables.UserDefinedErrorCodes.HTTP_REQROUTER.ErrorType;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+
+
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad('SOAP',outSOAPRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||Environment.Variables.reqMsg) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','End of Logging Application Related Exception') INTO rc;
 		END IF;
-		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
+		CALL errorResponse(mqrfRef,exe_Desc,'Incomming Router Error',ErrorCode,ApplicationLabel);
 	END;
+	
+	
+	
+	
+	CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE,IN exe_Desc CHARACTER,IN msg CHAR,IN ErrorCode CHAR,IN applicationLabel CHAR)
+	BEGIN
+              SET OutputRoot.MQRFH2 = mqrfRef;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=ErrorCode;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:exe_Desc=exe_Desc;
+			
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
+--			SET OutputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+			--SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
+			PROPAGATE TO TERMINAL 'out1';
+			END;
 END MODULE;
