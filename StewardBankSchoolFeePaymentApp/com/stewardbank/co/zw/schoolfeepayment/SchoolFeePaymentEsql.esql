@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 BROKER SCHEMA com.stewardbank.co.zw.schoolfeepayment
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -20,7 +8,7 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE resQueueName EXTERNAL CHARACTER '';
 DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER '';
-DECLARE URL EXTERNAL CHARACTER '';
+DECLARE SchoolFeeURL EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -83,12 +71,12 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 		DECLARE transactionAmount CHARACTER InputRoot.JSON.Data.debitAmount;
 		DECLARE executionDate CHARACTER CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd');
 		DECLARE narrative CHARACTER InputRoot.JSON.Data.transactionType;
-		DECLARE invoiceReference CHARACTER InputRoot.JSON.Data.debitReference;
+		DECLARE customer CHARACTER InputRoot.JSON.Data.debitReference;
 		DECLARE SFP_T24uRL CHARACTER;
-		--{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}
-		SET SFP_T24uRL = URL||debitCurrency||'/'||creditAccountId||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||narrative||'/'||invoiceReference;
+		--{debitAccount}/{debitCurrency}/{transactionAmount}/{executionDate}/{customer}
+		SET SFP_T24uRL = SchoolFeeURL||debitAccountId||'/'||debitCurrency||'/'||transactionAmount||'/'||executionDate||'/'||customer;     
 		--SET SFP_T24uRL = URL||'/'||debitAccountId||'/'||debitCurrency||'/'||creditAccountId||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||narrative||'/'||invoiceReference;
-		SET outRef = inRef;
+		SET outRef = inRef; 
 		SET Environment.Variables.jsonData = outRef;
 		SET OutputRoot = NULL;
 		----- Database Logging ------------
@@ -101,14 +89,15 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 		----------------------
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
-		MOVE outRef TO OutputRoot.JSON;
+--		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
+--		MOVE outRef TO OutputRoot.JSON;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','Request To T24::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',SFP_T24uRL) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.Variables.usr.Id) INTO rc;
 		END IF;
-		--{debitAccountId}/{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}"
+		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
+		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = SFP_T24uRL;
 	END;
 END MODULE;

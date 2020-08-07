@@ -180,11 +180,11 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				SET outRef.narrative = EnvRefer.BATCH_IDENTIFIER;
 				SET outRef.invoiceReference = EnvRefer.CODE;
 				SET Environment.Variables.SB_jsonData = OutputRoot.JSON.Data;
+                --{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}
 				--{debitAccountId}/{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}
-				--{debitAccountId}/{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}
-				SET STBUrlParameters ='1000000163'||'/'||'ZWL'||'/'||EnvRefer.BANK_ACC_NUMBER||'/'|| EnvRefer.MERCHANT_NAME||'/'||'ZWL'||'/'||EnvRefer.BALANCE_USD||'/'||CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd')||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.CODE;
+				SET STBUrlParameters = 'ZWL'||'/'||EnvRefer.BANK_ACC_NUMBER||'/'|| EnvRefer.MERCHANT_NAME||'/'||'ZWL'||'/'||EnvRefer.BALANCE_USD||'/'||CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd')||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.CODE;
 				SET SB_T24URL = STB_T24URL||STBUrlParameters;
-				SET STB_Msg = getPayLoad(FIELDNAME(OutputRoot.JSON),OutputRoot.JSON.Data,encodeRef,ccidRef); 
+				SET STB_Msg = getPayLoad(FIELDNAME(OutputRoot.JSON),OutputRoot.JSON.Data,encodeRef,ccidRef);  
 				SET OutputRoot = NULL;
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL DBLogging(Environment.Variables.UID,STB_Msg,'STB T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
@@ -219,9 +219,9 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				SET outRef.bankAccName = EnvRefer.BANK_ACC_NAME;
 				SET outRef.bank =  EnvRefer.BANK;
 				SET outRef.bankAccNumber = EnvRefer.BANK_ACC_NUMBER; 
-				SET Environment.Variables.OTB_Msg = OutputRoot.JSON.Data; 
-				--{merchantName}/{paymentCurrency}/{liquidationAmount}/{executionDate}/{batchIdentifier}/{branchName}/{ecocashlAcctId}/{currency}/{bankAccName}/{bank}/{bankAccNumber}				
-				SET OTBUrlParameters = EnvRefer.MERCHANT_NAME||'/'||outRef.paymentCurrency||'/'||EnvRefer.BALANCE_USD||'/'||outRef.executionDate||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.BRANCH_NAME||'/'||outRef.ecocashlAcctId||'/'||outRef.currency||'/'||EnvRefer.BANK_ACC_NAME||'/'||EnvRefer.BANK||'/'||EnvRefer.BANK_ACC_NUMBER;
+				SET Environment.Variables.OTB_Msg = OutputRoot.JSON.Data;  
+				--{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{orderingReference}/{narrative}/{debitCurrency}/{beneficiaryName}/{branch}/{beneficiaryAccountId}				
+				SET OTBUrlParameters = EnvRefer.MERCHANT_NAME||'/'||outRef.paymentCurrency||'/'||EnvRefer.BALANCE_USD||'/'||outRef.executionDate||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.BRANCH_NAME||'/'||outRef.currency||'/'||EnvRefer.BANK_ACC_NAME||'/'||EnvRefer.BANK||'/'||EnvRefer.BANK_ACC_NUMBER;
 				SET OB_T24URL = OTB_T24URL||OTBUrlParameters;  
 				SET OTB_Msg = getPayLoad(FIELDNAME(OutputRoot.JSON),OutputRoot.JSON.Data,encodeRef,ccidRef); 
 				SET OutputRoot = NULL;
