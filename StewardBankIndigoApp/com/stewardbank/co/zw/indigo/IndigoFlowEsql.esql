@@ -509,7 +509,7 @@ CREATE COMPUTE MODULE IndigoFlow_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 CALL BuildException();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	
@@ -518,22 +518,19 @@ CREATE COMPUTE MODULE IndigoFlow_BuildExceptionDetails
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE mqrfRef REFERENCE TO InputRoot.MQRFH2;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
-		DECLARE errMsg CHARACTER;
+		DECLARE errMsg CHARACTER;  
 		IF CONTAINS(excpRef.excpText,'SocketException') THEN
-			--SET errMsg = 'T24 Server Down';
 			
+			SET errMsg = 'T24 Server Down';
 			CALL errorResponse(mqrfRef,'T24 Server Down','ESB_001',ApplicationLabel);
---		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
---			SET errMsg = 'Postilion Server Down';
---		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN 
---			SET errMsg = 'No Response from T24 Server';
---		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN 
---			SET errMsg = 'No Response from Postilion Server';	
 		END IF;
+		
+		
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -554,24 +551,26 @@ CREATE COMPUTE MODULE IndigoFlow_BuildExceptionDetails
 		
 		
 		
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('SOAP');
-		CREATE LASTCHILD OF OutputRoot.SOAP NAME ('Body');
-		CREATE LASTCHILD OF OutputRoot.SOAP.Body NAME ('IndigoResponse');
-		CREATE LASTCHILD OF OutputRoot.SOAP.Body.* NAME ('header');
-		CREATE LASTCHILD OF OutputRoot.SOAP.Body.* NAME ('error');
-		DECLARE headerRef REFERENCE TO OutputRoot.SOAP.Body.*.header;
-		DECLARE errorRef REFERENCE TO OutputRoot.SOAP.Body.*.error;
-		SET headerRef = Environment.MQRFH2.header;
-		SET headerRef.status = 'FAILED';
-		SET headerRef.responseCode = '000';
-		SET errorRef.source = 'ESB';
-		SET errorRef.applicationName = ApplicationLabel;
-		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.IndigoResponse.ErrorCode;
-		SET errorRef.message = errMsg;
-		MOVE domainDataRef TO OutputRoot.SOAP;
-		SET Environment.Variables.resMsg = getPayload('SOAP',domainDataRef,encodeRef,ccidRef);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
-		PROPAGATE TO TERMINAL 'out';
+--		CREATE LASTCHILD OF OutputRoot DOMAIN ('SOAP');
+--		CREATE LASTCHILD OF OutputRoot.SOAP NAME ('Body');
+--		CREATE LASTCHILD OF OutputRoot.SOAP.Body NAME ('IndigoResponse');
+--		CREATE LASTCHILD OF OutputRoot.SOAP.Body.* NAME ('header');
+--		CREATE LASTCHILD OF OutputRoot.SOAP.Body.* NAME ('error');
+--		DECLARE headerRef REFERENCE TO OutputRoot.SOAP.Body.*.header;
+--		DECLARE errorRef REFERENCE TO OutputRoot.SOAP.Body.*.error;
+--		SET headerRef = Environment.MQRFH2.header;
+--		SET headerRef.status = 'FAILED';
+--		SET headerRef.responseCode = '000';
+--		SET errorRef.source = 'ESB';
+--		SET errorRef.applicationName = ApplicationLabel;
+--		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.IndigoResponse.ErrorCode;
+--		SET errorRef.message = errMsg;
+--		MOVE domainDataRef TO OutputRoot.SOAP;
+--		SET Environment.Variables.resMsg = getPayload('SOAP',domainDataRef,encodeRef,ccidRef);
+--		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+--		PROPAGATE TO TERMINAL 'out';
+
+
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
@@ -580,20 +579,19 @@ CREATE COMPUTE MODULE IndigoFlow_BuildExceptionDetails
 		------------Error Logging in DB----------
 		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.IndigoResponse.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;    
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;  
+		PROPAGATE TO TERMINAL 'out';  
 		----------------------------------	
 	END;
 	
 	CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
 	BEGIN
---		IF domainName = 'SOAP' THEN
               SET OutputRoot.MQRFH2 = mqrfRef;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:Message=msg;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
---			SET OutputLocalEnvironment.Destination.HTTP.ReplyIdentifier = CAST(Environment.Variables.RequestIdentifier AS BLOB);
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
 			
 			PROPAGATE TO TERMINAL 'out';
