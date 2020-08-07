@@ -7,7 +7,7 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER ''; 
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
-DECLARE URL EXTERNAL CHARACTER '';
+DECLARE CashInBackendUrl EXTERNAL CHARACTER '';
 
 CREATE COMPUTE MODULE CashInFlow_GenReqToMobiquity
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -95,13 +95,13 @@ CREATE COMPUTE MODULE CashInFlow_GenReqToMobiquity
 		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
 			/* =================== CALLING  LOG4J LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG','Mobiquity Url::'||CashInBackendUrl) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG','Request to Mobiquity::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG',reqData) INTO rc;
 		END IF;
 		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
 		
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = CashInBackendUrl;
 		
 		END;
 END MODULE;

@@ -7,7 +7,7 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
 DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER '';
-DECLARE URL EXTERNAL CHARACTER '';
+DECLARE CashOutBackendUrl EXTERNAL CHARACTER '';
 
 CREATE COMPUTE MODULE CashOutFlow_GenReqToMobiquity
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -99,12 +99,12 @@ CREATE COMPUTE MODULE CashOutFlow_GenReqToMobiquity
 		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
 		/* =================== CALLING  LOG4J LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			
+			CALL writeToLogFile(MessageFlowLabel, 'CASHOUTLOGGER', 'DEBUG','Mobiquity Url::'||CashOutBackendUrl) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CASHOUTLOGGER', 'DEBUG','Request to Mobiquity::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CASHOUTLOGGER', 'DEBUG',reqData) INTO rc;
 		END IF;
 		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = CashOutBackendUrl;
 	END;
 END MODULE;
 
@@ -159,7 +159,7 @@ CREATE COMPUTE MODULE CashOutFlow_GenResToT24
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.CashOut.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.CashOut.body;
 		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
-		IF responceCode LIKE '200' AND inRef.status='SUCCEEDED' THEN
+		IF responceCode LIKE '200'	 AND inRef.status='SUCCEEDED' THEN
 			SET headRef.channel = 'Branch';
 			SET headRef.processingCode = '020000';
 			SET headRef.status = 'SUCCESS';
@@ -225,11 +225,8 @@ CREATE COMPUTE MODULE CashOutFlow_BuildException
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'MobiquityClientOut,connection refused') THEN
-			SET errMsg = 'T24 Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'MobiquityReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from T24 Server';
-
+		IF CONTAINS(excpRef.excpText,'connection refused') THEN
+			SET errMsg = 'Mobiquity Server Down';
 		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
 			SET errMsg = 'No Response from Mobiquity Server';
 		END IF;
