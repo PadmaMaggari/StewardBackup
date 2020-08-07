@@ -98,8 +98,9 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_RequestToT24
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
 		-- SET OutputRoot.JSON.Data = envref;
+			SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
+		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = T24_URL;
 		PROPAGATE TO TERMINAL 'out';
 	END;
