@@ -43,7 +43,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 		DECLARE tiime,str,executionDate,UrlPathparameters,csvDate CHARACTER;
 		SET tiime = inRefer.Date; ---29/06/2020---
 		SET str = SUBSTRING(tiime FROM 7 FOR 4)||SUBSTRING(tiime FROM 4 FOR 2)||SUBSTRING(tiime FROM 1 FOR 2); --'YYYYMMDD');--20200629
-		SET executionDate = CAST(str AS CHARACTER FORMAT 'YYYYMMDD');
+		SET executionDate = CAST(str AS CHARACTER FORMAT 'yyyyMMdd'); 
 		DECLARE pattern CHARACTER 'yyyyMMdd';
 		SET csvDate = CAST(str AS CHARACTER FORMAT pattern);
 		SET Env.CsvDate = CAST(csvDate AS CHARACTER);
