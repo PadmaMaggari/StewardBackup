@@ -8,7 +8,6 @@ CREATE COMPUTE MODULE RtgsIncomingDbReprocess_trigFlowatFive
 		 CALL trigFlowatFive();
 		RETURN TRUE;
 	END;
-
 	CREATE PROCEDURE trigFlowatFive() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE test TIME CAST(CURRENT_TIME AS TIME FORMAT 'hh:mm:ss');
@@ -22,22 +21,18 @@ CREATE COMPUTE MODULE RtgsIncomingDbReprocess_trigFlowatFive
 		CALL writeToLogFile(MessageFlowLabel,'RTGSFileReprocess', 'DEBUG','RTGSIncoming Request Reprocess time is:'||triggerTime) INTO rc;
 		END IF;
 		IF test<test2 THEN
-			
-			
+					
 			SET OutputLocalEnvironment.TimeoutRequest.Action = 'SET';
-			SET OutputLocalEnvironment.TimeoutRequest.Identifier = 'TrigRtgs';
+			SET OutputLocalEnvironment.TimeoutRequest.Identifier = 'CtrlRtgs';
 			SET OutputLocalEnvironment.TimeoutRequest.StartTime = triggerTime;
 			SET OutputLocalEnvironment.TimeoutRequest.IgnoreMissed = 'TRUE';
-			
 		ELSE
-			
 			DECLARE startday CHARACTER CAST(today+INTERVAL '1' DAY AS CHARACTER FORMAT 'yyyy-MM-dd');
 			SET OutputLocalEnvironment.TimeoutRequest.Action = 'SET';
-			SET OutputLocalEnvironment.TimeoutRequest.Identifier = 'TrigRtgs';
+			SET OutputLocalEnvironment.TimeoutRequest.Identifier = 'CtrlRtgs';
 			SET OutputLocalEnvironment.TimeoutRequest.StartDate = startday;
 			SET OutputLocalEnvironment.TimeoutRequest.StartTime = triggerTime;
 			SET OutputLocalEnvironment.TimeoutRequest.IgnoreMissed = 'TRUE';
-			
 		END IF;
 	END;
 END MODULE;

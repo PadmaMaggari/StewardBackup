@@ -31,29 +31,32 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/RtgsIncomingDBReprocessApp/icons/full/obj16/RtgsIncomingDbReprocess.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/RtgsIncomingDBReprocessApp/icons/full/obj30/RtgsIncomingDbReprocess.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmTimeoutNotification.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="8,143" uniqueIdentifier="TrigRtgs" timeoutInterval="86400">
-        <translation xmi:type="utility:ConstantString" string="Timeout Notification"/>
+      <nodes xmi:type="ComIbmTimeoutNotification.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="31,43" uniqueIdentifier="TrigRtgs" timeoutInterval="86400">
+        <translation xmi:type="utility:ConstantString" string="TrigRtgs"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="214,48" computeExpression="esql://routine/com.stewardbank.co.zw.dbReprocess#RtgsIncomingDbReprocess_PickFilesfrmDbFailure.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="103,181" computeExpression="esql://routine/com.stewardbank.co.zw.dbReprocess#RtgsIncomingDbReprocess_PickFilesfrmDbFailure.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="pickingFilesfromDbfailure"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileRead.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="329,142" inputDirectory="C:\STEWARD_Bank" fileDispositionAction="moveToArchiveWithTimestamp">
+      <nodes xmi:type="ComIbmFileRead.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="245,165" inputDirectory="C:\STEWARD_Bank" fileDispositionAction="moveToArchiveWithTimestamp">
         <translation xmi:type="utility:ConstantString" string="File Read"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="384,61" computeExpression="esql://routine/com.stewardbank.co.zw.dbReprocess#RtgsIncomingDbReprocess_PlaceFilesInRtgsIncoming.Main" computeMode="destinationAndMessage">
-        <translation xmi:type="utility:ConstantString" string="PlacingFilesInRtgsIncomingApp"/>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="317,173" computeExpression="esql://routine/com.stewardbank.co.zw.dbReprocess#RtgsIncomingDbReprocess_PlaceFilesInRtgsIncoming.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="PlacingFilesInRtgsIncoming"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="539,149" outputDirectory="C:\STEWARD_Bank" outputFilename="*">
+      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="505,173" outputDirectory="C:\STEWARD_Bank" outputFilename="*">
         <translation xmi:type="utility:ConstantString" string="File Output"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="107,41" computeExpression="esql://routine/com.stewardbank.co.zw.dbReprocess#RtgsIncomingDbReprocess_trigFlowatFive.Main">
-        <translation xmi:type="utility:ConstantString" string="Compute"/>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="156,14" computeExpression="esql://routine/com.stewardbank.co.zw.dbReprocess#RtgsIncomingDbReprocess_trigFlowatFive.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="TriggerRtgs"/>
       </nodes>
-      <nodes xmi:type="ComIbmTimeoutControl.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="161,147" uniqueIdentifier="TrigRtgs">
+      <nodes xmi:type="ComIbmTimeoutControl.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="287,20" uniqueIdentifier="CtrlRtgs">
         <translation xmi:type="utility:ConstantString" string="Timeout Control"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_8" location="173,226">
-        <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_8" location="284,94">
+        <translation xmi:type="utility:ConstantString" string="ExcpHandler"/>
+      </nodes>
+      <nodes xmi:type="ComIbmTimeoutNotification.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="39,150" uniqueIdentifier="CtrlRtgs" operationMode="controlled">
+        <translation xmi:type="utility:ConstantString" string="CtrlRtgs"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
@@ -61,9 +64,11 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.noMatch" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.dbFailureFolderPath">
