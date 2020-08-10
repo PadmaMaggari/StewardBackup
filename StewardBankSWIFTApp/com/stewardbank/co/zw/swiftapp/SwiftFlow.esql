@@ -111,7 +111,7 @@ CREATE COMPUTE MODULE SwiftFlow_GenetateReqToT24
 		  SET OutputLocalEnvironment.Destination.HTTP.RequestURL = BackendT24Url||SwiftUrlPathparameters;
 		  SET reqMsg = getPayLoad(FIELDNAME(OutputRoot.JSON),outRef,encodeRef,ccidRef);
 		  --Inserting Swift Details To Database Table---
-		  CALL insertSwiftDetails(Environment.Variables.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),Environment.Variables.File.Name,Environment.Variables.File.Status,Environment.Variables.mtReqMsg,transactionAmount,dtAcctId,crAcctId,exeDate,reqMsg,'','',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP);
+		  CALL insertSwiftDetails(Environment.Variables.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),Environment.Variables.File.Name,Environment.Variables.File.Status,Environment.Variables.mtReqMsg,transactionAmount,dtAcctId,crAcctId,exeDate,reqMsg,'PENDING','PENDING',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'PENDING');
 		IF IsLogRequired LIKE 'Y' THEN
 		 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............T24 Request Url..........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',BackendT24Url||SwiftUrlPathparameters) INTO rc;
@@ -131,25 +131,34 @@ CREATE COMPUTE MODULE SwiftFlow_GenetateReqToT24
 	CREATE PROCEDURE UpdateDatabaseStatus() BEGIN
 		--updating  Db status---
 		SET OutputRoot.Properties = InputRoot.Properties;
-		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		-- CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
 		DECLARE reqMsg CHARACTER;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		SET reqMsg = getPayLoad(FIELDNAME(InputRoot.JSON),inRef,encodeRef,ccidRef);
-		SET Environment.Variables.Statuscode = InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		IF FIELDNAME(InputBody) LIKE 'JSON' THEN
+			DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+			SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+		ELSE
+			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
+			SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+		END IF;
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE Guid CHARACTER Environment.Variables.Guid;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............T24 Response..........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG',reqMsg) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............End of Swif  ResToT24 logging...........') INTO rc;
-			END IF;
+			CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
+		END IF;
 		IF FIELDNAME(InputRoot) IS NOT NULL THEN
-			 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
 			 IF CONTAINS(CAST(Environment.Variables.Statuscode AS CHARACTER),'200') THEN
-			 	CALL UpdateDBStatus(Guid,'SUCCESS',CAST(Environment.Variables.Statuscode AS CHARACTER));
+			 	CALL UpdateDBStatus(Guid,'SUCCESS',CAST(Environment.Variables.Statuscode AS CHARACTER),reqMsg);
 			 	CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............Updated Database as Success...........') INTO rc;
+			 	CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............End of Swift logging...........') INTO rc;
+			 ELSE
+			 	CALL UpdateDBStatus(Guid,'FAILURE',CAST(Environment.Variables.Statuscode AS CHARACTER),reqMsg);
+			 	CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............Updated Database as Failure...........') INTO rc;
+			 	CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............End of Swift logging...........') INTO rc;
 			 END IF;	
 		END IF;
 		SET OutputRoot = InputRoot;
@@ -179,9 +188,7 @@ CREATE COMPUTE MODULE SwiftFlow_UpdateDatabaseErrorStatus
 			CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............End of Swif  ResToT24 logging...........') INTO rc;
 			END IF;
 		IF FIELDNAME(InputRoot) IS NOT NULL THEN
-			 CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','***************Updating T24 Status in Database**********') INTO rc;
-			 	CALL UpdateDBStatus(Guid,'FAILURE',CAST(Environment.Variables.Statuscode AS CHARACTER));
-			 	CALL writeToLogFile(MessageFlowLabel, 'SwiftLog', 'DEBUG','..............Updated Database as Failure...........') INTO rc;
+			 
 		END IF;
 		SET OutputRoot = InputRoot;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SWIFT_SB_Q;
@@ -229,11 +236,11 @@ END MODULE;
 --*************Procedure to insert Values into Swift TABLE**********************************
 	CREATE PROCEDURE insertSwiftDetails(IN PAYNET_GUID CHARACTER,IN PAYNET_STAN_NUM CHARACTER, IN PAYNET_STANDATE CHARACTER
 ,IN PAYNET_MT103_FILENAME CHARACTER,IN PAYNET_MT103_STATUS CHARACTER,IN PAYNET_Mt_REQUEST_MSG CHARACTER,IN PAYNET_MT103_AMOUNT CHARACTER,
-IN PAYNET_MT103_DTACCOUNT CHARACTER,IN PAYNET_MT103_CRACCOUNT CHARACTER,IN ExeDate CHARACTER,IN PAYNET_T24_MSG CHARACTER,IN ResponseCode CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP)
+IN PAYNET_MT103_DTACCOUNT CHARACTER,IN PAYNET_MT103_CRACCOUNT CHARACTER,IN ExeDate CHARACTER,IN PAYNET_T24_MSG CHARACTER,IN ResponseCode CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP,IN RESPONSE_MSG CHARACTER)
 	LANGUAGE DATABASE
 	EXTERNAL NAME "INSERT_SB_ISAVE_SWIFT";
 	--*********************Procedure to Update Database Status***************
-	CREATE PROCEDURE UpdateDBStatus (IN PAYNET_ID CHARACTER,IN PAYNET_STATUS CHARACTER,IN PAYNET_RESPONSE_CODE CHARACTER)
+	CREATE PROCEDURE UpdateDBStatus (IN PAYNET_ID CHARACTER,IN PAYNET_STATUS CHARACTER,IN PAYNET_RESPONSE_CODE CHARACTER,IN RESPONSE_MSG CHARACTER)
 	LANGUAGE DATABASE
 	EXTERNAL NAME "UPDATE_SB_ISAVE_SWIFT";
 
