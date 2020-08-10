@@ -2,11 +2,10 @@ BROKER SCHEMA com.stewardbank.co.zw.nanoloaneligibilitycheck
 path com.stewardbank.co.zw.common.esql;
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
-DECLARE ExceptionQ,DSN EXTERNAL CHARACTER '';
+DECLARE ExceptionQ EXTERNAL CHARACTER '';
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
-DECLARE IsWToBLoggerRequired EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
-DECLARE LoanEligibilityUrl,ALL_SB_HTTP_RES EXTERNAL CHARACTER '';
+DECLARE LoanEligibilityUrl,ALL_SB_HTTP_RES,IsLogRequired EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingRequest
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -37,18 +36,22 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingRequest
 		-- ********************Log4j ********************************
 		IF ( rc = FALSE ) THEN  
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Request Received from HttpRouter To NanoLoan Eligibility App ================') INTO rc;
+		IF IsLogRequired LIKE 'Y' THEN	
+			CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Request Received from HttpRouter To NanoLoan Eligibility App ================') INTO rc;
 --			SET req = CAST(ASBITSTREAM(InputRoot.XMLNSC CCSID InputRoot.Properties.CodedCharSetId) AS CHARACTER CCSID InputRoot.Properties.CodedCharSetId);
 			CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG',Environment.Variables.reqMsg) INTO rc;
 			CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Request End ================') INTO rc;
+		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties; 
 		--SET OutputRoot = InputRoot;
 		SET mobileNumber = domainDataRef.mobileNumber ;
 		SET  OutputLocalEnvironment.Destination.HTTP.RequestURL = LoanEligibilityUrl||mobileNumber ;
+		IF IsLogRequired LIKE 'Y' THEN	
 		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Request to DWH Provider================') INTO rc;
 		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','DWH Provider Url:'||LoanEligibilityUrl||mobileNumber) INTO rc;
+		END IF;
 	END;
 END MODULE;
 
@@ -77,11 +80,13 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingReponse
 		-- ********************Log4j ********************************
 		IF ( rc = FALSE ) THEN  
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		IF IsLogRequired LIKE 'Y' THEN	
 		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Response  Received  From DWH Provider================') INTO rc;
 		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','Response Message:'|| resMsg) INTO rc;
+		END IF;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		--*****************DB logging ***********************
 		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,resMsg,'Application Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',outRefer);
@@ -98,8 +103,10 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_GeneratingReponse
 		END IF;
 		
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
+		IF IsLogRequired LIKE 'Y' THEN	
 		CALL writeToLogFile (MessageFlowLabel,'NanoLoanEligibility','DEBUG','=================== Response  to HTTPResponseRouter================') INTO rc;
 		PROPAGATE TO TERMINAL 'out';
+		END IF;
 	END;
 END MODULE;
 CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_BuildExceptionDetails
