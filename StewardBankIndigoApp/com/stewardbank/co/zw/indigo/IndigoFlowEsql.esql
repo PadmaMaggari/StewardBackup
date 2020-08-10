@@ -110,35 +110,7 @@ CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
 		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY;
 		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType;
 		
---		DECLARE OutRefer REFERENCE TO OutputRoot.SOAP;
---		DECLARE envref REFERENCE TO Environment.SOAP;
---		CREATE LASTCHILD OF Environment AS envref DOMAIN 'SOAP';
---		SET envref = OutRefer;
---		DECLARE reqMsgT24 CHARACTER'';
---		SET Environment.reqMsgT24 = getPayLoad(FIELDNAME(InputBody),OutputRoot.SOAP.Body,encodeRef,ccsid);
---		
---		
---		SET OutputRoot = NULL;
---		
---		
---		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
---		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
---		IF IsLogRequired LIKE 'Y' THEN
---			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','..............Start T24 Request logging...........') INTO rc;
---			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','T24 Request::') INTO rc; 
---			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG',Environment.reqMsgT24) INTO rc;
---		END IF;
---		IF IsLogRequired LIKE 'Y' THEN
---		CALL DBLogging(InputRoot.MQRFH2.usr.Destination.SOAP.Reply.ReplyIdentifier,Environment.reqMsgT24,'T24  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
---		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
---		PROPAGATE TO TERMINAL 'out1';
---		END IF; 
---		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
---		SET OutputRoot.SOAP = envref;
---		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation  = bindingOperatingName;
---		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
---		PROPAGATE TO TERMINAL 'out';
---			
+
 			
 		WHEN bindingOperatingName LIKE 'AccountDetails' THEN
 			
@@ -378,66 +350,16 @@ CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
         SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.replace = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.replace;
         SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.startDate = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.startDate;
         SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.user = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.user;
-        
         SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.FUNDSTRANSFERCARDCHARGEREVType.transactionId = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.FUNDSTRANSFERCARDCHARGEREVType.transactionId;
-        
-			
 		END CASE;
-		
-		
---		CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
---		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
---		SET outRefSoap.Context[] = InputRoot.SOAP.Context[];
---		SET outRefSoap.Header[] = InputRoot.SOAP.Header[];
---		
---		SET outRefSoap.Body.ns:CardCharges.WebRequestCommon.company = InputRoot.SOAP.Body.ns:CardCharges.WebRequestCommon.company;
---		SET outRefSoap.Body.ns:CardCharges.WebRequestCommon.password = InputRoot.SOAP.Body.ns:CardCharges.WebRequestCommon.password;
---		SET outRefSoap.Body.ns:CardCharges.WebRequestCommon.userName =InputRoot.SOAP.Body.ns:CardCharges.WebRequestCommon.userName;
---		SET outRefSoap.Body.ns:CardCharges.OfsFunction.activityName = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.activityName;
---		
---		SET outRefSoap.Body.ns:CardCharges.OfsFunction.assignReason = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.assignReason;
---		SET outRefSoap.Body.ns:CardCharges.OfsFunction.dueDate = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.dueDate;
---		SET outRefSoap.Body.ns:CardCharges.OfsFunction.extProcess = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.extProcess;
---		SET outRefSoap.Body.ns:CardCharges.OfsFunction.extProcessID = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.extProcessID;
---		SET outRefSoap.Body.ns:CardCharges.OfsFunction.gtsControl = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.gtsControl;
---		SET outRefSoap.Body.ns:CardCharges.OfsFunction.messageId = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.messageId;
---		SET outRefSoap.Body.ns:CardCharges.OfsFunction.noOfAuth = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.noOfAuth;
---		SET outRefSoap.Body.ns:CardCharges.OfsFunction.owner = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.owner;
---		SET outRefSoap.Body.ns:CardCharges.OfsFunction.replace = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.replace;
---		SET outRefSoap.Body.ns:CardCharges.OfsFunction.startDate = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.startDate;
---		SET outRefSoap.Body.ns:CardCharges.OfsFunction.user = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.user;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.id = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.id;
---		
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountDebited = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountDebited;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY;
---		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType;
---		
+
 		DECLARE OutRefer REFERENCE TO OutputRoot.SOAP;
 		DECLARE envref REFERENCE TO Environment.SOAP;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'SOAP';
 		SET envref = OutRefer;
 		DECLARE reqMsgT24 CHARACTER'';
 		SET Environment.reqMsgT24 = getPayLoad(FIELDNAME(InputBody),OutputRoot.SOAP.Body,encodeRef,ccsid);
-		
-		
 		SET OutputRoot = NULL;
-		
 		
 		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
 		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
@@ -537,7 +459,7 @@ CREATE COMPUTE MODULE IndigoFlow_BuildExceptionDetails
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+--		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'IndigoResponse';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
@@ -546,31 +468,11 @@ CREATE COMPUTE MODULE IndigoFlow_BuildExceptionDetails
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.XMLNSC = NULL;
+--		
 		
 		
 		
 		
-		
---		CREATE LASTCHILD OF OutputRoot DOMAIN ('SOAP');
---		CREATE LASTCHILD OF OutputRoot.SOAP NAME ('Body');
---		CREATE LASTCHILD OF OutputRoot.SOAP.Body NAME ('IndigoResponse');
---		CREATE LASTCHILD OF OutputRoot.SOAP.Body.* NAME ('header');
---		CREATE LASTCHILD OF OutputRoot.SOAP.Body.* NAME ('error');
---		DECLARE headerRef REFERENCE TO OutputRoot.SOAP.Body.*.header;
---		DECLARE errorRef REFERENCE TO OutputRoot.SOAP.Body.*.error;
---		SET headerRef = Environment.MQRFH2.header;
---		SET headerRef.status = 'FAILED';
---		SET headerRef.responseCode = '000';
---		SET errorRef.source = 'ESB';
---		SET errorRef.applicationName = ApplicationLabel;
---		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.IndigoResponse.ErrorCode;
---		SET errorRef.message = errMsg;
---		MOVE domainDataRef TO OutputRoot.SOAP;
---		SET Environment.Variables.resMsg = getPayload('SOAP',domainDataRef,encodeRef,ccidRef);
---		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
---		PROPAGATE TO TERMINAL 'out';
-
-
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
