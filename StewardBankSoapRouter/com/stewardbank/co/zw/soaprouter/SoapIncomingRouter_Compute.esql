@@ -42,7 +42,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		DECLARE qDetails ROW;
 		/* =========================== DB LOGGING =========================== */
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(CAST(Environment.id AS CHARACTER),Environment.Variables.reqMsg,'Router Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Router Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
 			'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
