@@ -17,7 +17,14 @@
 <xsd:schema/>
 <xsd:schema/>
 <xsd:schema/>
+<xsd:schema/>
 </types>
+<message name="CardCharges_Validate">
+<part element="tns:CardCharges_Validate" name="parameters"/>
+</message>
+<message name="CardCharges_ValidateResponse">
+<part element="tns:CardCharges_ValidateResponse" name="parameters"/>
+</message>
 <message name="AmendCard">
 <part element="tns:AmendCard" name="parameters"/>
 </message>
@@ -29,6 +36,12 @@
 </message>
 <message name="AmendCard_ValidateResponse">
 <part element="tns:AmendCard_ValidateResponse" name="parameters"/>
+</message>
+<message name="AccountBalance">
+<part element="tns:AccountBalance" name="parameters"/>
+</message>
+<message name="AccountBalanceResponse">
+<part element="tns:AccountBalanceResponse" name="parameters"/>
 </message>
 <message name="ReverseCharges">
 <part element="tns:ReverseCharges" name="parameters"/>
@@ -48,12 +61,6 @@
 <message name="CardChargesResponse">
 <part element="tns:CardChargesResponse" name="parameters"/>
 </message>
-<message name="CardCharges_Validate">
-<part element="tns:CardCharges_Validate" name="parameters"/>
-</message>
-<message name="CardCharges_ValidateResponse">
-<part element="tns:CardCharges_ValidateResponse" name="parameters"/>
-</message>
 <message name="AccountDetails">
 <part element="tns:AccountDetails" name="parameters"/>
 </message>
@@ -61,6 +68,10 @@
 <part element="tns:AccountDetailsResponse" name="parameters"/>
 </message>
 <portType name="T24WebServicesImpl">
+<operation name="CardCharges_Validate">
+<input message="tns:CardCharges_Validate" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/CardCharges_ValidateRequest"/>
+<output message="tns:CardCharges_ValidateResponse" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/CardCharges_ValidateResponse"/>
+</operation>
 <operation name="AmendCard">
 <input message="tns:AmendCard" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/AmendCardRequest"/>
 <output message="tns:AmendCardResponse" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/AmendCardResponse"/>
@@ -68,6 +79,10 @@
 <operation name="AmendCard_Validate">
 <input message="tns:AmendCard_Validate" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/AmendCard_ValidateRequest"/>
 <output message="tns:AmendCard_ValidateResponse" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/AmendCard_ValidateResponse"/>
+</operation>
+<operation name="AccountBalance">
+<input message="tns:AccountBalance" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/AccountBalanceRequest"/>
+<output message="tns:AccountBalanceResponse" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/AccountBalanceResponse"/>
 </operation>
 <operation name="ReverseCharges">
 <input message="tns:ReverseCharges" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/ReverseChargesRequest"/>
@@ -81,10 +96,6 @@
 <input message="tns:CardCharges" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/CardChargesRequest"/>
 <output message="tns:CardChargesResponse" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/CardChargesResponse"/>
 </operation>
-<operation name="CardCharges_Validate">
-<input message="tns:CardCharges_Validate" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/CardCharges_ValidateRequest"/>
-<output message="tns:CardCharges_ValidateResponse" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/CardCharges_ValidateResponse"/>
-</operation>
 <operation name="AccountDetails">
 <input message="tns:AccountDetails" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/AccountDetailsRequest"/>
 <output message="tns:AccountDetailsResponse" wsam:Action="http://temenos.com/stewardbank/T24WebServicesImpl/AccountDetailsResponse"/>
@@ -92,6 +103,15 @@
 </portType>
 <binding name="T24WebServicesImplPortBinding" type="tns:T24WebServicesImpl">
 <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+<operation name="CardCharges_Validate">
+<soap:operation soapAction=""/>
+<input>
+<soap:body use="literal"/>
+</input>
+<output>
+<soap:body use="literal"/>
+</output>
+</operation>
 <operation name="AmendCard">
 <soap:operation soapAction=""/>
 <input>
@@ -102,6 +122,15 @@
 </output>
 </operation>
 <operation name="AmendCard_Validate">
+<soap:operation soapAction=""/>
+<input>
+<soap:body use="literal"/>
+</input>
+<output>
+<soap:body use="literal"/>
+</output>
+</operation>
+<operation name="AccountBalance">
 <soap:operation soapAction=""/>
 <input>
 <soap:body use="literal"/>
@@ -129,15 +158,6 @@
 </output>
 </operation>
 <operation name="CardCharges">
-<soap:operation soapAction=""/>
-<input>
-<soap:body use="literal"/>
-</input>
-<output>
-<soap:body use="literal"/>
-</output>
-</operation>
-<operation name="CardCharges_Validate">
 <soap:operation soapAction=""/>
 <input>
 <soap:body use="literal"/>

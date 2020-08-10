@@ -16,7 +16,8 @@ DECLARE ns56 NAMESPACE 'http://temenos.com/ACCOUNTCARDAMEND';
 DECLARE URL EXTERNAL CHARACTER'';  
 
 DECLARE soapenv EXTERNAL NAMESPACE '';
-	DECLARE ns1 EXTERNAL NAMESPACE '';
+	DECLARE ns10 NAMESPACE 'http://temenos.com/GETACCTBAL';
+DECLARE ns1 EXTERNAL NAMESPACE '';
 CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN     
@@ -351,6 +352,23 @@ CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
         SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.startDate = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.startDate;
         SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.user = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.user;
         SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.FUNDSTRANSFERCARDCHARGEREVType.transactionId = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.FUNDSTRANSFERCARDCHARGEREVType.transactionId;
+		
+		 WHEN bindingOperatingName LIKE 'AccountBalance' THEN
+	    
+	    
+	       CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
+		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
+		SET outRefSoap.Context[] = InputRoot.SOAP.Context[];
+		SET outRefSoap.Header[] = InputRoot.SOAP.Header[];
+		
+		SET outRefSoap.Body.ns:AccountBalance.WebRequestCommon.company = InputRoot.SOAP.Body.ns:AccountBalance.WebRequestCommon.company;
+		SET outRefSoap.Body.ns:AccountBalance.WebRequestCommon.password = InputRoot.SOAP.Body.ns:AccountBalance.WebRequestCommon.password;
+		SET outRefSoap.Body.ns:AccountBalance.WebRequestCommon.userName = InputRoot.SOAP.Body.ns:AccountBalance.WebRequestCommon.userName;
+		
+		SET outRefSoap.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.columnName = InputRoot.SOAP.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.columnName;
+		SET outRefSoap.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.criteriaValue = InputRoot.SOAP.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.criteriaValue;
+		SET outRefSoap.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.operand = InputRoot.SOAP.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.operand;
+		
 		END CASE;
 
 		DECLARE OutRefer REFERENCE TO OutputRoot.SOAP;
@@ -377,7 +395,7 @@ CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.SOAP = envref;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation  = bindingOperatingName;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
+		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.WebServiceURL = URL;
 		PROPAGATE TO TERMINAL 'out';
 		
 		
