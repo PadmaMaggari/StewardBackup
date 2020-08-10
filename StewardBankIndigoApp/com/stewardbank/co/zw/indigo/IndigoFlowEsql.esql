@@ -9,6 +9,8 @@ DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';     
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
 DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER'';
+DECLARE request_Time_Out EXTERNAL CHARACTER'';
+DECLARE Protocal EXTERNAL CHARACTER'';
 DECLARE ns NAMESPACE 'http://temenos.com/stewardbank';
 DECLARE ns16 NAMESPACE 'http://temenos.com/FUNDSTRANSFERCARDCHARGE';
 DECLARE ns26 NAMESPACE 'http://temenos.com/JSLCARDACCT';
@@ -395,6 +397,8 @@ CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.SOAP = envref;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation  = bindingOperatingName;
+		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.Timeout = request_Time_Out;
+		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.SSLProtocol = Protocal;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.WebServiceURL = URL;
 		PROPAGATE TO TERMINAL 'out';
 		
