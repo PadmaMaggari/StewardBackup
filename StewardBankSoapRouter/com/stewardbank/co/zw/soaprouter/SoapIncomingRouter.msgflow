@@ -32,10 +32,10 @@
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSoapRouter/icons/full/obj30/SoapIncomingRouter.gif"/>
     <composition>
       <nodes xmi:type="ComIbmSOAPInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="62,134" wsdlOperationMode="gateway" useHTTPTransport="true" urlSelector="/stewardbank/services" maxClientWaitTime="90" validateTiming="immediate" parserXmlnscBuildTreeUsingXMLSchema="false" parserXmlnscCommentsRetainMode="all" validateMaster="none">
-        <translation xmi:type="utility:ConstantString" string="SOAP Input"/>
+        <translation xmi:type="utility:ConstantString" string="IncomingHttpSOAPReq"/>
       </nodes>
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="602,63" destinationMode="list">
-        <translation xmi:type="utility:ConstantString" string="MQ Output"/>
+        <translation xmi:type="utility:ConstantString" string="SOAP_OUTQ"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="183,162" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.soaprouter#SoapIncomingRouter_Compute.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="RouteToInterfaceBasedOnOperation"/>
@@ -47,7 +47,7 @@
         <translation xmi:type="utility:ConstantString" string="BuildExceptionDetails"/>
       </nodes>
       <nodes xmi:type="ComIbmSOAPReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="566,162">
-        <translation xmi:type="utility:ConstantString" string="SOAP Reply"/>
+        <translation xmi:type="utility:ConstantString" string="ReplyToSystem"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>

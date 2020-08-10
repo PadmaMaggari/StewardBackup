@@ -16,7 +16,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyEntireMessage();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -64,14 +64,14 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 					SET Environment.reqServiseName = qDetails.Values.PROC_CODE;
 					SET Environment.resQName = qDetails.Values.RES_QUEUE;
 					SET OutputRoot.Properties = InputRoot.Properties;
---					SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
 					SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = Environment.MQRFH2.RequestIdentifier;
 					SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
 					SET OutputRoot.MQRFH2.usr.resQ = Environment.resQName;
 					SET OutputRoot.SOAP = InputRoot.SOAP;
 					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.reqQName;
+					PROPAGATE TO TERMINAL 'out';
 				ELSEIF FIELDNAME(qDetails.Values.REQ_QUEUE) IS NULL THEN
-					CALL errorResponse(domainName,'No Request Queue Available','ESB_001',serviceName);
+					CALL errorResponse('','No Request Queue Available','ESB_001',serviceName);
 					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Request Queue Available')INTO rc;
 					RETURN;
 
@@ -79,11 +79,12 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 					CALL errorResponse(domainName,'No Response Queue Available','ESB_002',serviceName);
 					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Response Queue Available')INTO rc;
 					RETURN;
+					END IF;
 				ELSE
-					CALL errorResponse(domainName,'No Details','ESB_003',serviceName);
-					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Details')INTO rc;
+					CALL errorResponse(domainName,'No Details Found Invalid Servise','ESB_003',serviceName);
+					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Details Found Invalid Servise')INTO rc;
 					RETURN;
-				END IF;
+				
 			END IF;
 			ELSE	
 				CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Calling the Cache')INTO rc;
@@ -95,12 +96,12 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 						SET Environment.reqServiseName = qDetails.Values.PROC_CODE;
 						SET Environment.resQName = qDetails.Values.RES_QUEUE;
 						SET OutputRoot.Properties = InputRoot.Properties;
---						SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
 						SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = Environment.MQRFH2.RequestIdentifier;
 						SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
 						SET OutputRoot.MQRFH2.usr.resQ = Environment.resQName;
 						SET OutputRoot.SOAP = InputRoot.SOAP;
 						SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.reqQName;
+						PROPAGATE TO TERMINAL 'out';
 					ELSEIF FIELDNAME(qDetails.Values.REQ_QUEUE) IS NULL THEN
 						CALL errorResponse(domainName,'No Request Queue Available','ESB_001',serviceName);
 						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Request Queue Available')INTO rc;
@@ -109,30 +110,14 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 						CALL errorResponse(domainName,'No Response Queue Available','ESB_002',serviceName);
 						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Response Queue Available')INTO rc;
 						RETURN;
+						END IF;
 					ELSE
-						CALL errorResponse(domainName,'No Details','ESB_003',serviceName);
-						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Details')INTO rc;
+						CALL errorResponse(domainName,'No Details Found Invalid Servise','ESB_003',serviceName);
+						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Details Found Invalid Servise')INTO rc;
 						RETURN;
-					END IF;
+					
 				END IF;
 			END IF;
-		-- SET OutputRoot.Properties = InputRoot.Properties;
-		-- SET OutputRoot.MQRFH2.usr = InputLocalEnvironment;
-		-- SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
-		-- DECLARE inRef REFERENCE TO InputRoot.SOAP.Body.[1];
-		-- IF CONTAINS(FIELDNAME(inRef),'getTransactionExportTransactions')
-		-- OR CONTAINS(FIELDNAME(inRef),'acknowledgeTransactionExport') THEN
-		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SM_SB_SOAP_REQ';
-		-- ELSEIF CONTAINS(FIELDNAME(inRef),'AccountDetails')
-		-- OR CONTAINS(FIELDNAME(inRef),'AmendCard')
-		-- OR CONTAINS(FIELDNAME(inRef),'CardCharges') THEN
-		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'INDIGO_SB_SOAP_REQ';
-		--
-		-- ELSE
-		-- CALL errorResponse(Environment.MQRFH2.requestDomain,'Invaild Operation','ESB_001',ApplicationLabel);
-		-- --other soap business flow queues
-		-- END IF;
-		-- SET OutputRoot.SOAP = InputRoot.SOAP;  
 	END;
 	CREATE PROCEDURE errorResponse(IN domainName CHAR, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
 	BEGIN
@@ -164,7 +149,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL BuildException();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 
@@ -212,24 +197,23 @@ CREATE COMPUTE MODULE SoapIncomingRouter_BuildExceptionDetails
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','End of Logging Application Related Exception') INTO rc;
 		END IF;
 		----------------------------------
-		CALL errorResponse(mqrfRef,exe_Desc,'Incomming Router Error',ErrorCode,ApplicationLabel);
+		CALL errorResponse(mqrfRef,exe_Desc,ErrorCode,ApplicationLabel);
 	END;
 	
 	
 	
 	
-	CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE,IN exe_Desc CHARACTER,IN msg CHAR,IN ErrorCode CHAR,IN applicationLabel CHAR)
+	CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE,IN exe_Desc CHARACTER,IN ErrorCode CHAR,IN applicationLabel CHAR)
 	BEGIN
               SET OutputRoot.MQRFH2 = mqrfRef;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=ErrorCode;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:exe_Desc=exe_Desc;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Header.ns1:Message='FAILURE';
+			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ErrorCode=ErrorCode;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:exe_Desc=exe_Desc;
 			
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
---			SET OutputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
-			--SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
+			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
+			SET OutputLocalEnvironment.Destination.HTTP.ReplyIdentifier = CAST(Environment.MQRFH2.ReplyIdentifier AS BLOB);
 			PROPAGATE TO TERMINAL 'out1';
 			END;
 END MODULE;

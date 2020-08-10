@@ -108,7 +108,7 @@ CREATE COMPUTE MODULE SoapOutgoingRouter_BuildExceptionDetails
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','End of Logging Application Related Exception') INTO rc;
 		END IF;
 		----------------------------------
-		CALL errorResponse(mqrfRef,exe_Desc,'Outgoing Router Error',ErrorCode,ApplicationLabel);
+		CALL errorResponse(mqrfRef,exe_Desc,ErrorCode,ApplicationLabel);
 --		SET OutputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier = CAST(Environment.MQRFH2.usr.SoapReplyIdentifier AS BLOB);
 --		PROPAGATE TO TERMINAL 'out1';
 	END;
@@ -116,13 +116,12 @@ CREATE COMPUTE MODULE SoapOutgoingRouter_BuildExceptionDetails
 	
 	
 	
-	CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE,IN exe_Desc CHARACTER,IN msg CHAR,IN ErrorCode CHAR,IN applicationLabel CHAR)
+	CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE,IN exe_Desc CHARACTER,IN ErrorCode CHAR,IN applicationLabel CHAR)
 	BEGIN
               SET OutputRoot.MQRFH2 = mqrfRef;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Header.ns1:Message='FAILURE';
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:Message=msg;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ErrorCode=ErrorCode;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:exe_Desc=exe_Desc;
 			

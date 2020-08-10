@@ -32,13 +32,13 @@
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSoapRouter/icons/full/obj30/SoapOutgoingRouter.gif"/>
     <composition>
       <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="49,100" queueName="SOAP_RES_Q" messageDomainProperty="XMLNSC" transactionMode="no">
-        <translation xmi:type="utility:ConstantString" string="MQ Input"/>
+        <translation xmi:type="utility:ConstantString" string="OutgoingSOAPRes"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="181,169" computeExpression="esql://routine/com.stewardbank.co.zw.soaprouter#SoapOutgoingRouter_RouteBasedOnProtocol.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="RouteBasedOnProtocol"/>
       </nodes>
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="473,86" destinationMode="list">
-        <translation xmi:type="utility:ConstantString" string="MQ Output"/>
+        <translation xmi:type="utility:ConstantString" string="SOAP_OUTQ"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="127,24">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
@@ -47,7 +47,7 @@
         <translation xmi:type="utility:ConstantString" string="BuildExceptionDetails"/>
       </nodes>
       <nodes xmi:type="ComIbmSOAPReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="437,167">
-        <translation xmi:type="utility:ConstantString" string="SOAP Reply"/>
+        <translation xmi:type="utility:ConstantString" string="ReplyToSystem"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
