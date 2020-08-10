@@ -27,41 +27,57 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ALL_SB_HTTP_RES" name="ALL_SB_HTTP_RES" defaultValueLiteral="ALL_SB_HTTP_RES">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.DateURL" name="DateURL" defaultValueLiteral="http://192.168.1.233:8080/stwbc/api/v1.0.0/stwb/enquiries/paymentDate">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="LoanRepaymentT24Flow" bundleName="com/stewardbank/co/zw/lonerepayment/LoanRepaymentT24Flow" pluginId="StewardBankLoanRepaymentApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankLoanRepaymentApp/icons/full/obj16/LoanRepaymentT24Flow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankLoanRepaymentApp/icons/full/obj30/LoanRepaymentT24Flow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="223,219" queueName="SB_LRP_T24_REQ" messageDomainProperty="JSON" transactionMode="no">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="101,222" queueName="SB_LRP_T24_REQ" messageDomainProperty="JSON" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="SB_LRP_T24_REQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="276,115" computeExpression="esql://routine/com.stewardbank.co.zw.lonerepayment#LoanRepaymentT24Flow_RequestToT24.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="376,122" computeExpression="esql://routine/com.stewardbank.co.zw.lonerepayment#LoanRepaymentT24Flow_RequestToT24.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="RequestToT24"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="631,112" computeExpression="esql://routine/com.stewardbank.co.zw.lonerepayment#LoanRepaymentT24Flow_ResponseToChannel.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="631,119" computeExpression="esql://routine/com.stewardbank.co.zw.lonerepayment#LoanRepaymentT24Flow_ResponseToChannel.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="ResponseToChannel"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="693,220" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="692,220" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="SB_LRP_T24_RES"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="348,218">
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="307,219">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="531,219" computeExpression="esql://routine/com.stewardbank.co.zw.lonerepayment#LoanRepaymentT24Flow_BuildException.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildException"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_httpcall_HttpRetrySubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="482,116">
+      <nodes xmi:type="com_stewardbank_co_zw_common_httpcall_HttpRetrySubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="498,123">
         <translation xmi:type="utility:ConstantString" string="HTTP T24 Req"/>
       </nodes>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="164,125" computeExpression="esql://routine/com.stewardbank.co.zw.lonerepayment#LoanRepaymentT24Flow_ExtractDate.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="Compute"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_common_httpcall_HttpRetrySubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_9" location="253,126">
+        <translation xmi:type="utility:ConstantString" string="HttpRetrySubFlow"/>
+      </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in">
+        <bendPoints>99,46,-223,-52</bendPoints>
+      </connections>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.Output1" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_9" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.Output1" targetTerminalName="InTerminal.in">
+        <bendPoints>98,45,-171,-48</bendPoints>
+      </connections>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
@@ -80,6 +96,9 @@
                     <propertyName xmi:type="utility:TranslatableString" key="Property.RepayURL" bundleName="com/stewardbank/co/zw/lonerepayment/LoanRepaymentT24Flow" pluginId="StewardBankLoanRepaymentApp"/>
                     <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ALL_SB_HTTP_RES">
                       <propertyName xmi:type="utility:TranslatableString" key="Property.ALL_SB_HTTP_RES" bundleName="com/stewardbank/co/zw/lonerepayment/LoanRepaymentT24Flow" pluginId="StewardBankLoanRepaymentApp"/>
+                      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.DateURL">
+                        <propertyName xmi:type="utility:TranslatableString" key="Property.DateURL" bundleName="com/stewardbank/co/zw/lonerepayment/LoanRepaymentT24Flow" pluginId="StewardBankLoanRepaymentApp"/>
+                      </propertyDescriptor>
                     </propertyDescriptor>
                   </propertyDescriptor>
                 </propertyDescriptor>

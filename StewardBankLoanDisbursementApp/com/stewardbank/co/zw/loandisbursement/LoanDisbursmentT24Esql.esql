@@ -1,8 +1,10 @@
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.loandisbursement
 PATH com.stewardbank.co.zw.common.esql;
-CREATE COMPUTE MODULE LoanDisbursmentT24Flow_RequestToT24 
+CREATE COMPUTE MODULE LoanDisbursmentT24Flow_RequestToT24
 	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 	DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
 	DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
@@ -34,7 +36,6 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_RequestToT24
 		DECLARE executionDate CHARACTER;
 		DECLARE domainName CHARACTER 'JSON';
 		SET reqMsg = getPayLoad(domainName,OutputRoot.JSON.Data,encodeRef,ccsid);
-	
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
 		DECLARE y,nextWorkDate,currentWorkDate,tiime,str CHARACTER;
@@ -46,17 +47,16 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_RequestToT24
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		/*=================================================*/
-		SET y = EXTRACT (DAYOFWEEK FROM dbLoggingDate); 
-	--SET y = '1'; 
+		SET y = EXTRACT (DAYOFWEEK FROM dbLoggingDate);
 		IF y LIKE '1' THEN
 			SET nextWorkDate = InputRoot.JSON.Data.body.Item.nextWorkingDate;
 			SET tiime = nextWorkDate; ---2020-06-29---
-			SET str = SUBSTRING(tiime FROM 1 FOR 4)||SUBSTRING(tiime FROM 6 FOR 2)||SUBSTRING(tiime FROM 9 FOR 2); 
+			SET str = SUBSTRING(tiime FROM 1 FOR 4)||SUBSTRING(tiime FROM 6 FOR 2)||SUBSTRING(tiime FROM 9 FOR 2);
 			SET executionDate = CAST(str AS CHARACTER FORMAT 'yyyyMMdd');
 		ELSE
 			SET currentWorkDate = InputRoot.JSON.Data.body.Item.currentWorkingDate;
-			SET tiime = currentWorkDate; ---2020-06-29--- 
-			SET str = SUBSTRING(tiime FROM 1 FOR 4)||SUBSTRING(tiime FROM 6 FOR 2)||SUBSTRING(tiime FROM 9 FOR 2); 
+			SET tiime = currentWorkDate; ---2020-06-29---
+			SET str = SUBSTRING(tiime FROM 1 FOR 4)||SUBSTRING(tiime FROM 6 FOR 2)||SUBSTRING(tiime FROM 9 FOR 2);
 			SET executionDate = CAST(str AS CHARACTER FORMAT 'yyyyMMdd');
 		END IF;
 		SET InputLocalEnvironment= NULL;
@@ -181,12 +181,12 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_ResponseToChannel
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',' Response QueueName :  '||'ALL_SB_HTTP_RES') INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Response to FrontEnd',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			PROPAGATE TO TERMINAL 'out';  
+			PROPAGATE TO TERMINAL 'out';
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data = envref;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName; 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 	END;
 END MODULE;
 
@@ -299,8 +299,10 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 			SET errMsg = 'No Response from Postilion Server';
 		ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN
 			SET errMsg = 'JSON parsing errors have occurred';
-		ELSEIF CONTAINS(excpRef.excpText,'Socket') THEN 
+		ELSEIF CONTAINS(excpRef.excpText,'Socket') THEN
 			SET errMsg = 'SocketException errors have occurred';
+		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+			SET errMsg = 'WebService Request Exception errors have occurred'; 
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
@@ -355,13 +357,10 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_ExtractDate
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE executionDate CHARACTER;
-		SET Environment.MQRFH2.RequestIdentifier =	InputRoot.MQRFH2.RequestIdentifier; 
+		SET Environment.MQRFH2.RequestIdentifier = InputRoot.MQRFH2.RequestIdentifier;
 		SET Environment.Variables.csvData = InputRoot.JSON.Data;
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
-	
-		--SET executionDate = CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd');
-		--SET y = EXTRACT (DAYOFWEEK FROM dbLoggingDate);
-		SET y = '1';
+		SET y = EXTRACT (DAYOFWEEK FROM dbLoggingDate);
 		IF y LIKE '1' THEN
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
@@ -370,7 +369,8 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_ExtractDate
 		ELSE
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = DateURL;
 		END IF;
-
 	END;
 END MODULE;

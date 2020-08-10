@@ -1,8 +1,4 @@
-
-
-
 BROKER SCHEMA com.stewardbank.co.zw.lonerepayment
-
 PATH com.stewardbank.co.zw.common.esql;
 CREATE COMPUTE MODULE LoanRepaymentT24Flow_RequestToT24
 	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -18,22 +14,20 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_RequestToT24
 		RETURN FALSE;
 	END;
 	CREATE PROCEDURE RequestToT24() BEGIN
-		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		--SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE reqMsg CHARACTER '';
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
-		-- DECLARE nationalId CHARACTER InputRoot.JSON.Data.nationalId;
-		-- DECLARE loanPackageId CHARACTER InputRoot.JSON.Data.loanPackageId;
+		DECLARE inRef REFERENCE TO Environment.Variables.csvData;
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE executionDate CHARACTER;
-		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccsid);
+		DECLARE domainName CHARACTER 'JSON'; 
+		SET reqMsg = getPayLoad(domainName,OutputRoot.JSON.Data,encodeRef,ccsid);
 		SET executionDate = CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd');
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
-		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		/* =================== CALLING LOG4J LOGGING ==============*/
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -46,10 +40,24 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_RequestToT24
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','Incoming Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',reqMsg) INTO rc;
 		END IF;
+		DECLARE y,nextWorkDate,currentWorkDate,tiime,str CHARACTER;
+		SET y = EXTRACT (DAYOFWEEK FROM dbLoggingDate);
+		IF y LIKE '1' THEN
+			SET nextWorkDate = InputRoot.JSON.Data.body.Item.nextWorkingDate;
+			SET tiime = nextWorkDate; ---2020-06-29---
+			SET str = SUBSTRING(tiime FROM 1 FOR 4)||SUBSTRING(tiime FROM 6 FOR 2)||SUBSTRING(tiime FROM 9 FOR 2);
+			SET executionDate = CAST(str AS CHARACTER FORMAT 'yyyyMMdd');
+		ELSE
+			SET currentWorkDate = InputRoot.JSON.Data.body.Item.currentWorkingDate;
+			SET tiime = currentWorkDate; ---2020-06-29---
+			SET str = SUBSTRING(tiime FROM 1 FOR 4)||SUBSTRING(tiime FROM 6 FOR 2)||SUBSTRING(tiime FROM 9 FOR 2);
+			SET executionDate = CAST(str AS CHARACTER FORMAT 'yyyyMMdd');
+		END IF;
+		SET InputLocalEnvironment= NULL;
+		SET OutputRoot = NULL;
 		DECLARE T24_URL CHARACTER;
-		--{debitAccount}/{debitCurrency}/{transactionAmount}/{creditAccountId}/{executionDate}/{customer} exchange in debit and credit account 
-		--SET T24_URL = RepayURL||inRef.creditAccountNumber||'/'||inRef.debitCurrency||'/'||inRef.debitAmount||'/'||inRef.debitAccountNumber||'/'||executionDate||'/'||inRef.thirdPartyReference; 
-		SET T24_URL = RepayURL||inRef.creditAccountNumber||'/'||inRef.debitCurrency||'/'||inRef.debitAmount||'/'||inRef.debitAccountNumber||'/'||executionDate||'/'||inRef.thirdPartyReference;  
+		--{debitAccount}/{debitCurrency}/{transactionAmount}/{creditAccountId}/{executionDate}/{customer} exchange in debit and credit account
+		SET T24_URL = RepayURL||inRef.creditAccountNumber||'/'||inRef.debitCurrency||'/'||inRef.debitAmount||'/'||inRef.debitAccountNumber||'/'||executionDate||'/'||inRef.thirdPartyReference;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','Generate URL Req T24::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',T24_URL) INTO rc;
@@ -85,7 +93,7 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE rc BOOLEAN FALSE;
-		DECLARE outRefer REFERENCE TO OutputRoot;		
+		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -96,13 +104,13 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		ELSE
 			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
-			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(inRef,encodeRef,ccidRef); 
-			SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);  
+			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(inRef,encodeRef,ccidRef);
+			SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		END IF;
 		SET OutputRoot = NULL;
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',' ----- Response from T24 ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',Environment.Variables.resMsg) INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'LoneRepayment T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out';
@@ -112,14 +120,14 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoneRepayment');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('responseBody'); 
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('responseBody');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.responseBody;
-		DECLARE status CHARACTER InputRoot.JSON.Data.header.status; 
+		DECLARE status CHARACTER InputRoot.JSON.Data.header.status;
 		IF status LIKE 'success' AND responceCode LIKE '200' THEN
 			SET headRef.channel = '*236#';
 			SET headRef.processingCode = '120000';
-			SET headRef.status = 'Success'; 
+			SET headRef.status = 'Success';
 			SET headRef.responseCode = responceCode;
 			SET bodyRef = Inrefer;
 			-- CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
@@ -136,7 +144,7 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 			SET headRef.processingCode = '120000';
 			SET headRef.status = 'Failure';
 			SET headRef.responseCode = responceCode;
-			SET bodyRef = Environment.Variables.resMsg;   
+			SET bodyRef = Environment.Variables.resMsg;
 			-- DECLARE myBlob REFERENCE TO InputRoot.BLOB.BLOB;
 			-- CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(myBlob, InputRoot.Properties.Encoding, InputRoot.Properties.CodedCharSetId);
 			-- DECLARE domainDataRef REFERENCE TO OutputRoot.JSON.Data;
@@ -155,8 +163,8 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 		CREATE LASTCHILD OF envref AS envref NAME 'Data';
 		SET envref = OutputRoot.JSON.Data;
 		SET domainName = FIELDNAME(OutputRoot.JSON);
-		MOVE domainDataRef TO OutputRoot.JSON; 
-		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot = NULL;
 		--SET Environment.Variables.resMsg = getPayload(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
@@ -183,7 +191,7 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_BuildException
 	END;
 	CREATE PROCEDURE BuildException() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
@@ -193,12 +201,14 @@ CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 			SET errMsg = 'T24 Server Down';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
 			SET errMsg = 'Postilion Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN 
+		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
 			SET errMsg = 'No Response from T24 Server';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN 
-			SET errMsg = 'No Response from Postilion Server';	
-			ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN 
-			SET errMsg = 'JSON parsing errors have occurred'; 
+		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
+			SET errMsg = 'No Response from Postilion Server';
+		ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN
+			SET errMsg = 'JSON parsing errors have occurred';
+		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+			SET errMsg = 'WebService Request Exception errors have occurred'; 
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
@@ -223,9 +233,9 @@ CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		SET outRef.responseBody.source = 'ESB';
 		SET outRef.responseBody.applicationName = ApplicationLabel;
 		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.Loan_Repayment.ErrorCode;
- 		SET OutputRoot.XMLNSC = NULL;
- 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;    
+		SET OutputRoot.XMLNSC = NULL;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
@@ -237,5 +247,35 @@ CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.Loan_Repayment.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
+	END;
+END MODULE;
+
+DECLARE DateURL EXTERNAL CHARACTER'';
+CREATE COMPUTE MODULE LoanRepaymentT24Flow_ExtractDate
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL CopyEntireMessage();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		DECLARE y,nextWorkDate,currentWorkDate CHARACTER;
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE executionDate CHARACTER;
+		SET Environment.MQRFH2.RequestIdentifier = InputRoot.MQRFH2.RequestIdentifier;
+		SET Environment.Variables.csvData = InputRoot.JSON.Data;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		SET y = EXTRACT (DAYOFWEEK FROM dbLoggingDate);
+		IF y LIKE '1' THEN
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = DateURL;
+		ELSE
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = DateURL;
+		END IF;
 	END;
 END MODULE;
