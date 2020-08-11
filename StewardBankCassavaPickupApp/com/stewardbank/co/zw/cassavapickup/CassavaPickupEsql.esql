@@ -1,0 +1,212 @@
+BROKER SCHEMA com.stewardbank.co.zw.cassavapickup
+
+PATH  com.stewardbank.co.zw.common.esql; 
+
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';	
+DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';     
+DECLARE IsLogRequired EXTERNAL CHARACTER'';
+DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER'';
+DECLARE URL EXTERNAL CHARACTER'';
+DECLARE Authorization  EXTERNAL CHARACTER'';
+DECLARE API_ID  EXTERNAL CHARACTER'';
+
+CREATE COMPUTE MODULE CassavaPickupFlow_GetPickupTransaction
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL GetPickupTransaction();
+		RETURN FALSE;
+	END;
+	CREATE PROCEDURE GetPickupTransaction() BEGIN
+		SET Environment.MQRFH2= InputRoot.MQRFH2;
+		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE inRef REFERENCE TO InputRoot;
+		DECLARE inRefJsondata REFERENCE TO InputRoot.JSON.Data.CassavaPickup.body;
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
+		-- SET DBLogging Properties ==============
+		SET Environment.reqMsg = reqMsg;
+		-- SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		-- =================== CALLING DB RAW AUDIT LOGGING ==============
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+		END IF;
+		
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','..............Start Cassava Pickup logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','Incoming Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG',reqMsg) INTO rc;
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+			END IF; 
+			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+			/* =================== CALLING LOG4J LOGGING  ==============*/
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data  NAME 'data';
+		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data.data;
+		
+		
+		
+		SET outRef.type = inRefJsondata.data.type;
+		SET outRef.id = inRefJsondata.data.id;
+		SET outRef.attributes.status = inRefJsondata.data.attributes.status;
+		SET outRef.attributes.payout_amount = inRefJsondata.data.attributes.payout_amount;
+		SET outRef.attributes.payout_comment = inRefJsondata.data.attributes.payout_comment;
+		
+		SET outRef.relationships.payout_currency.data.id = inRefJsondata.data.relationships.payout_currency.data.id;
+		SET outRef.relationships.payout_currency.data.type = inRefJsondata.data.relationships.payout_currency.data.type;
+	
+		
+		SET Environment.data = OutputRoot.JSON.Data;
+		SET Environment.t24ReqMsg = getPayLoad(FIELDNAME(InputBody),outRef,encodeRef,ccsid);
+	   SET OutputRoot.JSON = NULL;
+			IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','T24 Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG',Environment.t24ReqMsg) INTO rc;
+		END IF;
+		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
+		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.t24ReqMsg,'T24  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF; 
+		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/vnd.api+json';
+		SET OutputRoot.HTTPRequestHeader."Accept-Encoding" = 'application/vnd.api+json';
+		SET OutputRoot.HTTPRequestHeader."Authorization" = Authorization||' '||inRefJsondata.data.access;
+		SET OutputRoot.HTTPRequestHeader."app-id" = API_ID;
+		SET OutputRoot.JSON.Data = Environment.data;
+		SET OutputLocalEnvironment.Destination.HTTP.SSLProtocol = 'SSL';
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||inRefJsondata.data.id||'/';
+		PROPAGATE TO TERMINAL 'out';
+	END;
+END MODULE;
+
+
+
+CREATE COMPUTE MODULE CassavaPickupFlow_ResponseToChannel
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL ResponseToChannel();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE ResponseToChannel() BEGIN
+			SET Environment.Properties = InputRoot.Properties;
+		-- SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+	 	DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+	 	DECLARE inRef1 REFERENCE TO InputRoot.JSON.Data.body.Item[1];
+	 	DECLARE inDomain CHARACTER FIELDNAME(InputBody);
+	 	DECLARE i INTEGER 1;
+	 	DECLARE outRefer REFERENCE TO OutputRoot;
+	 	DECLARE inDomainDataRef REFERENCE TO InputRoot.JSON.Data;
+	 	DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		DECLARE rc BOOLEAN FALSE;
+		
+		/* =================== CALLING  LOG4J LOGGING   ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+			
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','Response from T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid)) INTO rc;
+		END IF;
+		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
+		/* =================== CALLING DB LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid),'T24  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
+		END IF; 
+		
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = InputRoot.JSON;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE CassavaPickupFlow_BuildExceptionDetails
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL BuildException();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE BuildException() BEGIN
+			DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE errMsg CHARACTER;
+		DECLARE statusCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		IF CONTAINS(excpRef.excpText,'SocketException') THEN
+			SET errMsg = 'No Response from T24 Server';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.MQRFH2.statusCode = statusCode;
+		
+		
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'CassavaPickup';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'CassavaPickup');
+		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CassavaPickup');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef.channel = 'CassavaPickup';
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+	    
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CassavaPickup.ErrorCode;
+		SET errorRef.message = errMsg;
+		
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef); 
+		
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;  
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc; 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+		------------Error Logging in DB----------
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.CassavaPickup.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;  
+	END;
+END MODULE;
