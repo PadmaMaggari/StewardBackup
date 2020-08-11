@@ -80,41 +80,34 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 		/* hear we are checking wethar the request firels having 'YES' or 'NO' If YES URL will cantains fields or contains NO in the URL there is no fields */
 
 		DECLARE currency,sender,sender_country,beneficiary,beneficiary_country,available_payout_currencies CHARACTER'';
-		DECLARE comm CHARACTER',';
 		IF inRefJsondata.filter.currency LIKE 'no' AND inRefJsondata.filter.sender LIKE 'no'
-			AND inRefJsondata.filter.sender.country LIKE 'no'
-			AND inRefJsondata.filter.beneficiary LIKE 'no' AND inRefJsondata.filter.beneficiary.country LIKE 'no'
+			AND inRefJsondata.filter.sender_country LIKE 'no'
+			AND inRefJsondata.filter.beneficiary LIKE 'no' AND inRefJsondata.filter.beneficiary_country LIKE 'no'
 			AND inRefJsondata.filter.available_payout_currencies LIKE 'no' THEN
 
 			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||inRefJsondata.id;			
-
-		END IF;
-		IF inRefJsondata.filter.currency LIKE 'yes' THEN
-				SET currency = 'currency';
-				 
+		ELSE
+			IF inRefJsondata.filter.currency LIKE 'yes' THEN
+				 CALL buildLookupUrl('currency',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
 			IF inRefJsondata.filter.sender LIKE 'yes' THEN
-				SET sender = 'sender';
+				CALL buildLookupUrl('sender',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
-			IF inRefJsondata.filter.sender.country LIKE 'yes' THEN
-				SET sender_country= 'sender.country';
-			END IF;
-			IF inRefJsondata.filter.beneficiary LIKE 'yes' THEN
-				SET beneficiary= 'beneficiary';
+			IF inRefJsondata.filter.sender_country LIKE 'yes' THEN
+				CALL buildLookupUrl('sender_country',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
 			IF inRefJsondata.filter.beneficiary LIKE 'yes' THEN
-				SET beneficiary= 'beneficiary';
+				CALL buildLookupUrl('beneficiary',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
-			IF inRefJsondata.filter.beneficiary.country LIKE 'yes' THEN
-				SET beneficiary_country= 'beneficiary.country';
+			
+			IF inRefJsondata.filter.beneficiary_country LIKE 'yes' THEN
+				CALL buildLookupUrl('beneficiary_country',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
 			IF inRefJsondata.filter.available_payout_currencies LIKE 'yes' THEN
-				SET available_payout_currencies= 'available_payout_currencies';
+				CALL buildLookupUrl('available_payout_currencies',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
-			
-			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||inRefJsondata.id||FILTER_URL||currency||sender||sender_country||beneficiary||beneficiary_country||available_payout_currencies;
-			
-
+		END IF;
+		
 
 		
 		--SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||'ID'||FILTER_URL||'';
@@ -123,7 +116,16 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 	
 	
 	-- ==============  PORCEDURE ============================
-	
+	CREATE PROCEDURE buildLookupUrl(IN filterKey CHARACTER,IN id CHARACTER)
+	BEGIN
+		DECLARE reqUrl CHARACTER CAST(OutputLocalEnvironment.Destination.HTTP.RequestURL AS CHARACTER);
+		DECLARE comm CHARACTER ',';
+		IF CONTAINS(reqUrl,FILTER_URL)THEN
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = reqUrl||comm||filterKey;
+		ELSE
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||id||FILTER_URL||filterKey;
+		END IF;
+	END;
 	
 END MODULE;
 
