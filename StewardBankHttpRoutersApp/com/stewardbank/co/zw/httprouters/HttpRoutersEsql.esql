@@ -353,14 +353,18 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_GenerateResToFrontEnd
 			------------------------------
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
+		
 		IF EXISTS(InputRoot.JSON[]) THEN
+			SET OutputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code" = Environment.MQRFH2.statusCode;
 			SET OutputRoot.JSON = InputRoot.JSON;
+			
 		ELSEIF EXISTS(InputRoot.XMLNSC[]) THEN
 			SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','======HTTP RequestIdentifier====='|| CAST(Environment.MQRFH2.RequestIdentifier AS CHARACTER)) INTO rc ;
 		END IF;
+		
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 		CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','=============HTTP Outgoing Router End ==============') INTO rc ;
 	END;
