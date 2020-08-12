@@ -170,6 +170,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			END IF;
 			SET Environment.MQRFH2.usr.resQueueName = qDetails.values.HTTP_RES;
 			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2.reqHeader = InputRoot.HTTPInputHeader;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 			IF EXISTS(Environment.JSON[]) THEN
 				SET OutputRoot.JSON = Environment.JSON;
