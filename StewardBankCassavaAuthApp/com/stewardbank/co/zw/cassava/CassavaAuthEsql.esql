@@ -83,46 +83,83 @@ CREATE COMPUTE MODULE CassavaFlow_ResponseToChannel
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 CALL ResponseToChannel();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 	CREATE PROCEDURE ResponseToChannel() BEGIN
-		
-			SET Environment.Properties = InputRoot.Properties;
+	SET Environment.Properties = InputRoot.Properties;
 		-- SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-	 	DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
-	 	DECLARE inRef1 REFERENCE TO InputRoot.JSON.Data.body.Item[1];
-	 	DECLARE inDomain CHARACTER FIELDNAME(InputBody);
-	 	DECLARE i INTEGER 1;
-	 	DECLARE outRefer REFERENCE TO OutputRoot;
-	 	DECLARE inDomainDataRef REFERENCE TO InputRoot.JSON.Data;
-	 	DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE inRef1 REFERENCE TO InputRoot.JSON.Data.body.Item[1];
+		DECLARE inDomain CHARACTER FIELDNAME(InputBody);
+		DECLARE i INTEGER 1;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE inDomainDataRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		DECLARE rc BOOLEAN FALSE;
-		
-		/* =================== CALLING  LOG4J LOGGING   ==============*/
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		/* =================== CALLING LOG4J LOGGING ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			DECLARE msg CHARACTER ;
-			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-		IF IsLogRequired LIKE 'Y' THEN
+		/* ===== based on the statu code response will route to response router ===== */
+		DECLARE errMsg,T24resMsg CHARACTER'';
+		DECLARE statusCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		IF statusCode NOT LIKE '200' THEN
 			
+			SET errMsg = 'Error Response from T24 Server';
+			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+			CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CassavaAuth');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+			DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+			SET headerRef.channel = 'CassavaAuth';
+			SET headerRef.status = 'FAILED';
+			SET headerRef.responseCode = '000';
+			SET errorRef.source = 'ESB';
+			SET errorRef.message = errMsg;
+			
+			DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+			
+			SET T24resMsg = getPayload('JSON',domainDataRef,encodeRef,ccsid);
+			SET Environment.data = domainDataRef;
+			SET OutputRoot.JSON = NULL;
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,T24resMsg,'T24  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+				PROPAGATE TO TERMINAL 'out';
+			END IF;
 			CALL writeToLogFile(MessageFlowLabel, 'CassavaAuthLogger', 'DEBUG','Response from T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CassavaAuthLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaAuthLogger', 'DEBUG',T24resMsg) INTO rc;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputRoot.MQRFH2.statusCode = statusCode;
+			SET OutputRoot.JSON = Environment.data;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+			PROPAGATE TO TERMINAL 'out';
+		ELSE
+			/* =================== CALLING LOG4J LOGGING ENDING ==============*/
+			/* =================== CALLING DB LOGGING ==============*/
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid),'T24  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+				PROPAGATE TO TERMINAL 'out';
+			END IF;
+			DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+			SET T24resMsg = getPayload('JSON',domainDataRef,encodeRef,ccsid);
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaAuthLogger', 'DEBUG','Response from T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaAuthLogger', 'DEBUG',T24resMsg) INTO rc;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputRoot.MQRFH2.statusCode = statusCode;
+			SET OutputRoot.JSON = InputRoot.JSON;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
+			PROPAGATE TO TERMINAL 'out';
 		END IF;
-		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
-		/* =================== CALLING DB LOGGING   ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid),'T24  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out';
-		END IF; 
-		
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON = InputRoot.JSON;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
 	END;
 END MODULE;
 CREATE COMPUTE MODULE CassavaAuthFlow_BuildExceptionDetails
