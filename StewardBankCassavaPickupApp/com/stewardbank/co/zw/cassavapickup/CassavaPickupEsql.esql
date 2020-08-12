@@ -90,6 +90,9 @@ CREATE COMPUTE MODULE CassavaPickupFlow_GetPickupTransaction
 		SET OutputRoot.JSON.Data = Environment.data;
 		SET OutputLocalEnvironment.Destination.HTTP.SSLProtocol = 'SSL';
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||inRefJsondata.data.id||'/';
+		CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','URL::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG',CAST(OutputLocalEnvironment.Destination.HTTP.RequestURL AS CHARACTER)) INTO rc;
+		
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
