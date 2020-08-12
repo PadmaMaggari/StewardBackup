@@ -1,5 +1,11 @@
 
 
+
+
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.cassavalookup
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -52,7 +58,7 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
-		/* =================== CALLING LOG4J LOGGING ==============*/		
+		/* =================== CALLING LOG4J LOGGING ==============*/
 
 
 		SET Environment.data = InputRoot.JSON.Data;
@@ -75,8 +81,9 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/vnd.api+json';
 		SET OutputRoot.HTTPRequestHeader."Accept" = 'application/vnd.api+json';
 		SET OutputRoot.HTTPRequestHeader."Authorization" = InputRoot.MQRFH2.usr.HTTPInputHeader.Authorization;
-	--	SET OutputRoot.JSON.Data = Environment.data;
-		SET OutputLocalEnvironment.Destination.HTTP.SSLProtocol = 'SSL';		
+		-- SET OutputRoot.JSON.Data = Environment.data;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
+		SET OutputLocalEnvironment.Destination.HTTP.SSLProtocol = 'SSL';
 		/* hear we are checking wethar the request firels having 'YES' or 'NO' If YES URL will cantains fields or contains NO in the URL there is no fields */
 
 		DECLARE currency,sender,sender_country,beneficiary,beneficiary_country,available_payout_currencies CHARACTER'';
@@ -85,10 +92,10 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 			AND inRefJsondata.filter.beneficiary LIKE 'no' AND inRefJsondata.filter.beneficiary_country LIKE 'no'
 			AND inRefJsondata.filter.available_payout_currencies LIKE 'no' THEN
 
-			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||inRefJsondata.id||'/';			
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||inRefJsondata.id||'/';
 		ELSE
 			IF inRefJsondata.filter.currency LIKE 'yes' THEN
-				 CALL buildLookupUrl('currency',CAST(inRefJsondata.id AS CHARACTER));
+				CALL buildLookupUrl('currency',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
 			IF inRefJsondata.filter.sender LIKE 'yes' THEN
 				CALL buildLookupUrl('sender',CAST(inRefJsondata.id AS CHARACTER));
@@ -99,7 +106,7 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 			IF inRefJsondata.filter.beneficiary LIKE 'yes' THEN
 				CALL buildLookupUrl('beneficiary',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
-			
+
 			IF inRefJsondata.filter.beneficiary_country LIKE 'yes' THEN
 				CALL buildLookupUrl('beneficiary_country',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
@@ -107,14 +114,12 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 				CALL buildLookupUrl('available_payout_currencies',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
 		END IF;
-			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG','URL::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG',CAST(OutputLocalEnvironment.Destination.HTTP.RequestURL AS CHARACTER)) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG','URL::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG',CAST(OutputLocalEnvironment.Destination.HTTP.RequestURL AS CHARACTER)) INTO rc;
 		--SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||'ID'||FILTER_URL||'';
 		PROPAGATE TO TERMINAL 'out';
 	END;
-	
-	
-	-- ==============  PORCEDURE ============================
+	-- ============== PORCEDURE ============================
 	CREATE PROCEDURE buildLookupUrl(IN filterKey CHARACTER,IN id CHARACTER)
 	BEGIN
 		DECLARE reqUrl CHARACTER CAST(OutputLocalEnvironment.Destination.HTTP.RequestURL AS CHARACTER);
@@ -125,14 +130,14 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||id||FILTER_URL||filterKey;
 		END IF;
 	END;
-	
+
 END MODULE;
 
 CREATE COMPUTE MODULE CassavaLookupFlow_ResponseToChannel
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL ResponseToChannel();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 	CREATE PROCEDURE ResponseToChannel() BEGIN
 		SET Environment.Properties = InputRoot.Properties;
@@ -153,23 +158,62 @@ CREATE COMPUTE MODULE CassavaLookupFlow_ResponseToChannel
 			DECLARE msg CHARACTER ;
 			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';
 		END IF;
-		IF IsLogRequired LIKE 'Y' THEN
-
+		/* ===== based on the statu code response will route to response router ===== */
+		DECLARE errMsg,T24resMsg CHARACTER'';
+		DECLARE statusCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		IF statusCode NOT LIKE '200' THEN
+			
+			SET errMsg = 'Error Response from T24 Server';
+			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+			CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CassavaLookup');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+			DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+			SET headerRef.channel = 'CassavaLookup';
+			SET headerRef.status = 'FAILED';
+			SET headerRef.responseCode = '000';
+			SET errorRef.source = 'ESB';
+			SET errorRef.message = errMsg;
+			
+			DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+			
+			SET T24resMsg = getPayload('JSON',domainDataRef,encodeRef,ccsid);
+			SET Environment.data = domainDataRef;
+			SET OutputRoot.JSON = NULL;
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,T24resMsg,'T24  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+				PROPAGATE TO TERMINAL 'out';
+			END IF;
 			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG','Response from T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid)) INTO rc;
-		END IF;
-		/* =================== CALLING LOG4J LOGGING ENDING ==============*/
-		/* =================== CALLING DB LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid),'T24  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG',T24resMsg) INTO rc;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputRoot.MQRFH2.statusCode = statusCode;
+			SET OutputRoot.JSON = Environment.data;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+			PROPAGATE TO TERMINAL 'out';
+		ELSE
+			/* =================== CALLING LOG4J LOGGING ENDING ==============*/
+			/* =================== CALLING DB LOGGING ==============*/
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,getPayLoad(FIELDNAME(InputBody),inDomainDataRef,encodeRef,ccsid),'T24  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+				PROPAGATE TO TERMINAL 'out';
+			END IF;
+			DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+			SET T24resMsg = getPayload('JSON',domainDataRef,encodeRef,ccsid);
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG','Response from T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG',T24resMsg) INTO rc;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputRoot.MQRFH2.statusCode = statusCode;
+			SET OutputRoot.JSON = InputRoot.JSON;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
 			PROPAGATE TO TERMINAL 'out';
 		END IF;
-
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON = InputRoot.JSON;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
 	END;
 END MODULE;
 
@@ -198,7 +242,7 @@ CREATE COMPUTE MODULE CassavaLookupFlow_BuildExceptionDetails
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.MQRFH2.statusCode = statusCode;		
+		SET OutputRoot.MQRFH2.statusCode = statusCode;
 
 
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -245,7 +289,7 @@ CREATE COMPUTE MODULE CassavaLookupFlow_BuildExceptionDetails
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 	END;
-	
-	
-	
+
+
+
 END MODULE;
