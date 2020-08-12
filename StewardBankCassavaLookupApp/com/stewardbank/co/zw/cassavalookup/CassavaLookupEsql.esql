@@ -108,7 +108,8 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 			END IF;
 		END IF;
 		
-
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG','URL::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG',CAST(OutputLocalEnvironment.Destination.HTTP.RequestURL AS CHARACTER)) INTO rc;
 		
 		--SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||'ID'||FILTER_URL||'';
 		PROPAGATE TO TERMINAL 'out';
