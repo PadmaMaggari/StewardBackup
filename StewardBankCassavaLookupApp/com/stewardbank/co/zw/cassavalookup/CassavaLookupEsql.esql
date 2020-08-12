@@ -19,7 +19,7 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GetPickupTransaction();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE GetPickupTransaction() BEGIN
@@ -71,11 +71,11 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
-		SET OutputRoot.Properties = InputRoot.Properties;
+		--SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/vnd.api+json';
-		SET OutputRoot.HTTPRequestHeader."Accept-Encoding" = 'application/vnd.api+json';
-		SET OutputRoot.HTTPRequestHeader."Authorization" = Authorization||' '||inRefJsondata.data.access;
-		SET OutputRoot.JSON.Data = Environment.data;
+		SET OutputRoot.HTTPRequestHeader."Accept" = 'application/vnd.api+json';
+		SET OutputRoot.HTTPRequestHeader."Authorization" = InputRoot.MQRFH2.usr.HTTPInputHeader.Authorization;
+	--	SET OutputRoot.JSON.Data = Environment.data;
 		SET OutputLocalEnvironment.Destination.HTTP.SSLProtocol = 'SSL';		
 		/* hear we are checking wethar the request firels having 'YES' or 'NO' If YES URL will cantains fields or contains NO in the URL there is no fields */
 
@@ -85,7 +85,7 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 			AND inRefJsondata.filter.beneficiary LIKE 'no' AND inRefJsondata.filter.beneficiary_country LIKE 'no'
 			AND inRefJsondata.filter.available_payout_currencies LIKE 'no' THEN
 
-			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||inRefJsondata.id;			
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||inRefJsondata.id||'/';			
 		ELSE
 			IF inRefJsondata.filter.currency LIKE 'yes' THEN
 				 CALL buildLookupUrl('currency',CAST(inRefJsondata.id AS CHARACTER));
