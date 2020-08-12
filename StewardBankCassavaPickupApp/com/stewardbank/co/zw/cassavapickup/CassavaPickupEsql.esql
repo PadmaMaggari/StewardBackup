@@ -85,7 +85,7 @@ CREATE COMPUTE MODULE CassavaPickupFlow_GetPickupTransaction
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/vnd.api+json';
 		SET OutputRoot.HTTPRequestHeader."Accept-Encoding" = 'application/vnd.api+json';
-		SET OutputRoot.HTTPRequestHeader."Authorization" = Authorization||' '||inRefJsondata.data.access;
+		SET OutputRoot.HTTPRequestHeader."Authorization" = InputRoot.MQRFH2.usr.HTTPInputHeader.Authorization;
 		SET OutputRoot.HTTPRequestHeader."app-id" = API_ID;
 		SET OutputRoot.JSON.Data = Environment.data;
 		SET OutputLocalEnvironment.Destination.HTTP.SSLProtocol = 'SSL';
