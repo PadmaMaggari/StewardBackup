@@ -144,19 +144,19 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GenerateExceptionDetails
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE exe_Desc CHARACTER'';  
---		IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') OR CONTAINS(excpRef.excpText,'empty name') OR CONTAINS(excpRef.excpText,'odbc')THEN
---			SET OutputLocalEnvironment.Destination.File.Directory = DBFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
---			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.File.Name;
---		ELSE
---			SET OutputLocalEnvironment.Destination.File.Directory = FormatFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
---			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.File.Name;
---		END IF;	
---		SET OutputRoot.Properties.MessageSet = '{MT103}';
---			SET OutputRoot.Properties.MessageType = '{}:MT103';
---			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
---			parse(Environment.Variables.mtReqMsg ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
---			PROPAGATE TO TERMINAL 'out1';
---			SET OutputRoot.DFDL = NULL;
+		IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') OR CONTAINS(excpRef.excpText,'empty name') OR CONTAINS(excpRef.excpText,'odbc')THEN
+			SET OutputLocalEnvironment.Destination.File.Directory = DBFailure;
+			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.File.Name||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+		ELSE
+			SET OutputLocalEnvironment.Destination.File.Directory = FormatFailure;
+			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.File.Name||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+		END IF;	
+		SET OutputRoot.Properties.MessageSet = '{MT103}';
+			SET OutputRoot.Properties.MessageType = '{}:MT103';
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
+			parse(Environment.Variables.mtReqMsg ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+			PROPAGATE TO TERMINAL 'out1';
+			SET OutputRoot.DFDL = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'RTGSIncoming';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;    

@@ -22,6 +22,7 @@ CREATE COMPUTE MODULE RtgsIncomingDbReprocess_trigFlowatFive
 		END IF;
 		IF test<test2 THEN
 					
+					
 			SET OutputLocalEnvironment.TimeoutRequest.Action = 'SET';
 			SET OutputLocalEnvironment.TimeoutRequest.Identifier = 'CtrlRtgs';
 			SET OutputLocalEnvironment.TimeoutRequest.StartTime = triggerTime;
@@ -47,7 +48,7 @@ CREATE COMPUTE MODULE RtgsIncomingDbReprocess_PickFilesfrmDbFailure
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE hr INTEGER;
 		DECLARE dateFolder CHARACTER ; 
-		SET dateFolder = CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd'); 
+		--SET dateFolder = CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd'); 
 		--SET hr = EXTRACT(HOUR FROM CURRENT_TIMESTAMP);
 		IF (rc = FALSE) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
@@ -58,7 +59,7 @@ CREATE COMPUTE MODULE RtgsIncomingDbReprocess_PickFilesfrmDbFailure
 		CALL writeToLogFile(MessageFlowLabel,'RTGSFileReprocess', 'DEBUG','RTGSIncoming Request Reprocess time is:'||triggerTime) INTO rc;
 		END IF;
 		WHILE Environment.NoMatchReason IS  NULL DO 
-			SET OutputLocalEnvironment.Destination.File.Directory = dbFailureFolderPath||dateFolder;
+			SET OutputLocalEnvironment.Destination.File.Directory = dbFailureFolderPath;
 			PROPAGATE TO TERMINAL 'out';		
 		END WHILE;
 	END;
