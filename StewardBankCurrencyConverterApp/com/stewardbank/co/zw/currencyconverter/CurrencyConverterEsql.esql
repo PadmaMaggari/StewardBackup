@@ -4,7 +4,7 @@ DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
-DECLARE URL EXTERNAL CHARACTER '';
+DECLARE CC_URL EXTERNAL CHARACTER '';
 DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER ''; 
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
@@ -69,7 +69,7 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
 		SET OutputRoot = NULL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.Id,URL,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),
+			CALL DBLogging(Environment.MQRFH2.usr.Id,CC_URL,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),
 			CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q; 
@@ -81,10 +81,10 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
 		MOVE outRef TO OutputRoot.JSON;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','Request URL To T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',URL) INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',CC_URL) INTO rc;   
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = CC_URL; 
 	END;
 END MODULE;
 
