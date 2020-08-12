@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmFileOutput.msgnode="ComIbmFileOutput.msgnode" xmlns:ComIbmFileRead.msgnode="ComIbmFileRead.msgnode" xmlns:ComIbmTimeoutNotification.msgnode="ComIbmTimeoutNotification.msgnode" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow.msgflow" nsPrefix="com_stewardbank_co_zw_scpfilereprocess_SCPFileReprocessFlow.msgflow">
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmFileOutput.msgnode="ComIbmFileOutput.msgnode" xmlns:ComIbmFileRead.msgnode="ComIbmFileRead.msgnode" xmlns:ComIbmTimeoutControl.msgnode="ComIbmTimeoutControl.msgnode" xmlns:ComIbmTimeoutNotification.msgnode="ComIbmTimeoutNotification.msgnode" xmlns:com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow="com/stewardbank/co/zw/common/exceptionhandling/exceptionHandlingSubFlow.subflow"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow.msgflow" nsPrefix="com_stewardbank_co_zw_scpfilereprocess_SCPFileReprocessFlow.msgflow">
   <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
     <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.dbFailureFolderPath" name="dbFailureFolderPath" defaultValueLiteral="C:\Users\Sreenivas Bandaru\Documents\SCP_Failure\">
-      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.triggerTimeHour" name="triggerTimeHour" defaultValueLiteral="17">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.SCPFolderPath" name="SCPFolderPath" defaultValueLiteral="C:\Users\Sreenivas Bandaru\Documents\SCP_Input">
@@ -26,48 +24,69 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERROR_AUDIT_Q" name="ERROR_AUDIT_Q" defaultValueLiteral="ERR_LOG_SB_REQ">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.triggerTime" name="triggerTime" defaultValueLiteral="17:00:00">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="SCPFileReprocessFlow" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/SB_SalaryCorporatePayments_FileReprocess/icons/full/obj16/SCPFileReprocessFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/SB_SalaryCorporatePayments_FileReprocess/icons/full/obj30/SCPFileReprocessFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmFileRead.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="402,70" inputDirectory="C:\STEWARD_Bank" fileDispositionAction="moveToArchiveWithTimestamp">
+      <nodes xmi:type="ComIbmFileRead.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="376,317" inputDirectory="C:\STEWARD_Bank" fileDispositionAction="moveToArchiveWithTimestamp">
         <translation xmi:type="utility:ConstantString" string="File Read"/>
       </nodes>
-      <nodes xmi:type="ComIbmTimeoutNotification.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="149,73" uniqueIdentifier="TrigRtgs" timeoutInterval="3600">
+      <nodes xmi:type="ComIbmTimeoutNotification.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="101,312" uniqueIdentifier="TrigRtgs" timeoutInterval="3600">
         <translation xmi:type="utility:ConstantString" string="Timeout Notification"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="622,76" outputDirectory="C:\STEWARD_Bank" outputFilename="*">
+      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="618,322" outputDirectory="C:\STEWARD_Bank" outputFilename="*">
         <translation xmi:type="utility:ConstantString" string="File Output"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="288,151" computeExpression="esql://routine/com.stewardbank.co.zw.scpfilereprocess#SCPFileReprocessFlow_PickFilesfrmDbFailure.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="267,312" computeExpression="esql://routine/com.stewardbank.co.zw.scpfilereprocess#SCPFileReprocessFlow_PickFilesfrmDbFailure.Main">
         <translation xmi:type="utility:ConstantString" string="Compute"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="529,156" computeExpression="esql://routine/com.stewardbank.co.zw.scpfilereprocess#SCPFileReprocessFlow_PlaceFilesInSCP_Input.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="508,317" computeExpression="esql://routine/com.stewardbank.co.zw.scpfilereprocess#SCPFileReprocessFlow_PlaceFilesInSCP_Input.Main">
         <translation xmi:type="utility:ConstantString" string="Compute1"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="305,206">
+        <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmTimeoutNotification.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="118,105" uniqueIdentifier="TrigRtgs" timeoutInterval="86400">
+        <translation xmi:type="utility:ConstantString" string="TrigRtgs"/>
+      </nodes>
+      <nodes xmi:type="ComIbmTimeoutControl.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="405,106" uniqueIdentifier="CtrlRtgs">
+        <translation xmi:type="utility:ConstantString" string="Timeout Control"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="265,105" computeExpression="esql://routine/com.stewardbank.co.zw.scpfilereprocess#SCPFileReprocessFlow_trigFlowatFive.Main">
+        <translation xmi:type="utility:ConstantString" string="TriggerSCP"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.noMatch" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_9" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.dbFailureFolderPath">
         <propertyName xmi:type="utility:TranslatableString" key="Property.dbFailureFolderPath" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
-        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.triggerTimeHour">
-          <propertyName xmi:type="utility:TranslatableString" key="Property.triggerTimeHour" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
-          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.SCPFolderPath">
-            <propertyName xmi:type="utility:TranslatableString" key="Property.SCPFolderPath" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
-            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
-              <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
-              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4J_INIT_ERROR">
-                <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
-                <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
-                  <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
-                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.SB_EXCQ">
-                    <propertyName xmi:type="utility:TranslatableString" key="Property.SB_EXCQ" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
-                    <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERROR_AUDIT_Q">
-                      <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_Q" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.SCPFolderPath">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.SCPFolderPath" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4J_INIT_ERROR">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
+              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
+                <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
+                <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.SB_EXCQ">
+                  <propertyName xmi:type="utility:TranslatableString" key="Property.SB_EXCQ" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
+                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERROR_AUDIT_Q">
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_Q" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
+                    <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.triggerTime">
+                      <propertyName xmi:type="utility:TranslatableString" key="Property.triggerTime" bundleName="com/stewardbank/co/zw/scpfilereprocess/SCPFileReprocessFlow" pluginId="SB_SalaryCorporatePayments_FileReprocess"/>
                     </propertyDescriptor>
                   </propertyDescriptor>
                 </propertyDescriptor>
