@@ -1,8 +1,42 @@
 BROKER SCHEMA com.stewardbank.co.zw.scpfilereprocess
-
 PATH com.stewardbank.co.zw.common.esql ;   
-DECLARE dbFailureFolderPath,triggerTimeHour,SCPFolderPath  EXTERNAL CHARACTER '';  
+DECLARE dbFailureFolderPath,triggerTimeHour,SCPFolderPath,triggerTime  EXTERNAL CHARACTER '';  
 DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,IsLogRequired EXTERNAL CHARACTER '';
+
+CREATE COMPUTE MODULE SCPFileReprocessFlow_trigFlowatFive
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL trigFlowatFive();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE trigFlowatFive() BEGIN 
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE test TIME CAST(CURRENT_TIME AS TIME FORMAT 'hh:mm:ss');
+		DECLARE test2 TIME CAST(triggerTime AS TIME); 
+		DECLARE today DATE CURRENT_DATE;
+		IF (rc = FALSE) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel,'RTGSFileReprocess', 'DEBUG','..............Start RTGSIncoming Db Failure Reprocess logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel,'RTGSFileReprocess', 'DEBUG','RTGSIncoming Request Reprocess time is:'||triggerTime) INTO rc;
+		END IF;
+		IF test<test2 THEN					
+			SET OutputLocalEnvironment.TimeoutRequest.Action = 'SET';
+			SET OutputLocalEnvironment.TimeoutRequest.Identifier = 'CtrlRtgs';
+			SET OutputLocalEnvironment.TimeoutRequest.StartTime = triggerTime;
+			SET OutputLocalEnvironment.TimeoutRequest.IgnoreMissed = 'TRUE';
+		ELSE
+			DECLARE startday CHARACTER CAST(today+INTERVAL '1' DAY AS CHARACTER FORMAT 'yyyy-MM-dd');
+			SET OutputLocalEnvironment.TimeoutRequest.Action = 'SET';
+			SET OutputLocalEnvironment.TimeoutRequest.Identifier = 'CtrlRtgs';
+			SET OutputLocalEnvironment.TimeoutRequest.StartDate = startday;
+			SET OutputLocalEnvironment.TimeoutRequest.StartTime = triggerTime;
+			SET OutputLocalEnvironment.TimeoutRequest.IgnoreMissed = 'TRUE';
+		END IF;
+	END;
+END MODULE;
+
 CREATE COMPUTE MODULE SCPFileReprocessFlow_PickFilesfrmDbFailure 
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -23,15 +57,18 @@ CREATE COMPUTE MODULE SCPFileReprocessFlow_PickFilesfrmDbFailure
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSFileReprocess', 'DEBUG','SalaryCorporatePayments Reprocess path :'||dbFailureFolderPath||dateFolder) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSFileReprocess', 'DEBUG','SalaryCorporatePayments Request Reprocess time is:'||triggerTimeHour) INTO rc;
 		END IF;
-		IF hr = triggerTimeHour THEN
+--		IF hr = triggerTimeHour THEN
+--			WHILE Environment.NoMatchReason IS  NULL DO 
+--			SET OutputLocalEnvironment.Destination.File.Directory = dbFailureFolderPath||dateFolder;
+--			PROPAGATE TO TERMINAL 'out';		
+--			END WHILE;			
 			WHILE Environment.NoMatchReason IS  NULL DO 
 			SET OutputLocalEnvironment.Destination.File.Directory = dbFailureFolderPath||dateFolder;
 			PROPAGATE TO TERMINAL 'out';		
-			END WHILE;
-		END IF;
-		
+		END WHILE;		
 	END;
-END MODULE;
+END MODULE; 
+
 CREATE COMPUTE MODULE SCPFileReprocessFlow_PlaceFilesInSCP_Input
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -61,5 +98,3 @@ CREATE COMPUTE MODULE SCPFileReprocessFlow_PlaceFilesInSCP_Input
 		END IF;
 		END;
 END MODULE;
-
-
