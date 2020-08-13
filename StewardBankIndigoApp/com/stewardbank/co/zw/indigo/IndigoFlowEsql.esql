@@ -436,28 +436,18 @@ CREATE COMPUTE MODULE IndigoFlow_ReqToFrondEnd
 		PROPAGATE TO TERMINAL 'out1';
 		END IF; 
 			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
-		
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','..............Start T24 Response  logging...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','T24 Response::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG',Environment.t24resMsg) INTO rc;
 		END IF;
-		
-		
-		
-		
 --		CALL soapResFieldToFieldMapping(bindingOperatingName);
-		
-		
-		
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.SOAP = InputRoot.SOAP;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
 		PROPAGATE TO TERMINAL 'out';
 	END;
-	
-	
 --	CREATE PROCEDURE soapResFieldToFieldMapping(IN bindingOperatingName CHARACTER)
 --	BEGIN
 --		
