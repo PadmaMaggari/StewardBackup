@@ -259,7 +259,7 @@ CREATE COMPUTE MODULE CurrencyConverter_CaptureException
 		SET headerRef.responseCode = '000';
 		SET responseBody.source = 'ESB'; 
 		SET responseBody.applicationName = ApplicationLabel;
-		SET responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CurrencyConverter.ErrorCode;
+		SET responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CurrencyConverter.ErrorCode; 
 		SET responseBody.message = errMsg;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
