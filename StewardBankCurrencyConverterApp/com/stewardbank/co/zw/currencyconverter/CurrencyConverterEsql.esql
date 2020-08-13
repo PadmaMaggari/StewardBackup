@@ -84,6 +84,7 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',CC_URL) INTO rc;   
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = CC_URL; 
 	END;
 END MODULE;
@@ -196,7 +197,7 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 		SET OutputRoot.JSON.Data=envref;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','CurrencyConvertor Response To Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',Environment.jsonData) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',envref) INTO rc;  
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;

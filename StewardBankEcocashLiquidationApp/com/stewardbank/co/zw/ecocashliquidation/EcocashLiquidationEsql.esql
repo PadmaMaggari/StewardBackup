@@ -59,10 +59,8 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 			DECLARE fxtid ROW;
 			DECLARE value INTEGER;
 			DECLARE value1 CHARACTER;
-			-- set fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL');
-			-- set value = fxtid.values.SEQ;
-			-- set value1 = CAST(value as CHARACTER);
-			set fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL');
+			--set fxtid.values[]  = PASSTHRU('SELECT NEXT VALUE FOR ECHOCASH_SEQ AS SEQ');
+			 set fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL');
 			set value = fxtid.values.SEQ;
 			set value1 = CAST(value as CHARACTER);
 			DECLARE value2 CHARACTER;
@@ -204,7 +202,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 
 				PROPAGATE TO TERMINAL 'out';
 			ELSE
-				DECLARE OTBUrlParameters,OB_T24URL,OTB_Msg,narrative CHARACTER;
+				DECLARE OTBUrlParameters,OB_T24URL,OTB_Msg CHARACTER; 
 				CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
 				DECLARE outRef REFERENCE TO OutputRoot.JSON;
 				CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
@@ -216,20 +214,13 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				SET outRef.batchIdentifier = EnvRefer.BATCH_IDENTIFIER;
 				SET outRef.branchName = EnvRefer.BRANCH_NAME;
 				SET outRef.ecocashlAcctId = '1000000047';
-				SET outRef.currency = 'ZWL';
-				DECLARE bankAccName CHARACTER EnvRefer.BANK_ACC_NAME;
-				DECLARE bankAccNameLength INTEGER LENGTH(bankAccName);
-				IF bankAccNameLength > 18 THEN
-					SET narrative = SUBSTRING(bankAccName FROM 1 FOR 18);
-				ELSE
-					SET narrative = bankAccName;
-				END IF;
-				SET outRef.bankAccName = bankAccName;  
+				SET outRef.currency = 'ZWL';		
+				SET outRef.bankAccName = EnvRefer.BANK_ACC_NAME;  
 				SET outRef.bank = EnvRefer.BANK;
 				SET outRef.bankAccNumber = EnvRefer.BANK_ACC_NUMBER;
 				SET Environment.Variables.OTB_Msg = OutputRoot.JSON.Data;
 				--{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{orderingReference}/{narrative}/{debitCurrency}/{beneficiaryName}/{branch}/{beneficiaryAccountId}
-				SET OB_T24URL = OTB_T24URL||EnvRefer.MERCHANT_NAME||'/'||outRef.paymentCurrency||'/'||EnvRefer.BALANCE_USD||'/'||outRef.executionDate||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||narrative||'/'||outRef.currency||'/'||EnvRefer.BANK||'/'||EnvRefer.BRANCH_NAME||'/'||EnvRefer.BANK_ACC_NUMBER;
+				SET OB_T24URL = OTB_T24URL||EnvRefer.MERCHANT_NAME||'/'||outRef.paymentCurrency||'/'||EnvRefer.BALANCE_USD||'/'||outRef.executionDate||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.BANK_ACC_NAME||'/'||outRef.currency||'/'||EnvRefer.BANK||'/'||EnvRefer.BRANCH_NAME||'/'||EnvRefer.BANK_ACC_NUMBER;
 				SET OutputRoot = NULL;
 				IF IsLogRequired LIKE 'Y' THEN 
 					CALL DBLogging(Environment.Variables.UID,OB_T24URL,'OTB T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer); 
