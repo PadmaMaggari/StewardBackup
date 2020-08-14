@@ -75,6 +75,7 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_GenerateReqToT24
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data = Environment.data;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = URL||accNo||'/'||fromDate||'/'||toDate;
 		PROPAGATE TO TERMINAL 'out';
 	END;
@@ -101,6 +102,7 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_ReqToFrondEnd
 	 	DECLARE inDomainDataRef REFERENCE TO InputRoot.JSON.Data;
 	 	DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		DECLARE rc BOOLEAN FALSE;
+		DECLARE errMsg CHARACTER'';
 		
 		/* =================== CALLING  LOG4J LOGGING   ==============*/
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
@@ -168,10 +170,12 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_ReqToFrondEnd
 				MOVE inRef1 NEXTSIBLING;
 				END WHILE;
 		ELSE
-			SET headRef.statusCode = '000';
-			SET headRef.message = 'FAILURE';
-			SET headRef.responseBody.source = 'ESB';
-			SET headRef.responseBody.applicationName = 'FULL_STATEMENT_HTTP';
+			SET errMsg = 'Error Response from T24 Server';
+			SET headRef.channel = 'FullStatement';
+			SET headRef.status = 'FAILED';
+			SET bodyRef.responseCode = '000';
+			SET bodyRef.source = 'ESB';
+			SET bodyRef.message = errMsg;
 		
 		END IF;
 		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
