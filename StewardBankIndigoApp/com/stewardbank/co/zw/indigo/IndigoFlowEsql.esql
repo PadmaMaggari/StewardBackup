@@ -47,6 +47,8 @@ CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
 		 SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
+		CREATE LASTCHILD OF InputRoot DOMAIN 'SOAP';
+		DECLARE inRefSoap REFERENCE TO InputRoot.SOAP;
 		IF IsLogRequired LIKE 'Y' THEN
 		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
@@ -65,315 +67,9 @@ CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
 			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		/* ========================== FIELD TO FIELD MAPPING =============================================== */
-		
-		
-		CASE
-			
-		WHEN bindingOperatingName LIKE 'CardCharges' THEN
-			
-			CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
-		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
-		SET outRefSoap.Context[] = InputRoot.SOAP.Context[];
-		SET outRefSoap.Header[] = InputRoot.SOAP.Header[];
-		
-		SET outRefSoap.Body.ns:CardCharges.WebRequestCommon.company = InputRoot.SOAP.Body.ns:CardCharges.WebRequestCommon.company;
-		SET outRefSoap.Body.ns:CardCharges.WebRequestCommon.password = InputRoot.SOAP.Body.ns:CardCharges.WebRequestCommon.password;
-		SET outRefSoap.Body.ns:CardCharges.WebRequestCommon.userName =InputRoot.SOAP.Body.ns:CardCharges.WebRequestCommon.userName;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.activityName = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.activityName;
-		
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.assignReason = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.assignReason;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.dueDate = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.dueDate;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.extProcess = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.extProcess;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.extProcessID = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.extProcessID;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.gtsControl = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.gtsControl;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.messageId = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.messageId;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.noOfAuth = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.noOfAuth;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.owner = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.owner;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.replace = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.replace;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.startDate = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.startDate;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.user = InputRoot.SOAP.Body.ns:CardCharges.OfsFunction.user;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.id = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.id;
-		
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountDebited = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountDebited;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType = InputRoot.SOAP.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType;
-		
-
-			
-		WHEN bindingOperatingName LIKE 'AccountDetails' THEN
-			
-			CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
-		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
-		SET outRefSoap.Context[] = InputRoot.SOAP.Context[];
-		SET outRefSoap.Header[] = InputRoot.SOAP.Header[];
-		SET OutputRoot.SOAP.Body.ns:AccountDetails.WebRequestCommon.company = InputRoot.SOAP.Body.ns:AccountDetails.WebRequestCommon.company;
-		SET OutputRoot.SOAP.Body.ns:AccountDetails.WebRequestCommon.password = InputRoot.SOAP.Body.ns:AccountDetails.WebRequestCommon.password;
-		SET OutputRoot.SOAP.Body.ns:AccountDetails.WebRequestCommon.userName = InputRoot.SOAP.Body.ns:AccountDetails.WebRequestCommon.userName;
-		SET OutputRoot.SOAP.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.columnName = InputRoot.SOAP.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.columnName;
-		SET OutputRoot.SOAP.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.criteriaValue = InputRoot.SOAP.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.criteriaValue;
-		SET OutputRoot.SOAP.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.operand = InputRoot.SOAP.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.operand;
-		
-		
-		WHEN bindingOperatingName LIKE 'AmendCard' THEN
-			
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
 		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
-		SET outRefSoap.Context[] = InputRoot.SOAP.Context[];
-		SET outRefSoap.Header[] = InputRoot.SOAP.Header[];
-		SET OutputRoot.SOAP.Body.ns:AmendCard.WebRequestCommon.company = InputRoot.SOAP.Body.ns:AmendCard.WebRequestCommon.company;
-		SET OutputRoot.SOAP.Body.ns:AmendCard.WebRequestCommon.password = InputRoot.SOAP.Body.ns:AmendCard.WebRequestCommon.password;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.WebRequestCommon.userName = InputRoot.SOAP.Body.ns:AmendCard.WebRequestCommon.userName;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.OfsFunction.activityName = InputRoot.SOAP.Body.ns:AmendCard.OfsFunction.activityName;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.OfsFunction.assignReason = InputRoot.SOAP.Body.ns:AmendCard.OfsFunction.assignReason;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.OfsFunction.dueDate = InputRoot.SOAP.Body.ns:AmendCard.OfsFunction.dueDate;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.OfsFunction.extProcess = InputRoot.SOAP.Body.ns:AmendCard.OfsFunction.extProcess;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.OfsFunction.extProcessID = InputRoot.SOAP.Body.ns:AmendCard.OfsFunction.extProcessID;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.OfsFunction.gtsControl = InputRoot.SOAP.Body.ns:AmendCard.OfsFunction.gtsControl;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.OfsFunction.messageId = InputRoot.SOAP.Body.ns:AmendCard.OfsFunction.messageId;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.OfsFunction.noOfAuth = InputRoot.SOAP.Body.ns:AmendCard.OfsFunction.noOfAuth;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.OfsFunction.owner = InputRoot.SOAP.Body.ns:AmendCard.OfsFunction.owner;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.OfsFunction.replace = InputRoot.SOAP.Body.ns:AmendCard.OfsFunction.replace;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.OfsFunction.startDate = InputRoot.SOAP.Body.ns:AmendCard.OfsFunction.startDate;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.OfsFunction.user = InputRoot.SOAP.Body.ns:AmendCard.OfsFunction.user;
-	    
-	    
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.id = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.id;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:ProductCode =  InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:ProductCode;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:CustomerId = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:CustomerId;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.g = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.g;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.ns56:AccountName1 = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.ns56:AccountName1;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.g = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.g;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.ns56:AccountName2 = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.ns56:AccountName2;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.g = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.g;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.ns56:ShortName = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.ns56:ShortName;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:Mnemonic = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:Mnemonic;
-		SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:Currency = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:Currency;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:AccountOfficer = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:AccountOfficer;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.g = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.g;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.ns56:OtherOfficer = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.ns56:OtherOfficer;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:WaiveLedgerFee = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:WaiveLedgerFee;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.g = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.g;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.m = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.m;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationType = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationType;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationAcct = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationAcct;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationCcy = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationCcy;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:LinktoLimitYN   = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:LinktoLimitYN;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.g = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.g;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.m = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.m;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctType = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctType;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctNo = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctNo;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.g = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.g;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.m = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.m;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointHolderId = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointHolderId;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointRelationCode = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointRelationCode;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.sg = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.sg;
-	    SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.s = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.s;
-        SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.ns56:RelationNotes = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.ns56:RelationNotes;
-        SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:SingleLimitYN = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:SingleLimitYN;
-        SET OutputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:DebitCard = InputRoot.SOAP.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:DebitCard;
-        
-        
-	    WHEN bindingOperatingName LIKE 'AmendCard_Validate' THEN
-	    
-	    CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
-		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
-		SET outRefSoap.Context[] = InputRoot.SOAP.Context[];
-		SET outRefSoap.Header[] = InputRoot.SOAP.Header[];
-		
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.WebRequestCommon.company = InputRoot.SOAP.Body.ns:AmendCard_Validate.WebRequestCommon.company;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.WebRequestCommon.password = InputRoot.SOAP.Body.ns:AmendCard_Validate.WebRequestCommon.password;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.WebRequestCommon.userName = InputRoot.SOAP.Body.ns:AmendCard_Validate.WebRequestCommon.userName;
-		
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.activityName = InputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.activityName;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.assignReason = InputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.assignReason;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.dueDate = InputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.dueDate;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.extProcess = InputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.extProcess;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.extProcessID = InputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.extProcessID;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.gtsControl = InputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.gtsControl;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.messageId = InputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.messageId;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.noOfAuth = InputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.noOfAuth;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.owner = InputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.owner;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.replace = InputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.replace;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.startDate = InputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.startDate;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.user = InputRoot.SOAP.Body.ns:AmendCard_Validate.OfsFunction.user;
-		
-		
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.id = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.id;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:CustomerId = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:CustomerId;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:ProductCode = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:ProductCode;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.g = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.g;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.ns56:AccountName1 = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.ns56:AccountName1;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.g = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.g;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.ns56:AccountName2 = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.ns56:AccountName2;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.g = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.g;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.ns56:ShortName = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.ns56:ShortName;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:Mnemonic = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:Mnemonic;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:Currency = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:Currency;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:AccountOfficer = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:AccountOfficer;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.g = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.g;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.ns56:OtherOfficer =InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.ns56:OtherOfficer;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:WaiveLedgerFee = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:WaiveLedgerFee;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.g = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.g;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.m = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.m;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationType = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationType;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationAcct = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationAcct;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationCcy = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationCcy;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:LinktoLimitYN = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:LinktoLimitYN;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.g = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.g;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.m = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.m;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctType = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctType;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctNo = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctNo;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.g = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.g;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.m = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.m;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointHolderId = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointHolderId;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointRelationCode = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointRelationCode;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.sg = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.sg;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.s = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.s;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.ns56:RelationNotes = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.ns56:RelationNotes;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:SingleLimitYN = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:SingleLimitYN;
-		SET OutputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:DebitCard = InputRoot.SOAP.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:DebitCard;
-		
-		  WHEN bindingOperatingName LIKE 'CardCharges_Validate' THEN
-	    
-	    
-	       CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
-		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
-		SET outRefSoap.Context[] = InputRoot.SOAP.Context[];
-		SET outRefSoap.Header[] = InputRoot.SOAP.Header[];
-		
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.WebRequestCommon.company = InputRoot.SOAP.Body.ns:CardCharges_Validate.WebRequestCommon.company;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.WebRequestCommon.password = InputRoot.SOAP.Body.ns:CardCharges_Validate.WebRequestCommon.password;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.WebRequestCommon.userName = InputRoot.SOAP.Body.ns:CardCharges_Validate.WebRequestCommon.userName;
-        
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.activityName = InputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.activityName;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.assignReason = InputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.assignReason;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.dueDate = InputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.dueDate;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.extProcess = InputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.extProcess;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.extProcessID = InputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.extProcessID;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.gtsControl = InputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.gtsControl;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.messageId = InputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.messageId;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.noOfAuth = InputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.noOfAuth;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.owner = InputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.owner;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.replace = InputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.replace;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.startDate = InputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.startDate;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.user = InputRoot.SOAP.Body.ns:CardCharges_Validate.OfsFunction.user;
-        
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.id = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.id;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST.g = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST.g;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST.ns16:OrderedBy = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST.ns16:OrderedBy;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:AmountDebited =InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:AmountDebited;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF.g = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF.g;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF.ns16:DeliveryReference = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF.ns16:DeliveryReference;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType;
-        SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY.g = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY.g;
-         SET OutputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY.ns16:Signatory = InputRoot.SOAP.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY.ns16:Signatory;
-         
-        
-        
-        
-        WHEN bindingOperatingName LIKE 'ReverseCharges' THEN
-	    
-	    
-	       CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
-		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
-		SET outRefSoap.Context[] = InputRoot.SOAP.Context[];
-		SET outRefSoap.Header[] = InputRoot.SOAP.Header[];
-        
-        
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.WebRequestCommon.company = InputRoot.SOAP.Body.ns:ReverseCharges.WebRequestCommon.company;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.WebRequestCommon.password = InputRoot.SOAP.Body.ns:ReverseCharges.WebRequestCommon.password;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.WebRequestCommon.userName = InputRoot.SOAP.Body.ns:ReverseCharges.WebRequestCommon.userName;
-        
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.activityName = InputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.activityName;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.assignReason = InputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.assignReason;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.dueDate = InputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.dueDate;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.extProcess = InputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.extProcess;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.extProcessID = InputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.extProcessID;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.gtsControl= InputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.gtsControl;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.messageId = InputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.messageId;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.noOfAuth = InputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.noOfAuth;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.owner = InputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.owner;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.replace =InputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.replace;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.startDate = 	InputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.startDate;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.user = InputRoot.SOAP.Body.ns:ReverseCharges.OfsFunction.user;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges.FUNDSTRANSFERCARDCHARGEREVType.transactionId = InputRoot.SOAP.Body.ns:ReverseCharges.FUNDSTRANSFERCARDCHARGEREVType.transactionId;
-        
-        
-        
-        WHEN bindingOperatingName LIKE 'ReverseCharges_Validate' THEN
-	    
-	    
-	       CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
-		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
-		SET outRefSoap.Context[] = InputRoot.SOAP.Context[];
-		SET outRefSoap.Header[] = InputRoot.SOAP.Header[];
-        
-        
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.WebRequestCommon.company = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.WebRequestCommon.company;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.WebRequestCommon.password = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.WebRequestCommon.password;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.WebRequestCommon.userName = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.WebRequestCommon.userName;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.activityName = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.activityName;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.assignReason = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.assignReason;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.dueDate = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.dueDate;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.extProcess = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.extProcess;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.extProcessID = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.extProcessID;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.gtsControl =  InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.gtsControl;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.messageId = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.messageId;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.noOfAuth = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.noOfAuth;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.owner = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.owner;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.replace = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.replace;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.startDate = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.startDate;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.user = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.OfsFunction.user;
-        SET OutputRoot.SOAP.Body.ns:ReverseCharges_Validate.FUNDSTRANSFERCARDCHARGEREVType.transactionId = InputRoot.SOAP.Body.ns:ReverseCharges_Validate.FUNDSTRANSFERCARDCHARGEREVType.transactionId;
-		
-		 WHEN bindingOperatingName LIKE 'AccountBalance' THEN
-	    
-	    
-	       CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
-		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
-		SET outRefSoap.Context[] = InputRoot.SOAP.Context[];
-		SET outRefSoap.Header[] = InputRoot.SOAP.Header[];
-		
-		SET outRefSoap.Body.ns:AccountBalance.WebRequestCommon.company = InputRoot.SOAP.Body.ns:AccountBalance.WebRequestCommon.company;
-		SET outRefSoap.Body.ns:AccountBalance.WebRequestCommon.password = InputRoot.SOAP.Body.ns:AccountBalance.WebRequestCommon.password;
-		SET outRefSoap.Body.ns:AccountBalance.WebRequestCommon.userName = InputRoot.SOAP.Body.ns:AccountBalance.WebRequestCommon.userName;
-		
-		SET outRefSoap.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.columnName = InputRoot.SOAP.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.columnName;
-		SET outRefSoap.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.criteriaValue = InputRoot.SOAP.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.criteriaValue;
-		SET outRefSoap.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.operand = InputRoot.SOAP.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.operand;
-		
-		END CASE;
-
+	CALL indigoSoapReqFieldToFieldMapping(bindingOperatingName,inRefSoap,outRefSoap);  
 		DECLARE OutRefer REFERENCE TO OutputRoot.SOAP;
 		DECLARE envref REFERENCE TO Environment.SOAP;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'SOAP';
@@ -381,7 +77,6 @@ CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
 		DECLARE reqMsgT24 CHARACTER'';
 		SET Environment.reqMsgT24 = getPayLoad(FIELDNAME(InputBody),OutputRoot.SOAP.Body,encodeRef,ccsid);
 		SET OutputRoot = NULL;
-		
 		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
 		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
@@ -867,3 +562,303 @@ CREATE COMPUTE MODULE IndigoFlow_BuildExceptionDetails
 	
 	
 END MODULE;
+
+
+CREATE PROCEDURE indigoSoapReqFieldToFieldMapping (IN bindingOperatingName CHARACTER,IN inRefSoap REFERENCE ,INOUT outRefSoap REFERENCE )
+BEGIN
+	CASE
+			
+		WHEN bindingOperatingName LIKE 'CardCharges' THEN
+			
+
+		SET outRefSoap.Context[] = inRefSoap.Context[];
+		SET outRefSoap.Header[] = inRefSoap.Header[];
+		
+		SET outRefSoap.Body.ns:CardCharges.WebRequestCommon.company = inRefSoap.Body.ns:CardCharges.WebRequestCommon.company;
+		SET outRefSoap.Body.ns:CardCharges.WebRequestCommon.password = inRefSoap.Body.ns:CardCharges.WebRequestCommon.password;
+		SET outRefSoap.Body.ns:CardCharges.WebRequestCommon.userName =inRefSoap.Body.ns:CardCharges.WebRequestCommon.userName;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.activityName = inRefSoap.Body.ns:CardCharges.OfsFunction.activityName;
+		
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.assignReason = inRefSoap.Body.ns:CardCharges.OfsFunction.assignReason;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.dueDate = inRefSoap.Body.ns:CardCharges.OfsFunction.dueDate;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.extProcess = inRefSoap.Body.ns:CardCharges.OfsFunction.extProcess;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.extProcessID = inRefSoap.Body.ns:CardCharges.OfsFunction.extProcessID;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.gtsControl = inRefSoap.Body.ns:CardCharges.OfsFunction.gtsControl;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.messageId = inRefSoap.Body.ns:CardCharges.OfsFunction.messageId;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.noOfAuth = inRefSoap.Body.ns:CardCharges.OfsFunction.noOfAuth;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.owner = inRefSoap.Body.ns:CardCharges.OfsFunction.owner;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.replace = inRefSoap.Body.ns:CardCharges.OfsFunction.replace;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.startDate = inRefSoap.Body.ns:CardCharges.OfsFunction.startDate;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.user = inRefSoap.Body.ns:CardCharges.OfsFunction.user;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.id = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.id;
+		
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountDebited = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountDebited;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY;
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType;
+		
+
+			
+		WHEN bindingOperatingName LIKE 'AccountDetails' THEN
+			
+		SET outRefSoap.Context[] = inRefSoap.Context[];
+		SET outRefSoap.Header[] = inRefSoap.Header[];
+		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.company = inRefSoap.Body.ns:AccountDetails.WebRequestCommon.company;
+		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.password = inRefSoap.Body.ns:AccountDetails.WebRequestCommon.password;
+		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.userName = inRefSoap.Body.ns:AccountDetails.WebRequestCommon.userName;
+		SET outRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.columnName = inRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.columnName;
+		SET outRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.criteriaValue = inRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.criteriaValue;
+		SET outRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.operand = inRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.operand;
+		
+		
+		WHEN bindingOperatingName LIKE 'AmendCard' THEN
+			
+		SET outRefSoap.Context[] = inRefSoap.Context[];
+		SET outRefSoap.Header[] = inRefSoap.Header[];
+		SET outRefSoap.Body.ns:AmendCard.WebRequestCommon.company = inRefSoap.Body.ns:AmendCard.WebRequestCommon.company;
+		SET outRefSoap.Body.ns:AmendCard.WebRequestCommon.password = inRefSoap.Body.ns:AmendCard.WebRequestCommon.password;
+	    SET outRefSoap.Body.ns:AmendCard.WebRequestCommon.userName = inRefSoap.Body.ns:AmendCard.WebRequestCommon.userName;
+	    SET outRefSoap.Body.ns:AmendCard.OfsFunction.activityName = inRefSoap.Body.ns:AmendCard.OfsFunction.activityName;
+	    SET outRefSoap.Body.ns:AmendCard.OfsFunction.assignReason = inRefSoap.Body.ns:AmendCard.OfsFunction.assignReason;
+	    SET outRefSoap.Body.ns:AmendCard.OfsFunction.dueDate = inRefSoap.Body.ns:AmendCard.OfsFunction.dueDate;
+	    SET outRefSoap.Body.ns:AmendCard.OfsFunction.extProcess = inRefSoap.Body.ns:AmendCard.OfsFunction.extProcess;
+	    SET outRefSoap.Body.ns:AmendCard.OfsFunction.extProcessID = inRefSoap.Body.ns:AmendCard.OfsFunction.extProcessID;
+	    SET outRefSoap.Body.ns:AmendCard.OfsFunction.gtsControl = inRefSoap.Body.ns:AmendCard.OfsFunction.gtsControl;
+	    SET outRefSoap.Body.ns:AmendCard.OfsFunction.messageId = inRefSoap.Body.ns:AmendCard.OfsFunction.messageId;
+	    SET outRefSoap.Body.ns:AmendCard.OfsFunction.noOfAuth = inRefSoap.Body.ns:AmendCard.OfsFunction.noOfAuth;
+	    SET outRefSoap.Body.ns:AmendCard.OfsFunction.owner = inRefSoap.Body.ns:AmendCard.OfsFunction.owner;
+	    SET outRefSoap.Body.ns:AmendCard.OfsFunction.replace = inRefSoap.Body.ns:AmendCard.OfsFunction.replace;
+	    SET outRefSoap.Body.ns:AmendCard.OfsFunction.startDate = inRefSoap.Body.ns:AmendCard.OfsFunction.startDate;
+	    SET outRefSoap.Body.ns:AmendCard.OfsFunction.user = inRefSoap.Body.ns:AmendCard.OfsFunction.user;
+	    
+	    
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.id = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.id;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:ProductCode =  inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:ProductCode;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:CustomerId = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:CustomerId;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.g = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.g;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.ns56:AccountName1 = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.ns56:AccountName1;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.g = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.g;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.ns56:AccountName2 = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.ns56:AccountName2;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.g = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.g;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.ns56:ShortName = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.ns56:ShortName;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:Mnemonic = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:Mnemonic;
+		SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:Currency = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:Currency;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:AccountOfficer = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:AccountOfficer;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.g = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.g;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.ns56:OtherOfficer = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.ns56:OtherOfficer;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:WaiveLedgerFee = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:WaiveLedgerFee;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.g = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.g;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.m = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.m;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationType = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationType;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationAcct = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationAcct;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationCcy = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationCcy;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:LinktoLimitYN   = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:LinktoLimitYN;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.g = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.g;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.m = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.m;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctType = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctType;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctNo = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctNo;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.g = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.g;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.m = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.m;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointHolderId = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointHolderId;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointRelationCode = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointRelationCode;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.sg = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.sg;
+	    SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.s = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.s;
+        SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.ns56:RelationNotes = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.ns56:RelationNotes;
+        SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:SingleLimitYN = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:SingleLimitYN;
+        SET outRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:DebitCard = inRefSoap.Body.ns:AmendCard.ACCOUNTCARDAMENDType.ns56:DebitCard;
+        
+        
+	    WHEN bindingOperatingName LIKE 'AmendCard_Validate' THEN
+	    
+	    
+		SET outRefSoap.Context[] = inRefSoap.Context[];
+		SET outRefSoap.Header[] = inRefSoap.Header[];
+		
+		SET outRefSoap.Body.ns:AmendCard_Validate.WebRequestCommon.company = inRefSoap.Body.ns:AmendCard_Validate.WebRequestCommon.company;
+		SET outRefSoap.Body.ns:AmendCard_Validate.WebRequestCommon.password = inRefSoap.Body.ns:AmendCard_Validate.WebRequestCommon.password;
+		SET outRefSoap.Body.ns:AmendCard_Validate.WebRequestCommon.userName = inRefSoap.Body.ns:AmendCard_Validate.WebRequestCommon.userName;
+		
+		SET outRefSoap.Body.ns:AmendCard_Validate.OfsFunction.activityName = inRefSoap.Body.ns:AmendCard_Validate.OfsFunction.activityName;
+		SET outRefSoap.Body.ns:AmendCard_Validate.OfsFunction.assignReason = inRefSoap.Body.ns:AmendCard_Validate.OfsFunction.assignReason;
+		SET outRefSoap.Body.ns:AmendCard_Validate.OfsFunction.dueDate = inRefSoap.Body.ns:AmendCard_Validate.OfsFunction.dueDate;
+		SET outRefSoap.Body.ns:AmendCard_Validate.OfsFunction.extProcess = inRefSoap.Body.ns:AmendCard_Validate.OfsFunction.extProcess;
+		SET outRefSoap.Body.ns:AmendCard_Validate.OfsFunction.extProcessID = inRefSoap.Body.ns:AmendCard_Validate.OfsFunction.extProcessID;
+		SET outRefSoap.Body.ns:AmendCard_Validate.OfsFunction.gtsControl = inRefSoap.Body.ns:AmendCard_Validate.OfsFunction.gtsControl;
+		SET outRefSoap.Body.ns:AmendCard_Validate.OfsFunction.messageId = inRefSoap.Body.ns:AmendCard_Validate.OfsFunction.messageId;
+		SET outRefSoap.Body.ns:AmendCard_Validate.OfsFunction.noOfAuth = inRefSoap.Body.ns:AmendCard_Validate.OfsFunction.noOfAuth;
+		SET outRefSoap.Body.ns:AmendCard_Validate.OfsFunction.owner = inRefSoap.Body.ns:AmendCard_Validate.OfsFunction.owner;
+		SET outRefSoap.Body.ns:AmendCard_Validate.OfsFunction.replace = inRefSoap.Body.ns:AmendCard_Validate.OfsFunction.replace;
+		SET outRefSoap.Body.ns:AmendCard_Validate.OfsFunction.startDate = inRefSoap.Body.ns:AmendCard_Validate.OfsFunction.startDate;
+		SET outRefSoap.Body.ns:AmendCard_Validate.OfsFunction.user = inRefSoap.Body.ns:AmendCard_Validate.OfsFunction.user;
+		
+		
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.id = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.id;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:CustomerId = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:CustomerId;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:ProductCode = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:ProductCode;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.g = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.g;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.ns56:AccountName1 = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE1.ns56:AccountName1;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.g = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.g;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.ns56:AccountName2 = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gACCOUNTTITLE2.ns56:AccountName2;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.g = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.g;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.ns56:ShortName = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gSHORTTITLE.ns56:ShortName;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:Mnemonic = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:Mnemonic;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:Currency = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:Currency;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:AccountOfficer = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:AccountOfficer;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.g = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.g;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.ns56:OtherOfficer =inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gOTHEROFFICER.ns56:OtherOfficer;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:WaiveLedgerFee = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:WaiveLedgerFee;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.g = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.g;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.m = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.m;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationType = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationType;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationAcct = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationAcct;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationCcy = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gINTLIQUTYPE.ns56:mINTLIQUTYPE.ns56:IntLiquidationCcy;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:LinktoLimitYN = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:LinktoLimitYN;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.g = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.g;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.m = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.m;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctType = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctType;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctNo = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gALTACCTTYPE.ns56:mALTACCTTYPE.ns56:AltAcctNo;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.g = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.g;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.m = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.m;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointHolderId = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointHolderId;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointRelationCode = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:JointRelationCode;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.sg = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.sg;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.s = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.s;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.ns56:RelationNotes = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:gJOINTHOLDER.ns56:mJOINTHOLDER.ns56:sgJOINTNOTES.ns56:RelationNotes.ns56:RelationNotes;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:SingleLimitYN = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:SingleLimitYN;
+		SET outRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:DebitCard = inRefSoap.Body.ns:AmendCard_Validate.ACCOUNTCARDAMENDType.ns56:DebitCard;
+		
+		  WHEN bindingOperatingName LIKE 'CardCharges_Validate' THEN
+	    
+	    
+	     
+		SET outRefSoap.Context[] = inRefSoap.Context[];
+		SET outRefSoap.Header[] = inRefSoap.Header[];
+		
+        SET outRefSoap.Body.ns:CardCharges_Validate.WebRequestCommon.company = inRefSoap.Body.ns:CardCharges_Validate.WebRequestCommon.company;
+        SET outRefSoap.Body.ns:CardCharges_Validate.WebRequestCommon.password = inRefSoap.Body.ns:CardCharges_Validate.WebRequestCommon.password;
+        SET outRefSoap.Body.ns:CardCharges_Validate.WebRequestCommon.userName = inRefSoap.Body.ns:CardCharges_Validate.WebRequestCommon.userName;
+        
+        SET outRefSoap.Body.ns:CardCharges_Validate.OfsFunction.activityName = inRefSoap.Body.ns:CardCharges_Validate.OfsFunction.activityName;
+        SET outRefSoap.Body.ns:CardCharges_Validate.OfsFunction.assignReason = inRefSoap.Body.ns:CardCharges_Validate.OfsFunction.assignReason;
+        SET outRefSoap.Body.ns:CardCharges_Validate.OfsFunction.dueDate = inRefSoap.Body.ns:CardCharges_Validate.OfsFunction.dueDate;
+        SET outRefSoap.Body.ns:CardCharges_Validate.OfsFunction.extProcess = inRefSoap.Body.ns:CardCharges_Validate.OfsFunction.extProcess;
+        SET outRefSoap.Body.ns:CardCharges_Validate.OfsFunction.extProcessID = inRefSoap.Body.ns:CardCharges_Validate.OfsFunction.extProcessID;
+        SET outRefSoap.Body.ns:CardCharges_Validate.OfsFunction.gtsControl = inRefSoap.Body.ns:CardCharges_Validate.OfsFunction.gtsControl;
+        SET outRefSoap.Body.ns:CardCharges_Validate.OfsFunction.messageId = inRefSoap.Body.ns:CardCharges_Validate.OfsFunction.messageId;
+        SET outRefSoap.Body.ns:CardCharges_Validate.OfsFunction.noOfAuth = inRefSoap.Body.ns:CardCharges_Validate.OfsFunction.noOfAuth;
+        SET outRefSoap.Body.ns:CardCharges_Validate.OfsFunction.owner = inRefSoap.Body.ns:CardCharges_Validate.OfsFunction.owner;
+        SET outRefSoap.Body.ns:CardCharges_Validate.OfsFunction.replace = inRefSoap.Body.ns:CardCharges_Validate.OfsFunction.replace;
+        SET outRefSoap.Body.ns:CardCharges_Validate.OfsFunction.startDate = inRefSoap.Body.ns:CardCharges_Validate.OfsFunction.startDate;
+        SET outRefSoap.Body.ns:CardCharges_Validate.OfsFunction.user = inRefSoap.Body.ns:CardCharges_Validate.OfsFunction.user;
+        
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.id = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.id;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST.g = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST.g;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST.ns16:OrderedBy = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST.ns16:OrderedBy;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:AmountDebited =inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:AmountDebited;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF.g = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF.g;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF.ns16:DeliveryReference = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF.ns16:DeliveryReference;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType;
+        SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY.g = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY.g;
+         SET outRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY.ns16:Signatory = inRefSoap.Body.ns:CardCharges_Validate.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY.ns16:Signatory;
+         
+        
+        
+        
+        WHEN bindingOperatingName LIKE 'ReverseCharges' THEN
+	    
+	    
+		SET outRefSoap.Context[] = inRefSoap.Context[];
+		SET outRefSoap.Header[] = inRefSoap.Header[];
+        
+        
+        SET outRefSoap.Body.ns:ReverseCharges.WebRequestCommon.company = inRefSoap.Body.ns:ReverseCharges.WebRequestCommon.company;
+        SET outRefSoap.Body.ns:ReverseCharges.WebRequestCommon.password = inRefSoap.Body.ns:ReverseCharges.WebRequestCommon.password;
+        SET outRefSoap.Body.ns:ReverseCharges.WebRequestCommon.userName = inRefSoap.Body.ns:ReverseCharges.WebRequestCommon.userName;
+        
+        SET outRefSoap.Body.ns:ReverseCharges.OfsFunction.activityName = inRefSoap.Body.ns:ReverseCharges.OfsFunction.activityName;
+        SET outRefSoap.Body.ns:ReverseCharges.OfsFunction.assignReason = inRefSoap.Body.ns:ReverseCharges.OfsFunction.assignReason;
+        SET outRefSoap.Body.ns:ReverseCharges.OfsFunction.dueDate = inRefSoap.Body.ns:ReverseCharges.OfsFunction.dueDate;
+        SET outRefSoap.Body.ns:ReverseCharges.OfsFunction.extProcess = inRefSoap.Body.ns:ReverseCharges.OfsFunction.extProcess;
+        SET outRefSoap.Body.ns:ReverseCharges.OfsFunction.extProcessID = inRefSoap.Body.ns:ReverseCharges.OfsFunction.extProcessID;
+        SET outRefSoap.Body.ns:ReverseCharges.OfsFunction.gtsControl= inRefSoap.Body.ns:ReverseCharges.OfsFunction.gtsControl;
+        SET outRefSoap.Body.ns:ReverseCharges.OfsFunction.messageId = inRefSoap.Body.ns:ReverseCharges.OfsFunction.messageId;
+        SET outRefSoap.Body.ns:ReverseCharges.OfsFunction.noOfAuth = inRefSoap.Body.ns:ReverseCharges.OfsFunction.noOfAuth;
+        SET outRefSoap.Body.ns:ReverseCharges.OfsFunction.owner = inRefSoap.Body.ns:ReverseCharges.OfsFunction.owner;
+        SET outRefSoap.Body.ns:ReverseCharges.OfsFunction.replace =inRefSoap.Body.ns:ReverseCharges.OfsFunction.replace;
+        SET outRefSoap.Body.ns:ReverseCharges.OfsFunction.startDate = 	inRefSoap.Body.ns:ReverseCharges.OfsFunction.startDate;
+        SET outRefSoap.Body.ns:ReverseCharges.OfsFunction.user = inRefSoap.Body.ns:ReverseCharges.OfsFunction.user;
+        SET outRefSoap.Body.ns:ReverseCharges.FUNDSTRANSFERCARDCHARGEREVType.transactionId = inRefSoap.Body.ns:ReverseCharges.FUNDSTRANSFERCARDCHARGEREVType.transactionId;
+        
+        
+        
+        WHEN bindingOperatingName LIKE 'ReverseCharges_Validate' THEN
+	    
+	    
+	      
+		SET outRefSoap.Context[] = inRefSoap.Context[];
+		SET outRefSoap.Header[] = inRefSoap.Header[];
+        
+        
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.WebRequestCommon.company = inRefSoap.Body.ns:ReverseCharges_Validate.WebRequestCommon.company;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.WebRequestCommon.password = inRefSoap.Body.ns:ReverseCharges_Validate.WebRequestCommon.password;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.WebRequestCommon.userName = inRefSoap.Body.ns:ReverseCharges_Validate.WebRequestCommon.userName;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.activityName = inRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.activityName;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.assignReason = inRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.assignReason;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.dueDate = inRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.dueDate;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.extProcess = inRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.extProcess;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.extProcessID = inRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.extProcessID;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.gtsControl =  inRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.gtsControl;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.messageId = inRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.messageId;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.noOfAuth = inRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.noOfAuth;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.owner = inRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.owner;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.replace = inRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.replace;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.startDate = inRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.startDate;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.user = inRefSoap.Body.ns:ReverseCharges_Validate.OfsFunction.user;
+        SET outRefSoap.Body.ns:ReverseCharges_Validate.FUNDSTRANSFERCARDCHARGEREVType.transactionId = inRefSoap.Body.ns:ReverseCharges_Validate.FUNDSTRANSFERCARDCHARGEREVType.transactionId;
+		
+		 WHEN bindingOperatingName LIKE 'AccountBalance' THEN
+	    
+	    
+	     
+		SET outRefSoap.Context[] = inRefSoap.Context[];
+		SET outRefSoap.Header[] = inRefSoap.Header[];
+		
+		SET outRefSoap.Body.ns:AccountBalance.WebRequestCommon.company = inRefSoap.Body.ns:AccountBalance.WebRequestCommon.company;
+		SET outRefSoap.Body.ns:AccountBalance.WebRequestCommon.password = inRefSoap.Body.ns:AccountBalance.WebRequestCommon.password;
+		SET outRefSoap.Body.ns:AccountBalance.WebRequestCommon.userName = inRefSoap.Body.ns:AccountBalance.WebRequestCommon.userName;
+		
+		SET outRefSoap.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.columnName = inRefSoap.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.columnName;
+		SET outRefSoap.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.criteriaValue = inRefSoap.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.criteriaValue;
+		SET outRefSoap.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.operand = inRefSoap.Body.ns:AccountBalance.GETACCTBALType.enquiryInputCollection.operand;
+		
+		END CASE;
+END;
