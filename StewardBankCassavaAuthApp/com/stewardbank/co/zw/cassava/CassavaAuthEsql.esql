@@ -70,8 +70,8 @@ CREATE COMPUTE MODULE CassavaFlow_GetTokenAuthentication
 		END IF; 
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
-		SET OutputRoot.HTTPRequestHeader."Accept-Encoding" = 'application/json';
+		SET OutputRoot.HTTPRequestHeader."Content-Type" = InputRoot.MQRFH2.usr.HTTPInputHeader."Content-Type";
+		SET OutputRoot.HTTPRequestHeader."Accept-Encoding" = InputRoot.MQRFH2.usr.HTTPInputHeader.Accept;
 		SET OutputRoot.JSON.Data = Environment.data;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 		SET OutputLocalEnvironment.Destination.HTTP.SSLProtocol = 'SSL';
