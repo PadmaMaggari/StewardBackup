@@ -78,8 +78,8 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 		END IF;
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		--SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/vnd.api+json';
-		SET OutputRoot.HTTPRequestHeader."Accept" = 'application/vnd.api+json';
+		SET OutputRoot.HTTPRequestHeader."Content-Type" = InputRoot.MQRFH2.usr.HTTPInputHeader."Content-Type";
+		SET OutputRoot.HTTPRequestHeader."Accept-Encoding" = InputRoot.MQRFH2.usr.HTTPInputHeader.Accept;
 		SET OutputRoot.HTTPRequestHeader."Authorization" = InputRoot.MQRFH2.usr.HTTPInputHeader.Authorization;
 		-- SET OutputRoot.JSON.Data = Environment.data;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
