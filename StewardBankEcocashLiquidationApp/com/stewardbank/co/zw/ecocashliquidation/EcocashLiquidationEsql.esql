@@ -60,17 +60,17 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 			DECLARE value INTEGER;
 			DECLARE value1 CHARACTER;
 			--set fxtid.values[]  = PASSTHRU('SELECT NEXT VALUE FOR ECHOCASH_SEQ AS SEQ');
-			 set fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL');
-			set value = fxtid.values.SEQ;
-			set value1 = CAST(value as CHARACTER);
+			SET fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL');
+			SET value = fxtid.values.SEQ;
+			SET value1 = CAST(value as CHARACTER);
 			DECLARE value2 CHARACTER;
 			DECLARE value3 CHARACTER;
-			set value3 = LENGTH(value1);
-			if (value3 = 1 or value3 = 2 or value3 = 3 or value3 = 4) then
-				set value2 = REPLACE(REPLACE(REPLACE(REPLACE(value3,'1','0000'),'2','000'),'3','00'),'4','0')||value1;
-			else
-				set value2 = value1;
-			end IF;
+			SET value3 = LENGTH(value1);
+			IF (value3 = 1 or value3 = 2 or value3 = 3 or value3 = 4 or value3 = 5 or value3 = 6 or value3 = 7 or value3 = 8 or value3 = 9 or value3 = 10 or value3 = 11 or value3 = 12 or value3 = 13 or value3 = 14 or value3 = 15 or value3 = 16 or value3 = 17 or value3 = 18 or value3 = 19 or value3 = 20 or value3 = 21 or value3 = 22 or value3 = 23) then
+				SET value2 = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(value3,'1','00000000000000000000000'),'2','0000000000000000000000'),'3','000000000000000000000'),'4','00000000000000000000'),'5','0000000000000000000'),'6','000000000000000000'),'7','00000000000000000'),'8','0000000000000000'),'9','000000000000000'),'10','00000000000000'),'11','0000000000000'),'12','000000000000'),'13','00000000000'),'14','0000000000'),'15','000000000'),'16','00000000'),'17','0000000'),'18','000000'),'19','00000'),'20','0000'),'21','000'),'22','00'),'23','0')||value1;
+			ELSE 
+				SET value2 = value1; 
+			END IF;
 			---Field to Field Mapping of CSV to JSON---
 			SET outRef.COMMAND.TYPE = 'DRSVA';
 			SET outRef.COMMAND.MSISDN = InputRoot.DFDL.StewardBank_EcoCSV.record.MSISDN;
@@ -178,7 +178,6 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				SET outRef.invoiceReference = EnvRefer.CODE;
 				SET Environment.Variables.SB_jsonData = OutputRoot.JSON.Data;
 				--{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}
-				--{debitAccountId}/{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}
 				SET SB_T24URL = STB_T24URL||'ZWL'||'/'||EnvRefer.BANK_ACC_NUMBER||'/'|| EnvRefer.MERCHANT_NAME||'/'||'ZWL'||'/'||EnvRefer.BALANCE_USD||'/'||CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd')||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.CODE;
 				SET STB_Msg = getPayLoad(FIELDNAME(OutputRoot.JSON),OutputRoot.JSON.Data,encodeRef,ccidRef);
 				SET OutputRoot = NULL;
