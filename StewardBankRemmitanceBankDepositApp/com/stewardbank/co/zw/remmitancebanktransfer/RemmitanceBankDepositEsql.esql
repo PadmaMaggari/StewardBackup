@@ -1,0 +1,269 @@
+BROKER SCHEMA com.stewardbank.co.zw.remmitancebanktransfer
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE IsLogRequired EXTERNAL CHARACTER'';
+DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER '';
+DECLARE RemmitanceT24Url EXTERNAL CHARACTER '';
+
+CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenReqToT24
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateReqToT24();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE GenerateReqToT24() BEGIN
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		SET Environment.MQRFH2.RequestIdentifier = InputRoot.MQRFH2.RequestIdentifier;
+		/* =================== CALLING DB LOGGING   ==============*/
+	    IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
+			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		/* ==================== Database Logging End ==================== */
+		/* =================== CALLING  LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG','..............Initializing RemmitanceBankDeposit logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG','Application Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG',getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+		END IF;
+		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
+		/*=========Framing Request to T24=======*/
+		DECLARE reqData CHARACTER '';	
+		DECLARE env REFERENCE TO Environment.Variables;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD; 
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data.RemmitanceBankDeposit;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		DECLARE outRef REFERENCE TO OutputRoot.JSON;
+		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
+		DECLARE resQ CHARACTER Environment.MQRFH2.usr.resQueueName;
+		SET Environment.Variables.ResponseQ = resQ;
+		CREATE FIELD outRef.header.override.overrideDetails IDENTITY(JSON.Array)overrideDetails;
+		CREATE FIELD outRef.body.narratives IDENTITY(JSON.Array)narratives;
+		SET outRef.body.narratives.Item[1].narrative = inRef.body.narratives.Item[1].narrative;
+		CREATE FIELD outRef.body.additionalInformations IDENTITY(JSON.Array)additionalInformations;
+		SET outRef.body.additionalInformations.Item[1].additionalInformation=inRef.body.additionalInformations.Item[1].additionalInformation;
+		SET outRef.body.transactionAmount=inRef.body.transactionAmount;
+		SET outRef.body.executionDate=inRef.body.executionDate;
+		SET outRef.body.debitAccountId=inRef.body.debitAccountId;
+		SET outRef.body.orderingCustomer=inRef.body.creditAccountId;
+		SET outRef.body.paymentCurrency=inRef.body.paymentOrderProductId;
+		SET reqData=getPayLoad(FIELDNAME(InputBody),outRef,encodeRef,ccidRef);
+		SET Environment.Variables.jsonData=outRef;
+		SET OutputRoot = NULL;
+	
+		/* =================== CALLING DB LOGGING   ==============*/
+	  IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,reqData,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
+			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		/* ==================== Database Logging End ==================== */
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
+		/* =================== CALLING  LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG','T24 Url::'||RemmitanceT24Url) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG','Request to T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG',reqData) INTO rc;
+		END IF;
+		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
+		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = RemmitanceT24Url;
+	
+		
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		 CALL GenerateResponseToFrontEnd();
+		RETURN TRUE;
+	END;
+
+
+	CREATE PROCEDURE GenerateResponseToFrontEnd() BEGIN
+		SET Environment.MQMD = InputRoot.MQMD;
+		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+	 	DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+	 	DECLARE inDomain CHARACTER FIELDNAME(InputBody);
+	 	DECLARE outRef REFERENCE TO OutputRoot;
+	 	DECLARE DomainDataRef REFERENCE TO InputRoot.JSON.Data;
+	 	SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),DomainDataRef,encodeRef,ccsid);
+	 	DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+	 	SET OutputRoot = NULL;
+	 	DECLARE rc BOOLEAN FALSE;
+	 	
+	 	/* =================== CALLING  LOG4J LOGGING   ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = 'Initializing the log4j path error';		
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+			
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG','Response from FrontEnd::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),DomainDataRef,encodeRef,ccsid)) INTO rc;
+		END IF;
+		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
+		/* =================== CALLING DB LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resData,'FrontEnd Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		END IF; 
+		/* =================== CALLING DB LOGGING ENDING  ==============*/
+		
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('RemmitanceBankDeposit');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.RemmitanceBankDeposit NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.RemmitanceBankDeposit NAME ('body');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.RemmitanceBankDeposit.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.RemmitanceBankDeposit.body;
+		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
+		IF responceCode LIKE '200'	 AND inRef.status='success' THEN
+			SET headRef.channel = 'Remmitance';
+			SET headRef.processingCode = '020000';
+			SET headRef.status = 'SUCCESS';
+			SET headRef.responseCode = '200';
+			SET headRef.override = inRef.header.override;
+			SET headRef.narratives = inRef.header.narratives;
+			SET headRef.additionalInformations = inRef.header.additionalInformations;
+			SET bodyRef=inRef.body;
+		ELSEIF responceCode LIKE '200' AND inRef.status<>'success' THEN
+			SET headRef.channel = 'Remmitance';
+			SET headRef.processingCode = '020000';
+			SET headRef.status = 'FAILED';
+			SET headRef.responseCode = responceCode;
+			SET headRef.narratives = inRef.header.narratives;
+			SET headRef.additionalInformations = inRef.header.additionalInformations;
+			SET bodyRef=inRef.body;
+		ELSE 
+			SET headRef.channel ='Branch';
+			SET headRef.processingCode = '020000';
+			SET headRef.status = 'FAILED';
+			SET headRef.responseCode = responceCode;
+			SET headRef.applicationName = ApplicationLabel;
+			SET bodyRef=inRef;	
+		END IF;	
+		
+	--------------	
+		DECLARE envref REFERENCE TO Environment.JSON.Data;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
+		CREATE LASTCHILD OF envref AS envref NAME 'Data';
+		SET envref = OutRefer;
+		SET OutputRoot = NULL;
+		
+		/* =================== CALLING DB LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resData,'Remmitance BankDeposit Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		END IF; 
+		/* =================== CALLING DB LOGGING ENDING  ==============*/
+		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON.Data = envref;
+		
+		/* =================== CALLING LOG4J LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG','Remmitance BankDeposit Response ::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),outDomainDataRef,encodeRef,ccsid)) INTO rc;
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
+	END;
+END MODULE;
+CREATE COMPUTE MODULE RemmitanceBankDepositFlow_BuildExceptionDetails
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		CALL BuildErrorMsg();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE BuildErrorMsg() BEGIN
+	DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE errMsg CHARACTER;
+		IF CONTAINS(excpRef.excpText,'connection refused') THEN
+			SET errMsg = 'T24 Server Down';
+
+		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
+			SET errMsg = 'No Response from T24 Server';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'RemmitanceBankDeposit';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'RemmitanceBankDeposit');
+		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('RemmitanceBankDeposit');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef.channel = 'Branch';
+		SET headerRef.processingCode = '030000';
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.RemmitanceBankDeposit.ErrorCode;
+		SET errorRef.message = errMsg;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;  
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc; 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+		------------Error Logging in DB----------
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.RemmitanceBankDeposit.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;  
+
+	END;
+END MODULE;
