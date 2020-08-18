@@ -125,17 +125,17 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 		DECLARE status CHARACTER InputRoot.JSON.Data.header.status;
 		IF status LIKE 'success' AND responceCode LIKE '200' THEN
+			SET headRef = Inrefer.header;
 			SET headRef.channel = '*236#';
 			SET headRef.processingCode = '120000';
 			SET headRef.responseCode = responceCode;
-			SET headRef.status = Inrefer.header;
 			SET bodyRef = Inrefer.body; 
 		ELSE
+			SET headRef = Inrefer.header;
 			SET headRef.channel = '*236#';
 			SET headRef.processingCode = '120000';
 			SET headRef.responseCode = responceCode;
-			SET headRef.status = 'Failure'; 
-			SET headRef.status = Inrefer.header;
+			SET headRef.status = 'Failure'; 			
 			SET bodyRef = Inrefer.body;
 			SET bodyRef = Environment.Variables.resMsg;
 		END IF;
