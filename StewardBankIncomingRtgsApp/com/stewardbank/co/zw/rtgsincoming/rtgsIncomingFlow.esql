@@ -101,9 +101,15 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_RouteToT24orZss
 			SET Environment.Variables.invoiceReference ='NOTPROVIDED';
 		END IF;
 		DECLARE mtField72 CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT72 BEFORE CRLF) ;
-		IF ( mtField72 NOT LIKE ' ' ) AND STARTSWITH(mtField72,'/') THEN
-			SET mtField72 = SUBSTRING(mtField72 AFTER '/');
-			SET Environment.Variables.endToEndReference = REPLACE(mtField72,'/',' ');
+		IF ( mtField72 NOT LIKE ' ' ) THEN
+			IF STARTSWITH(mtField72,'/') THEN
+				SET mtField72 = SUBSTRING(mtField72 AFTER '/');	
+			END IF;
+			SET mtField72 = REPLACE(mtField72,'/',' ') ;
+			IF  LENGTH(mtField72) >= 35 THEN
+				SET Environment.Variables.endToEndReference = SUBSTRING(mtField72 FROM 1 FOR 35) ;
+			END IF;
+			SET Environment.Variables.endToEndReference = mtField72 ;
 		ELSE
 			SET Environment.Variables.endToEndReference = 'NOTPROVIDED';
 		END IF;
