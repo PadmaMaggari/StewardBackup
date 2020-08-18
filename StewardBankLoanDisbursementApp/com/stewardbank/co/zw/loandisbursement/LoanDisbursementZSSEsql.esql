@@ -62,12 +62,12 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		SET outRef.MTI_MessageClass = 2;
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
-		SET outRef.ProcessingCode_003 = CAST(inRef.JSON.Data.LoanApplicatipon.header.processingCode AS INTEGER);
-		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.LoanApplicatipon.body.transactionAmount AS INTEGER);
-		SET outRef.AccountIdentification1_102 = inRef.JSON.Data.LoanApplicatipon.body.debitAccountNumber;
-		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.LoanApplicatipon.body.creditAccountNumber;
+		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
+		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.debitAmount AS CHARACTER); 
+		SET outRef.AccountIdentification1_102 = inRef.JSON.Data.debitAccountNumber; 
+		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.creditAccountNumber; 
 		SET outRef.ReservedPrivate_127 = '000000';
-		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.LoanApplicatipon.header.channel||comm||destinationPhone||col||inRef.JSON.Data.LoanApplicatipon.body.mobileNumber;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.mobileNumber;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);
@@ -138,7 +138,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_GenereateResponseToChannel
 
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanDisbursment');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanDisbursmentZSS');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
@@ -191,12 +191,12 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_BuildException
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') THEN
-			SET errMsg = 'T24 Server Down';
+		IF CONTAINS(excpRef.excpText,'ZSSClientOut,connection refused') THEN
+			SET errMsg = 'ZSS Server Down';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
 			SET errMsg = 'Postilion Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from T24 Server';
+	ELSEIF CONTAINS(excpRef.excpText,'ZssClientReveiceData,Exception whilst parsing') THEN 
+			SET errMsg = 'Parser Exception have occurred'; 
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
 			SET errMsg = 'No Response from Postilion Server';
 		END IF;

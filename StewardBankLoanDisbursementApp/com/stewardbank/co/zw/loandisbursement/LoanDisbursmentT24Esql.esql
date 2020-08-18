@@ -270,12 +270,12 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') THEN
-			SET errMsg = 'T24 Server Down';
+		IF CONTAINS(excpRef.excpText,'ZSSClientOut,connection refused') THEN
+			SET errMsg = 'ZSS Server Down';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
 			SET errMsg = 'Postilion Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from T24 Server';
+		ELSEIF CONTAINS(excpRef.excpText,'ZSSClientReceiveData,Exception whilst parsing') THEN
+			SET errMsg = 'No Response from ZSS Server';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
 			SET errMsg = 'No Response from Postilion Server';
 		ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN
@@ -301,7 +301,7 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('Loan_Repayment'); 
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LOAN_DISBURSMENT'); 
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
