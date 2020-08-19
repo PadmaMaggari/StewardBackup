@@ -59,7 +59,6 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenReqToT24
 		DECLARE resQ CHARACTER Environment.MQRFH2.usr.resQueueName;
 		SET Environment.Variables.ResponseQ = resQ;
 		CREATE FIELD outRef.header.override.overrideDetails IDENTITY(JSON.Array)overrideDetails;
-		
 		CREATE FIELD  outRef.body.narratives IDENTITY(JSON.Array)narratives;
 		/*DECLARE I,J INTEGER 1;
 		DECLARE inRef1 REFERENCE TO InputRoot.JSON.Data.body.narratives.Item[I];
@@ -97,7 +96,7 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenReqToT24
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG','T24 Url::'||RemmitanceT24Url) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG','Request to T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG',Environment.reqData) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG',reqData) INTO rc;
 		END IF;
 		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
 		
@@ -125,7 +124,7 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
 	 	DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
 	 	DECLARE inDomain CHARACTER FIELDNAME(InputBody);
 	 	DECLARE outRef REFERENCE TO OutputRoot;
-	 	DECLARE DomainDataRef REFERENCE TO InputRoot.JSON.Data;
+	 	DECLARE domainDataRef  REFERENCE TO InputRoot.JSON.Data;
 	 	--SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),DomainDataRef,encodeRef,ccsid);
 	 	DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 	 	IF FIELDNAME(InputBody) LIKE 'JSON' THEN
@@ -133,7 +132,7 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
 		ELSE
 			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
 			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(inRef,encodeRef,ccsid); 
-			SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),DomainDataRef,encodeRef,ccsid); 
+			SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccsid); 
 		END IF;
 	 	SET OutputRoot = NULL;
 	 	DECLARE rc BOOLEAN FALSE;
@@ -146,13 +145,13 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
 			
-			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG','Response from FrontEnd::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),DomainDataRef,encodeRef,ccsid)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG','Response from T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccsid)) INTO rc;
 		END IF;
 		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
 		/* =================== CALLING DB LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resData,'FrontEnd Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRef);
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resData,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		END IF; 
@@ -168,21 +167,26 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
 		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
 		DECLARE status CHARACTER InputRoot.JSON.Data.header.status;
 		IF responceCode LIKE '200' AND status LIKE 'success' THEN
-			SET headRef = inRef.header;
+		
 			SET headRef.channel = 'remmitance';
 			SET headRef.processingCode = '230000';
-			SET headRef.status = 'SUCCESS';
 			SET headRef.responseCode = '200';
-			SET headRef.status = inRef.header;
-			
+			SET headRef.transactionStatus=inRef.header.transactionStatus;
+			SET headRef.audit.T24_time=inRef.header.audit.T24_time;
+			SET headRef.audit.parse_time=inRef.header.audit.parse_time;
+			SET headRef.audit.responseParse_time=inRef.header.audit.responseParse_time;
+			SET headRef.audit.requestParse_time=inRef.header.audit.requestParse_time;
+			SET headRef.audit.versionNumber=inRef.header.audit.versionNumber;
+			SET headRef.id=inRef.header.id;
+			SET headRef.status=inRef.header.status;
+			SET headRef.transactionStatus=inRef.header.transactionStatus;
 			SET bodyRef=inRef.body;
 		ELSE 
-			SET headRef = inRef.header;
+			
 			SET headRef.channel ='remmitance';
 			SET headRef.processingCode = '230000';
 			SET headRef.status = 'FAILED';
 			SET headRef.responseCode = responceCode;
-			SET bodyRef = inRef.body;
 			SET bodyRef=Environment.Variables.resData;	
 		END IF;	
 		
@@ -191,11 +195,14 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
 		CREATE LASTCHILD OF envref AS envref NAME 'Data';
 		SET envref = OutRefer;
+		SET domainDataRef = OutputRoot.JSON.Data; 
+		SET Environment.Variables.resMsg = getPayLoad(inDomain,domainDataRef,encodeRef,ccsid); 
+		
 		SET OutputRoot = NULL;
 		
 		/* =================== CALLING DB LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resData,'Remmitance BankDeposit Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRef);
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Remmitance BankDeposit Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		END IF; 
