@@ -120,8 +120,8 @@ CREATE COMPUTE MODULE CashInFlow_GenResToT24
 	 	DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
 	 	DECLARE inDomain CHARACTER FIELDNAME(InputBody);
 	 	DECLARE outRef REFERENCE TO OutputRoot;
-	 	DECLARE DomainDataRef REFERENCE TO InputRoot.JSON.Data;
-	 	SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),DomainDataRef,encodeRef,ccsid);
+	 	DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
+	 	SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccsid);
 	 	DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 	 	SET OutputRoot = NULL;
 	 	DECLARE rc BOOLEAN FALSE;
@@ -135,7 +135,7 @@ CREATE COMPUTE MODULE CashInFlow_GenResToT24
 		IF IsLogRequired LIKE 'Y' THEN
 			
 			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG','Response from Mobiquity::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),DomainDataRef,encodeRef,ccsid)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccsid)) INTO rc;
 		END IF;
 		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
 		/* =================== CALLING DB LOGGING   ==============*/
@@ -181,11 +181,13 @@ CREATE COMPUTE MODULE CashInFlow_GenResToT24
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
 		CREATE LASTCHILD OF envref AS envref NAME 'Data';
 		SET envref = OutRefer;
+		SET domainDataRef = OutputRoot.JSON.Data; 
+		SET Environment.Variables.resMsg = getPayLoad(inDomain,domainDataRef,encodeRef,ccsid); 
 		SET OutputRoot = NULL;
 		
 		/* =================== CALLING DB LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resData,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRef);
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		END IF; 
