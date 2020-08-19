@@ -1,21 +1,23 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.lonerepayment
 
 PATH com.stewardbank.co.zw.common.esql;
 CREATE COMPUTE MODULE LoanRepaymentZSSFlow_RequestToZss
-	
-DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
-DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
-DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
-DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
-DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
-DECLARE IsLogRequired EXTERNAL CHARACTER'';
+
+	DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+	DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
+	DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
+	DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+	DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+	DECLARE IsLogRequired EXTERNAL CHARACTER'';
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL RequestToZss();
+		CALL RequestToZss();
 		RETURN FALSE;
-	END;
+	END;	
 
-	
+
 	CREATE PROCEDURE RequestToZss() BEGIN
 		SET Environment.MQRFH2= InputRoot.MQRFH2;
 		DECLARE reqMsg,procCodeData,QueueName CHARACTER '';
@@ -34,23 +36,23 @@ DECLARE IsLogRequired EXTERNAL CHARACTER'';
 		SET Environment.Variable.reqMsg = reqMsg;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
-		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
-		/*=================== CALLING LOG4j  LOGGING   ==============*/
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		-- IF IsLogRequired LIKE 'Y' THEN
+		-- CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'ZSS Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		-- PROPAGATE TO TERMINAL 'out1';
+		-- END IF;
+		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
+		/*=================== CALLING LOG4j LOGGING ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','..............Start LoanRepatmentZSSCall logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','Incoming Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','Incoming Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',reqMsg) INTO rc;
 		END IF;
-		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		/*=================== CALLING LOG4J LOGGING END ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
@@ -62,19 +64,19 @@ DECLARE IsLogRequired EXTERNAL CHARACTER'';
 		SET outRef.MTI_MessageClass = 2;
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
-		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;  
-		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.debitAmount AS CHARACTER); 
+		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
+		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.debitAmount AS CHARACTER);
 		SET outRef.AccountIdentification1_102 = inRef.JSON.Data.debitAccountNumber;
-		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.creditAccountNumber; 
+		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.creditAccountNumber;
 		SET outRef.ReservedPrivate_127 = '000000';
 		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.mobileNumber;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
-		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;	
-		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);        
+		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		SET OutputRoot.DFDL = NULL;
-		/*=================== CALLING LOG4J LOGGING  ==============*/
-		
+		/*=================== CALLING LOG4J LOGGING ==============*/
+
 		DECLARE logRef REFERENCE TO Environment.dfdlData;
 		DECLARE jsonRef REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
@@ -88,21 +90,21 @@ DECLARE IsLogRequired EXTERNAL CHARACTER'';
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',Environment.ZssJsonreqMsg) INTO rc;
 		END IF;
-		/*=================== CALLING LOG4J LOGGING END  ==============*/
-		/*=================== CALLING DB RAW AUDIT LOGGING   ==============*/
+		/*=================== CALLING LOG4J LOGGING END ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer); 
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
+			CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application ZSS Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out1';
 		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END  ==============*/
+		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
 		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.DFDL = Environment.dfdlData;
-		
+
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -111,7 +113,7 @@ END MODULE;
 CREATE COMPUTE MODULE LoanRepaymentZSSFlow_GenereateResponseToChannel
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL GenereateResponseToChannel();
+		CALL GenereateResponseToChannel();
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenereateResponseToChannel() BEGIN
@@ -125,9 +127,9 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_GenereateResponseToChannel
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
-		DECLARE outRefer REFERENCE TO OutputRoot;
-		
-		
+		DECLARE outRefer REFERENCE TO OutputRoot;		
+
+
 		DECLARE logRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		DECLARE jsonRef REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
@@ -136,13 +138,8 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_GenereateResponseToChannel
 		SET jsonRef = logRef;
 		SET Environment.ZssJsonresMsg = getPayLoad('JSON',jsonRef,encodeRef,ccidRef);
 		SET OutputRoot.JSON = NULL;
-		
+
 		IF IsLogRequired LIKE 'Y' THEN
-			-- --------------DBLogging-------------------
-			-- CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-			-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			-- PROPAGATE TO TERMINAL 'out';
-			-- -----------------------------
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','ZSS Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',Environment.ZssJsonresMsg) INTO rc;
@@ -168,7 +165,7 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_GenereateResponseToChannel
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 		--SET headRef = Environment.header;
 		SET headRef.channel = '*236#';
-		SET headRef.processingCode = '120000'; 
+		SET headRef.processingCode = '120000';
 		SET headRef.status = 'SUCCESS';
 		SET headRef.responseCode = '200';
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
@@ -186,7 +183,7 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_GenereateResponseToChannel
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired LIKE 'Y' THEN
 			--------------DBLogging-------------------
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'ZSS Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application ZSS  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out';
 			-----------------------------
@@ -196,7 +193,7 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_GenereateResponseToChannel
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data = envref;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES'; 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
 	END;
 END MODULE;
 
@@ -204,9 +201,9 @@ END MODULE;
 CREATE COMPUTE MODULE LoanRepaymentZSSFlow_BuildException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL BuildException();
+		CALL BuildException();
 		RETURN TRUE;
-	END;	
+	END;
 	CREATE PROCEDURE BuildException() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -215,14 +212,24 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_BuildException
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'ZssClientOut,connection refused') THEN
-			SET errMsg = 'ZSS Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
-			SET errMsg = 'Postilion Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'ZssClientReveiceData,Exception whilst parsing') THEN 
-			SET errMsg = 'Parser Exception have occurred'; 
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from Postilion Server';
+		IF CONTAINS(excpRef.excpText,'SocketException') THEN
+			SET errMsg = 'No Response from T24 Server';
+		END IF;
+
+		IF CONTAINS(excpRef.excpText,'RecoverableException') THEN
+			SET errMsg = 'No Response from T24 Server';
+		END IF;
+		IF CONTAINS(excpRef.excpText,'connection refused') THEN
+			SET errMsg = 'No Response from T24 Server';
+		END IF;
+		IF CONTAINS(excpRef.excpText,'Exception whilst parsing') THEN
+			SET errMsg = 'No Response from T24 Server';
+		END IF;
+		IF CONTAINS(excpRef.excpText,'ParserException') THEN
+			SET errMsg = 'No Response from T24 Server';
+		END IF;
+		IF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+			SET errMsg = 'WebService Request Exception errors have occurred';
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
@@ -238,16 +245,24 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_BuildException
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
-		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
-		MOVE outRef TO OutputRoot.JSON.Data;
-		SET outRef.statusCode = '000';
-		SET outRef.status = 'FAILED';
-		SET outRef.message = errMsg;
-		SET outRef.responseBody.source = 'ESB';
-		SET outRef.responseBody.applicationName = ApplicationLabel;
-		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LoneRepayment.ErrorCode;
 		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoneRepayment');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef.channel = 'MobileApp';
+		SET headerRef.processingCode = '110000';
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LoneRepayment.ErrorCode;
+		SET errorRef.message = errMsg;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
@@ -259,5 +274,7 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_BuildException
 		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LoneRepayment.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
-		END;
+
+	END;
+
 END MODULE;
