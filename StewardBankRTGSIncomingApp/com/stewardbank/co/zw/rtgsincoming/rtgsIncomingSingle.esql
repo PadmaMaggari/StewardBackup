@@ -51,6 +51,7 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateReqToPostilion
 		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
 		parse(InputRoot.BLOB.BLOB ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+		SET Environment.Variables.mtMessage = getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),outDomainDataRef,encodeRef,ccidRef); 
 		IF IsLogRequired LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','RTGSIncoming Request Original start') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',getPayLoad(FIELDNAME(OutputRoot.DFDL.MT103),outDomainDataRef,encodeRef,ccidRef)) INTO rc;
@@ -215,6 +216,19 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_GenerateExceptionDetails
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE exe_Desc CHARACTER'';  
+		IF CONTAINS(excpRef.excpText,'Database') THEN
+			SET OutputLocalEnvironment.Destination.File.Directory = 'C:\STEWARD_Bank\DBFailure\'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+			SET OutputLocalEnvironment.Destination.File.Name = Environment.File.Name;
+		ELSEIF CONTAINS(excpRef.excpText,'Parser') THEN
+			SET OutputLocalEnvironment.Destination.File.Directory = 'C:\STEWARD_Bank\FormatFailure\'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+			SET OutputLocalEnvironment.Destination.File.Name = Environment.File.Name;
+		END IF;	
+			SET OutputRoot.Properties.MessageSet = '{MT103}';
+			SET OutputRoot.Properties.MessageType = '{}:MT103';
+			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
+			parse(Environment.Variables.mtMessage ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+			PROPAGATE TO TERMINAL 'out1';
+		SET OutputRoot.DFDL = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'RTGSIncoming';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;    
