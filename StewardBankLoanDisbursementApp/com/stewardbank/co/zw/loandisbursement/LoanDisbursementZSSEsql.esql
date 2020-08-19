@@ -1,5 +1,7 @@
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.loandisbursement
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -63,9 +65,9 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
 		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
-		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.debitAmount AS CHARACTER); 
-		SET outRef.AccountIdentification1_102 = inRef.JSON.Data.debitAccountNumber; 
-		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.creditAccountNumber; 
+		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.debitAmount AS CHARACTER);
+		SET outRef.AccountIdentification1_102 = inRef.JSON.Data.debitAccountNumber;
+		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.creditAccountNumber;
 		SET outRef.ReservedPrivate_127 = '000000';
 		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.mobileNumber;
 		CALL UpdateMsgWithAsciiBitMap(outRef);
@@ -193,12 +195,16 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_BuildException
 		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'ZSSClientOut,connection refused') THEN
 			SET errMsg = 'ZSS Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
-			SET errMsg = 'Postilion Server Down';
-	ELSEIF CONTAINS(excpRef.excpText,'ZssClientReveiceData,Exception whilst parsing') THEN 
-			SET errMsg = 'Parser Exception have occurred'; 
+		ELSEIF CONTAINS(excpRef.excpText,'ZssClientReveiceData,Exception whilst parsing') THEN
+			SET errMsg = 'Parser Exception have occurred';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
 			SET errMsg = 'No Response from Postilion Server';
+		ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN
+			SET errMsg = 'JSON parsing errors have occurred';
+		ELSEIF CONTAINS(excpRef.excpText,'Socket') THEN
+			SET errMsg = 'SocketException errors have occurred';
+		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+			SET errMsg = 'WebService Request Exception errors have occurred';
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
