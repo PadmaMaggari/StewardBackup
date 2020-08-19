@@ -169,12 +169,10 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 			SET headRef.responseCode = responceCode;			 
 			SET bodyRef = Inrefer.body;
 		ELSE
-			SET headRef = Inrefer.header; 
 			SET headRef.channel = '*236#';
 			SET headRef.processingCode = '400000';
 			SET headRef.responseCode = responceCode;
 			SET headRef.status = 'Failure'; 
-			SET bodyRef = Inrefer.body;
 			SET bodyRef = Environment.Variables.resData; 
 		END IF;
 		DECLARE envref REFERENCE TO Environment.JSON.Data;

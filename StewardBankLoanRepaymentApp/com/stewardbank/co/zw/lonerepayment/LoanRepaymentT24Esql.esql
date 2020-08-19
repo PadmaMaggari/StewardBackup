@@ -101,12 +101,15 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 		END IF;
 		IF FIELDNAME(InputBody) LIKE 'JSON' THEN
 			DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+			SET Environment.Variables.errMsg = InputRoot.JSON.Data;
 			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		ELSE
 			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
 			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(inRef,encodeRef,ccidRef);
-			SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
-		END IF;
+			SET domainName = 'JSON';
+			SET Environment.Variables.errMsg = OutputRoot.JSON.Data; 
+			SET Environment.Variables.resMsg = getPayLoad(domainName,OutputRoot.JSON,encodeRef,ccidRef);   
+		END IF; 
 		SET OutputRoot = NULL;
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',' ----- Response from T24 ------') INTO rc;
@@ -135,7 +138,7 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 			SET headRef.processingCode = '120000';
 			SET headRef.responseCode = responceCode;
 			SET headRef.status = 'Failure'; 			
-			SET bodyRef = Environment.Variables.resMsg;
+			SET bodyRef = Environment.Variables.errMsg; 
 		END IF;
 		DECLARE envref REFERENCE TO Environment.JSON.Data;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
