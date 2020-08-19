@@ -139,12 +139,10 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_ResponseToChannel
 			SET headRef.responseCode = responceCode;		
 			SET bodyRef = Inrefer.body; 
 		ELSE
-			SET headRef.status = Inrefer.header;
 			SET headRef.channel = '*236#';
 			SET headRef.processingCode = '110000';
 			SET headRef.responseCode = responceCode;
 			SET headRef.status = 'Failure'; 
-			SET bodyRef = Inrefer.body;
 			SET bodyRef = Environment.Variables.resMsg;
 		END IF;
 		DECLARE envref REFERENCE TO Environment.JSON.Data;
