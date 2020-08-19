@@ -51,10 +51,8 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenReqToT24
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQMD = InputRoot.MQMD; 
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data.RemmitanceBankDeposit;
-		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		DECLARE outRef REFERENCE TO OutputRoot.JSON;
-		
 		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
 		DECLARE resQ CHARACTER Environment.MQRFH2.usr.resQueueName;
 		SET Environment.Variables.ResponseQ = resQ;
@@ -78,8 +76,15 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenReqToT24
 		SET outRef.body.creditAccountId=inRef.body.creditAccountId;
 		SET outRef.body.paymentCurrency=inRef.body.paymentCurrency;
 		SET reqData=getPayLoad(FIELDNAME(InputBody),outRef,encodeRef,ccidRef);
-		SET Environment.Variables.jsonData=outRef;
+		
+		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
+		DECLARE envref REFERENCE TO Environment;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
+		CREATE LASTCHILD OF Environment.JSON AS envref NAME 'Data';
+		SET envref = OutRefer;
 		SET OutputRoot = NULL;
+--		SET Environment.Variables.jsonData=outRef;
+--		SET OutputRoot = NULL;
 	
 		/* =================== CALLING DB LOGGING   ==============*/
 	  IF IsLogRequired LIKE 'Y' THEN
@@ -91,7 +96,10 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenReqToT24
 		/* ==================== Database Logging End ==================== */
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
+		SET OutputRoot.JSON.Data = envref;
+		DECLARE blobData BLOB ASBITSTREAM(OutputRoot.JSON.Data CCSID ccidRef);
+		DECLARE charData CHARACTER CAST(blobData AS CHARACTER CCSID ccidRef);
+		
 		/* =================== CALLING  LOG4J LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG','T24 Url::'||RemmitanceT24Url) INTO rc;
@@ -99,12 +107,12 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenReqToT24
 			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG',reqData) INTO rc;
 		END IF;
 		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
-		
-		
 		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
+		SET OutputLocalEnvironment.HTTPRequestHeader."Content-Type" = InputRoot.MQRFH2.usr.HTTPInputHeader."Content-Type";
+		SET OutputLocalEnvironment.HTTPRequestHeader."Accept-Encoding" = InputRoot.MQRFH2.usr.HTTPInputHeader.Accept;
+		SET OutputLocalEnvironment.HTTPRequestHeader."Content-Length"=LENGTH(charData);
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = RemmitanceT24Url;
 	
-		
 	END;
 END MODULE;
 
@@ -115,7 +123,6 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
 		 CALL GenerateResponseToFrontEnd();
 		RETURN TRUE;
 	END;
-
 
 	CREATE PROCEDURE GenerateResponseToFrontEnd() BEGIN
 		SET Environment.MQMD = InputRoot.MQMD;
@@ -197,7 +204,6 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
 		SET envref = OutRefer;
 		SET domainDataRef = OutputRoot.JSON.Data; 
 		SET Environment.Variables.resMsg = getPayLoad(inDomain,domainDataRef,encodeRef,ccsid); 
-		
 		SET OutputRoot = NULL;
 		
 		/* =================== CALLING DB LOGGING  ==============*/
@@ -221,10 +227,10 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
 	END;
 END MODULE;
+
 CREATE COMPUTE MODULE RemmitanceBankDepositFlow_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		-- CALL CopyMessageHeaders();
 		CALL BuildErrorMsg();
 		RETURN TRUE;
 	END;
