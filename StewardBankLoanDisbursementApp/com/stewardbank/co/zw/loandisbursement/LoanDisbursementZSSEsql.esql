@@ -76,9 +76,20 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		SET OutputRoot.DFDL = NULL;
 		/*=================== CALLING LOG4J LOGGING ==============*/
+		DECLARE logRef REFERENCE TO Environment.dfdlData;
+		DECLARE jsonRef REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
+		--CALL JSONLogMessage(logRef,jsonRef);
+		SET jsonRef = logRef;
+		SET Environment.ZssJsonreqMsg = getPayLoad('JSON',jsonRef,encodeRef,ccsid);
+		SET OutputRoot.JSON = NULL;
+		
+		
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','Generate Req in ZSS::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.ZssJsonreqMsg) INTO rc;
 		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
@@ -117,6 +128,15 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_GenereateResponseToChannel
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		
+		DECLARE logRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
+		DECLARE jsonRef REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
+		--CALL JSONLogMessage(logRef,jsonRef);
+		SET jsonRef = logRef;
+		SET Environment.ZssJsonresMsg = getPayLoad('JSON',jsonRef,encodeRef,ccidRef);
+		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired LIKE 'Y' THEN
 			-- --------------DBLogging-------------------
 			-- CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
@@ -125,6 +145,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_GenereateResponseToChannel
 			-- -----------------------------
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','ZSS Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.ZssJsonresMsg) INTO rc;
 		END IF;
 		--field to field mapping
 		--CALL ISOToJSONMapping(inRef,outRef);
