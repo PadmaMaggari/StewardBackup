@@ -279,10 +279,8 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 			SET errMsg = 'No Response from T24 Server';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
 			SET errMsg = 'No Response from Postilion Server';
-		ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN 
+		ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN
 			SET errMsg = 'JSON parsing errors have occurred';
-		ELSEIF CONTAINS(excpRef.excpText,'Socket') THEN
-			SET errMsg = 'SocketException errors have occurred';
 		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
 			SET errMsg = 'WebService Request Exception errors have occurred'; 
 		END IF;
@@ -308,6 +306,8 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body; 
 		--SET headerRef = Environment.MQRFH2.header;
+		SET headerRef.channel = 'MobileApp';
+		SET headerRef.processingCode = '110000'; 
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '000';
 		SET bodyRef.source = 'ESB';  

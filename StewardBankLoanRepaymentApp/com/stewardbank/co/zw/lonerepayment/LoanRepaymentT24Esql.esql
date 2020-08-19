@@ -214,6 +214,8 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_BuildException
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body; 
 		--SET headerRef = Environment.MQRFH2.header;
+		SET headerRef.channel = 'MobileApp';
+		SET headerRef.processingCode = '120000';
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '000';
 		SET bodyRef.source = 'ESB';  
