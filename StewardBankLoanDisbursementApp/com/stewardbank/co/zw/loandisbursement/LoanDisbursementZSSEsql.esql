@@ -257,7 +257,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_BuildException
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
-		SET headerRef.channel = 'MobileApp';
+		SET headerRef.channel = '*236#';
 		SET headerRef.processingCode = '110000';
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '000';
