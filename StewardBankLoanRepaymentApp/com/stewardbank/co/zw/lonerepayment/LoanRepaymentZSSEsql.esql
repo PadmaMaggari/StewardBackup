@@ -213,20 +213,20 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_BuildException
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'SocketException') THEN
-			SET errMsg = 'No Response from T24 Server';
+			SET errMsg = 'No Response from ZSS Server';
 		END IF;
 
 		IF CONTAINS(excpRef.excpText,'RecoverableException') THEN
-			SET errMsg = 'No Response from T24 Server';
+			SET errMsg = 'No Response from ZSS Server';
 		END IF;
 		IF CONTAINS(excpRef.excpText,'connection refused') THEN
-			SET errMsg = 'No Response from T24 Server';
+			SET errMsg = 'No Response from ZSS Server';
 		END IF;
 		IF CONTAINS(excpRef.excpText,'Exception whilst parsing') THEN
-			SET errMsg = 'No Response from T24 Server';
+			SET errMsg = 'No Response from ZSS Server';
 		END IF;
 		IF CONTAINS(excpRef.excpText,'ParserException') THEN
-			SET errMsg = 'No Response from T24 Server';
+			SET errMsg = 'No Response from ZSS Server'; 
 		END IF;
 		IF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
 			SET errMsg = 'WebService Request Exception errors have occurred';
