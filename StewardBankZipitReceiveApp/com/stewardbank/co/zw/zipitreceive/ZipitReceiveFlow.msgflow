@@ -21,32 +21,38 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG4J_INIT_ERROR_MSG" name="LOG4J_INIT_ERROR_MSG" defaultValueLiteral="[log4j] Initialization Error">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.SENDER_FULL_NAME" name="SENDER_FULL_NAME" defaultValueLiteral="SENDER_FULL_NAME">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.PHONE_NUMBER" name="PHONE_NUMBER" defaultValueLiteral="PHONE_NUMBER">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="ZipitReceiveFlow" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankZipitReceiveApp/icons/full/obj16/ZipitReceiveFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankZipitReceiveApp/icons/full/obj30/ZipitReceiveFlow.gif"/>
     <composition>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_1" location="302,278">
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_1" location="263,166">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="151,273" queueName="ZIPIT_REC_SB_TCP_REQ" messageDomainProperty="DFDL" messageTypeProperty="{}:ISO8583_1987" transactionMode="no">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="6,196" queueName="ZIPIT_REC_SB_TCP_REQ" messageDomainProperty="DFDL" messageTypeProperty="{}:ISO8583_1987" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="ZIPIT RECEIVE_SB_REQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="651,160" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.zipitreceive#ZipitReceiveFlow_GenerateResToPostilion.Main" computeMode="all">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="612,48" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.zipitreceive#ZipitReceiveFlow_GenerateResToPostilion.Main" computeMode="all">
         <translation xmi:type="utility:ConstantString" string="GeneratingResToPostilion"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_4" location="411,160">
+      <nodes xmi:type="com_stewardbank_co_zw_common_t24call_StewardBankT24SubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_4" location="372,48">
         <translation xmi:type="utility:ConstantString" string="StewardBankT24SubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="472,280" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.zipitreceive#ZipitReceiveFlow_CaptureException.Main" computeMode="all">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="433,168" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.zipitreceive#ZipitReceiveFlow_CaptureException.Main" computeMode="all">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="206,159" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.zipitreceive#ZipitReceiveFlow_GenerateReqToT24.Main" computeMode="all">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="167,47" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.zipitreceive#ZipitReceiveFlow_GenerateReqToT24.Main" computeMode="all">
         <translation xmi:type="utility:ConstantString" string="GeneratingReqToT"/>
       </nodes>
-      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="565,156" messageDomain="DFDL" resetMessageDomain="true" messageSet="{ISO8583_Lib}" resetMessageSet="true" messageType="{}:ISO8583_1987" resetMessageType="true">
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="526,44" messageDomain="DFDL" resetMessageDomain="true" messageSet="{ISO8583_Lib}" resetMessageSet="true" messageType="{}:ISO8583_1987" resetMessageType="true">
         <translation xmi:type="utility:ConstantString" string="ISO Validation"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="712,281" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="673,169" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="ZIPIT RECEIVE_SB_RES"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
@@ -74,6 +80,12 @@
                 <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
                 <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4J_INIT_ERROR_MSG">
                   <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR_MSG" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
+                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.SENDER_FULL_NAME">
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.SENDER_FULL_NAME" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
+                    <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.PHONE_NUMBER">
+                      <propertyName xmi:type="utility:TranslatableString" key="Property.PHONE_NUMBER" bundleName="com/stewardbank/co/zw/zipitreceive/ZipitReceiveFlow" pluginId="StewardBankZipitReceiveApp"/>
+                    </propertyDescriptor>
+                  </propertyDescriptor>
                 </propertyDescriptor>
               </propertyDescriptor>
             </propertyDescriptor>

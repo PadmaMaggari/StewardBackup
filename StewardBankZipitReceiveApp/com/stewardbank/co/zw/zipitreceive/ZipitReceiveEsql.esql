@@ -14,6 +14,8 @@ DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER ''; 
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE SENDER_FULL_NAME EXTERNAL CHARACTER '';
+DECLARE PHONE_NUMBER EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
 CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -66,6 +68,15 @@ CREATE COMPUTE MODULE ZipitReceiveFlow_GenerateReqToT24
 		--field to field mapping
 		DECLARE posRef REFERENCE TO Environment.DFDL.ISO8583_1987;
 		DECLARE envUsrRef REFERENCE TO Environment.MQRFH2.usr;
+		
+		IF FIELDNAME(inRef.StructuredDataPostilionPrivate_127_22) is NOT NULL AND LENGTH(inRef.StructuredDataPostilionPrivate_127_22) > 5 THEN
+			CALL keyValuePair127_22(envUsrRef,inRef);
+			IF EXISTS(envUsrRef.structuredData127_22.value[]) THEN
+				 CALL getValueByKey(envUsrRef,SENDER_FULL_NAME);
+				 CALL getValueByKey(envUsrRef,PHONE_NUMBER) ;
+			END IF;
+		END IF;
+		
 		CALL FieldToFieldMapping(inRef,outRef,'',envUsrRef,posRef);
 		SET Environment.DFDL = OutputRoot.DFDL;
 		DECLARE removeRefPointer REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
