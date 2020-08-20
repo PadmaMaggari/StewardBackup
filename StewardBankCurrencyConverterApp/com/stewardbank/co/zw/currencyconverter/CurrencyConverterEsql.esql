@@ -158,7 +158,7 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 			DECLARE mrksRef,mrkRef REFERENCE TO InputRoot.JSON.Data.body.Item[I];
 			CREATE LASTCHILD OF OutputRoot.JSON.Data.responseBody IDENTITY(JSON.Array)exchangeRatesResponses;
 			WHILE LASTMOVE(mrksRef) DO
-				IF EXISTS(mrksRef.markets.Item[])THEN
+				IF EXISTS(mrksRef.markets.Item[])THEN 
 					MOVE mrkRef TO mrksRef.markets.Item[1];
 					WHILE LASTMOVE(mrkRef) DO
 						IF mrkRef.buyRate <> '' OR mrkRef.buyRate IS NOT NULL THEN
@@ -180,7 +180,7 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 					SET I = I + 1;
 				END IF;
 				MOVE mrksRef NEXTSIBLING;
-			END WHILE;
+		END WHILE;
 		ELSE
 			SET OutRefer.CurrencyConverter.channel = 'MobileApp';
 			SET OutRefer.CurrencyConverter.processingCode = '330000';

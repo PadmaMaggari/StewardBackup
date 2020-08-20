@@ -33,22 +33,22 @@ CREATE COMPUTE MODULE LoanDisbursementFlow_AccountAvalilabilityCheck
 		-- SET DBLogging Properties ==============
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			PROPAGATE TO TERMINAL 'out';
-		END IF;
+--		IF IsLogRequired LIKE 'Y' THEN
+--			CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+--			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+--			PROPAGATE TO TERMINAL 'out';
+--		END IF;
 		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
 		/*=================== CALLING LOG4j LOGGING ==============*/
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','..............Start T24 or Zss logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','Incoming Request::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',reqMsg) INTO rc;
-		END IF;
+--		IF IsLogRequired LIKE 'Y' THEN
+--			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','..............Start T24 or Zss logging...........') INTO rc;
+--			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','Incoming Request::') INTO rc;
+--			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',reqMsg) INTO rc;
+--		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 		/* ============== CALL ISAVE DB LOOKUP ===================== */
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
@@ -58,12 +58,13 @@ CREATE COMPUTE MODULE LoanDisbursementFlow_AccountAvalilabilityCheck
 		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
 
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','..............Start Sending Data To Zss ...........') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','ZSS Request::') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',reqMsg) INTO rc;
-			END IF;
+				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','..............Start Initializing ZSS logging...........') INTO rc; 
+				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','..............Sending Data To Zss ...........') INTO rc; 
+				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','ZSS Request ::') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',reqMsg) INTO rc; 
+			END IF; 
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,reqMsg,'ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,reqMsg,'Application ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 				PROPAGATE TO TERMINAL 'out';
 			END IF;
@@ -76,12 +77,13 @@ CREATE COMPUTE MODULE LoanDisbursementFlow_AccountAvalilabilityCheck
 		ELSE
 
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','..............Start Sending Data To T24 ...........') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','ZSS Request::') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','..............Start Initializing T24 logging...........') INTO rc;  
+				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','..............Sending Data To T24 ...........') INTO rc; 
+				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','T24 Request ::') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',reqMsg) INTO rc;
 			END IF;
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,reqMsg,'Application T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 				PROPAGATE TO TERMINAL 'out';
 			END IF;
