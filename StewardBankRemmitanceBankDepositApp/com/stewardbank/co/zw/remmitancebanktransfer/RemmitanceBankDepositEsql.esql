@@ -139,7 +139,9 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
 		ELSE
 			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
 			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(inRef,encodeRef,ccsid); 
-			SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccsid); 
+			SET inDomain = 'JSON';
+			SET Environment.Variables.errMsg = OutputRoot.JSON.Data;
+			SET Environment.Variables.resData = getPayLoad(inDomain,domainDataRef,encodeRef,ccsid); 
 		END IF;
 	 	SET OutputRoot = NULL;
 	 	DECLARE rc BOOLEAN FALSE;
@@ -169,8 +171,10 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
 		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('RemmitanceBankDeposit');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.RemmitanceBankDeposit NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.RemmitanceBankDeposit NAME ('body');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.RemmitanceBankDeposit NAME ('error');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.RemmitanceBankDeposit.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.RemmitanceBankDeposit.body;
+		DECLARE errRef REFERENCE TO OutputRoot.JSON.Data.RemmitanceBankDeposit.error;
 		DECLARE OutRefer REFERENCE TO OutputRoot.JSON.Data;
 		DECLARE status CHARACTER InputRoot.JSON.Data.header.status;
 		IF responceCode LIKE '200' AND status LIKE 'success' THEN
@@ -190,20 +194,26 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
 			SET bodyRef=inRef.body;
 		ELSE 
 			
+			
+			SET bodyRef = NULL;
 			SET headRef.channel ='remmitance';
 			SET headRef.processingCode = '230000';
-			SET headRef.status = 'FAILED';
+			SET headRef.status = 'Failure';
 			SET headRef.responseCode = responceCode;
-			SET bodyRef=Environment.Variables.resData;	
+			SET errRef=Environment.Variables.errMsg;	
 		END IF;	
 		
 	--------------	
+		SET Environment.JSON=NULL;
 		DECLARE envref REFERENCE TO Environment.JSON.Data;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
 		CREATE LASTCHILD OF envref AS envref NAME 'Data';
 		SET envref = OutRefer;
-		SET domainDataRef = OutputRoot.JSON.Data; 
-		SET Environment.Variables.resMsg = getPayLoad(inDomain,domainDataRef,encodeRef,ccsid); 
+		--SET domainDataRef = OutputRoot.JSON.Data; 
+		SET inDomain = FIELDNAME(OutputRoot.JSON);
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayLoad(inDomain,domainDataRef,encodeRef,ccsid);
+		--SET Environment.Variables.resMsg = getPayLoad(inDomain,domainDataRef,encodeRef,ccsid); 
 		SET OutputRoot = NULL;
 		
 		/* =================== CALLING DB LOGGING  ==============*/
@@ -220,9 +230,9 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_GenResponse
 		
 		/* =================== CALLING LOG4J LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
+			--DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
 			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG','Remmitance BankDeposit Response ::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),outDomainDataRef,encodeRef,ccsid)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'RemmitanceBankDepositLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
 	END;
@@ -245,7 +255,9 @@ CREATE COMPUTE MODULE RemmitanceBankDepositFlow_BuildExceptionDetails
 		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'connection refused') THEN
 			SET errMsg = 'T24 Server Down';
-
+		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+			SET errMsg = 'WebService Request Exception errors have occurred';
+	
 		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
 			SET errMsg = 'No Response from T24 Server';
 		END IF;
