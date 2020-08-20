@@ -31,19 +31,19 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSWIFTApplication/icons/full/obj16/SWIFTOutgoing.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSWIFTApplication/icons/full/obj30/SWIFTOutgoing.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="564,170" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="584,156" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="LogQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="426,170" computeExpression="esql://routine/com.stewardbank.co.zw.swift#SWIFTOutgoing_GenerateExceptionDetails.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="425,157" computeExpression="esql://routine/com.stewardbank.co.zw.swift#SWIFTOutgoing_GenerateExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="buildingErrorMessage"/>
       </nodes>
       <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="542,50" fileFtpDirectory="">
         <translation xmi:type="utility:ConstantString" string="DropFilesInSwiftSystem"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="254,167">
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="260,157">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="136,95" inputDirectory="/stwb/bnk/UD/SWIFTOUT" messageDomainProperty="BLOB" fileFtp="true" remoteTransferType="SFTP" fileFtpServer="{SwiftSftp}:SwiftInOut">
+      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="148,99" inputDirectory="/stwb/bnk/UD/SWIFTOUT" messageDomainProperty="BLOB" fileFtp="true" remoteTransferType="SFTP" fileFtpServer="{SwiftSftp}:SwiftInOut">
         <translation xmi:type="utility:ConstantString" string="FetchFilesFromT24"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="329,44" computeExpression="esql://routine/com.stewardbank.co.zw.swift#SWIFTOutgoing_FramingSwiftDropLocation.Main" computeMode="destinationAndMessage">
