@@ -433,6 +433,12 @@ BEGIN
 			SET outRef.ReservedPrivate_061= inParam.BeneficiaryAccount;
 			SET outRef.PrimaryBitmap.Bit061=1;
 		END IF;
+		
+		IF FIELDNAME(inParam.SENDER_FULL_NAME) IS NOT NULL THEN
+			SET outRef.ReservedPrivate_061= inParam.SENDER_FULL_NAME;
+			SET outRef.PrimaryBitmap.Bit061=1;
+		END IF;
+		
 	END IF;
 	IF FIELDNAME(inputRef.ReservedPrivate_062) is NOT NULL THEN
 		IF FIELDNAME(inParam) = iso  THEN 
@@ -443,6 +449,11 @@ BEGIN
 	ELSE
 		IF FIELDNAME(inParam.BeneficiaryBankCode) IS NOT NULL THEN
 			SET outRef.ReservedPrivate_062= inParam.BeneficiaryBankCode;
+			SET outRef.PrimaryBitmap.Bit062=1;
+		END IF;
+		
+		IF FIELDNAME(inParam.PHONE_NUMBER) IS NOT NULL THEN
+			SET outRef.ReservedPrivate_062= inParam.PHONE_NUMBER;
 			SET outRef.PrimaryBitmap.Bit062=1;
 		END IF;
 	END IF;
