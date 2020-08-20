@@ -185,7 +185,9 @@ CREATE COMPUTE MODULE CashOutFlow_GenResToT24
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
 		CREATE LASTCHILD OF envref AS envref NAME 'Data';
 		SET envref = OutRefer;
-		SET domainDataRef = OutputRoot.JSON.Data; 
+		--SET domainDataRef = OutputRoot.JSON.Data; 
+		SET inDomain = FIELDNAME(OutputRoot.JSON);
+		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayLoad(inDomain,domainDataRef,encodeRef,ccsid); 
 		SET OutputRoot = NULL;
 		

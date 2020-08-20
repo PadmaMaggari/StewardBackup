@@ -181,7 +181,9 @@ CREATE COMPUTE MODULE CashInFlow_GenResToT24
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
 		CREATE LASTCHILD OF envref AS envref NAME 'Data';
 		SET envref = OutRefer;
-		SET domainDataRef = OutputRoot.JSON.Data; 
+		--SET domainDataRef = OutputRoot.JSON.Data; 
+		SET inDomain = FIELDNAME(OutputRoot.JSON);
+		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayLoad(inDomain,domainDataRef,encodeRef,ccsid); 
 		SET OutputRoot = NULL; 
 		
@@ -199,9 +201,9 @@ CREATE COMPUTE MODULE CashInFlow_GenResToT24
 		
 		/* =================== CALLING LOG4J LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
+			
 			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG','Application Response ::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG',getPayLoad(FIELDNAME(InputBody),outDomainDataRef,encodeRef,ccsid)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CashInLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.Variables.ResponseQ;
 	END;
