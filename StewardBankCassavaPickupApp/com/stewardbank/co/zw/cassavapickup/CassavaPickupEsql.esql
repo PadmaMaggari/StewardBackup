@@ -71,13 +71,13 @@ CREATE COMPUTE MODULE CassavaPickupFlow_GetPickupTransaction
 		SET Environment.t24ReqMsg = getPayLoad(FIELDNAME(InputBody),outRef,encodeRef,ccsid);
 	   SET OutputRoot.JSON = NULL;
 			IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','T24 Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','Cassava Request::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG',Environment.t24ReqMsg) INTO rc;
 		END IF;
 		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
 		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.t24ReqMsg,'T24  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.t24ReqMsg,'Cassava  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF; 
@@ -150,11 +150,11 @@ CREATE COMPUTE MODULE CassavaPickupFlow_ResponseToChannel
 			SET Environment.data = domainDataRef;
 			SET OutputRoot.JSON = NULL;
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,T24resMsg,'T24  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,T24resMsg,'Cassava  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 				PROPAGATE TO TERMINAL 'out';
 			END IF;
-			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','Response from T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','Response from Cassava::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG',T24resMsg) INTO rc;
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
