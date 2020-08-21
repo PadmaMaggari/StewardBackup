@@ -32,23 +32,23 @@ CREATE COMPUTE MODULE LoneRepaymentFlow_AccountAvalilabilityCheck
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			PROPAGATE TO TERMINAL 'out';
-		END IF;
+--		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
+--		IF IsLogRequired LIKE 'Y' THEN
+--			CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,reqMsg,'Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'MMdd'),'',outRefer);
+--			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+--			PROPAGATE TO TERMINAL 'out';
+--		END IF;
 		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
 		/*=================== CALLING LOG4j LOGGING ==============*/
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','..............Start T24 or Zss logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','Incoming Request::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',reqMsg) INTO rc;
-		END IF;
+--		IF IsLogRequired LIKE 'Y' THEN
+--			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','..............Start T24 or Zss logging...........') INTO rc;
+--			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','Incoming Request::') INTO rc;
+--			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',reqMsg) INTO rc;
+--		END IF;
 		/*=================== CALLING LOG4J LOGGING END ==============*/
 		/* ============== CALL ISAVE DB LOOKUP ===================== */
 		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
@@ -58,12 +58,13 @@ CREATE COMPUTE MODULE LoneRepaymentFlow_AccountAvalilabilityCheck
 		IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
 
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','..............Start Sending Data To Zss ...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','..............Start Initializing ZSS logging...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','.............. Sending Data To Zss ...........') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','ZSS Request::') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',reqMsg) INTO rc;
 			END IF;
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,reqMsg,'ZSS Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+				CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,reqMsg,'Application ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 				PROPAGATE TO TERMINAL 'out';
 			END IF;
@@ -76,12 +77,13 @@ CREATE COMPUTE MODULE LoneRepaymentFlow_AccountAvalilabilityCheck
 		ELSE
 
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','..............Start Sending Data To T24 ...........') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','ZSS Request::') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','..............Start Initializing T24 logging...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','.............. Sending Data To T24 ...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','T24 Request::') INTO rc; 
 				CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',reqMsg) INTO rc;
 			END IF;
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,reqMsg,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+				CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,reqMsg,'Application T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 				PROPAGATE TO TERMINAL 'out';
 			END IF;
@@ -135,7 +137,7 @@ CREATE COMPUTE MODULE LoneRepaymentFlow_BuildException
 		PROPAGATE TO TERMINAL 'out';
 /*=================== CALLING ERROR DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT.ErrorCode,outRefer);
+			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'MMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT.ErrorCode,outRefer);
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
 		END IF;
 		/*=================== CALLING ERROR DB RAW AUDIT LOGGING END  ==============*/

@@ -33,11 +33,14 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.FormatFailure" name="FormatFailure" defaultValueLiteral="C:\STEWARD_Bank\FormatFailure">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RTGS_INCOMING_SB_Q" name="RTGS_INCOMING_SB_Q" defaultValueLiteral="RTGS_INCOMING_SB_Q">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="rtgsIncomingFlow" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankIncomingRtgsApp/icons/full/obj16/rtgsIncomingFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankIncomingRtgsApp/icons/full/obj30/rtgsIncomingFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="584,105" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="592,98" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="OutQ"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="187,32" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingFlow_GenerateMt103Req.Main" computeMode="destinationAndMessage">
@@ -49,7 +52,7 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="380,155" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingFlow__GenerateExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GeneratingExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="42,111" inputDirectory="C:\STEWARD_Bank\Rtgs" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtpTransferMode="ASCII">
+      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="38,110" inputDirectory="C:\STEWARD_Bank\Rtgs" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtpTransferMode="ASCII">
         <translation xmi:type="utility:ConstantString" string="Fectching Mt103 form Remote"/>
       </nodes>
       <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="322,81" messageDomain="DFDL" resetMessageDomain="true" messageSet="{MT103}" resetMessageSet="true" messageType="{}:MT103" validateTiming="immediate" validateMaster="contentAndValue">
@@ -58,7 +61,7 @@
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="174,160">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="584,191">
+      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="588,169">
         <translation xmi:type="utility:ConstantString" string="File Output"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
@@ -92,6 +95,9 @@
                         <propertyName xmi:type="utility:TranslatableString" key="Property.DBFailure" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
                         <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.FormatFailure">
                           <propertyName xmi:type="utility:TranslatableString" key="Property.FormatFailure" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+                          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RTGS_INCOMING_SB_Q">
+                            <propertyName xmi:type="utility:TranslatableString" key="Property.RTGS_INCOMING_SB_Q" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+                          </propertyDescriptor>
                         </propertyDescriptor>
                       </propertyDescriptor>
                     </propertyDescriptor>

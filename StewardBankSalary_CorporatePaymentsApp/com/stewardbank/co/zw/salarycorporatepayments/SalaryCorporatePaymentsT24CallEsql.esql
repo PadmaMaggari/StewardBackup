@@ -55,7 +55,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 			SET OutputRoot = NULL;
 			/* ===================Audit Logging ==============*/
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(Environment.Variables.UID,SalaryPayments_T24URL,'SalaryPayments_T24URL Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRefer.Purpose,outRefer);
+				CALL DBLogging(Environment.Variables.UID,SalaryPayments_T24URL,'SalaryPayments_T24URL Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),inRefer.Purpose,outRefer);
 			END IF;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
@@ -67,12 +67,12 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 			/* =================== End of Audit Logging ==============*/
 			/*================DB Update=======================*/
 				IF CONTAINS(inRefer.Purpose,'Salary') OR CONTAINS(inRefer.Purpose,'Salaries')THEN
-				CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Salary Payments',Environment.Variables.reqMsg,Env.Amount,
-				Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,SalaryPayments_T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'FALSE');
+				CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName,Environment.Variables.reqMsg,Env.Amount,
+				Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,SalaryPayments_T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'FALSE'); 
 			ELSE
-				CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Corporate Payments',Environment.Variables.reqMsg,Env.Amount,
-				Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,SalaryPayments_T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'TRUE');
-			END IF;
+				CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName,Environment.Variables.reqMsg,Env.Amount,
+				Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,SalaryPayments_T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'TRUE'); 
+				END IF; 
 			/*=============End===============*/
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
@@ -89,7 +89,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 				SET OutputRoot = NULL;
 				/* ===================Audit Logging ==============*/
 				IF IsLogRequired LIKE 'Y' THEN
-					CALL DBLogging(Environment.Variables.UID,InternalCorporatePayments_T24URL,'InternalCorporatePayments_T24URL Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRefer.Purpose,outRefer);
+					CALL DBLogging(Environment.Variables.UID,InternalCorporatePayments_T24URL,'InternalCorporatePayments_T24URL Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),inRefer.Purpose,outRefer);
 				END IF;
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 				PROPAGATE TO TERMINAL 'out1';
@@ -100,7 +100,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 				END IF;
 				/* =================== End of Audit Logging ==============*/
 				/*================DB Update=======================*/
-				IF Env.TaxableCheck LIKE 'SALARY%' THEN
+				IF CONTAINS(inRefer.Purpose,'Salary') OR CONTAINS(inRefer.Purpose,'Salaries')THEN
 					CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Salary Payments',Environment.Variables.reqMsg,Env.Amount,
 					Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,InternalCorporatePayments_T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'FALSE');
 				ELSE
@@ -122,7 +122,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 				SET OutputRoot = NULL;
 				/* ===================Audit Logging ==============*/
 				IF IsLogRequired LIKE 'Y' THEN
-					CALL DBLogging(Environment.Variables.UID,InternalCorporatePayments_T24URL,'rtgsCorporatePayments_T24URL Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRefer.Purpose,outRefer);
+					CALL DBLogging(Environment.Variables.UID,rtgsCorporatePayments_T24URL,'rtgsCorporatePayments_T24URL Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),inRefer.Purpose,outRefer);
 				END IF;
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 				PROPAGATE TO TERMINAL 'out1';
@@ -133,7 +133,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 				END IF;
 				/* =================== End of Audit Logging ==============*/
 				/*================DB Update=======================*/
-				IF Env.TaxableCheck LIKE 'SALARY%' THEN
+				IF CONTAINS(inRefer.Purpose,'Salary') OR CONTAINS(inRefer.Purpose,'Salaries')THEN
 					CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Salary Payments',Environment.Variables.reqMsg,Env.Amount,
 					Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,rtgsCorporatePayments_T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'FALSE');
 				ELSE
@@ -246,17 +246,17 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET creditAccountId = Environment.Variables.Crt_Acc;
-		IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') THEN
-			SET OutputLocalEnvironment.Destination.File.Directory = SCP_DBFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
-			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.FileName||'_'||creditAccountId||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss')||'.csv';
-		ELSE
-			SET OutputLocalEnvironment.Destination.File.Directory = SCP_FormatFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
-			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.FileName||'_'||creditAccountId||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss')||'.csv';
-		END IF;
-		SET OutputRoot.Properties.MessageSet = InputRoot.Properties.MessageSet;
-		SET OutputRoot.Properties.MessageType = InputRoot.Properties.MessageType;
-		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')PARSE(Environment.MQRFH2.reqMsg ENCODING encodeRef CCSID ccidRef SET '{SB_CSV_Lib}' TYPE '{}:stewardBank_CSV');
-		PROPAGATE TO TERMINAL 'out1';
+--		IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') THEN
+--			SET OutputLocalEnvironment.Destination.File.Directory = SCP_DBFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+--			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.FileName||'_'||creditAccountId||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss')||'.csv';
+--		ELSE
+--			SET OutputLocalEnvironment.Destination.File.Directory = SCP_FormatFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+--			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.FileName||'_'||creditAccountId||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss')||'.csv';
+--		END IF;
+--		SET OutputRoot.Properties.MessageSet = InputRoot.Properties.MessageSet;
+--		SET OutputRoot.Properties.MessageType = InputRoot.Properties.MessageType;
+--		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')PARSE(Environment.MQRFH2.reqMsg ENCODING encodeRef CCSID ccidRef SET '{SB_CSV_Lib}' TYPE '{}:stewardBank_CSV');
+--		PROPAGATE TO TERMINAL 'out1';
 		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';

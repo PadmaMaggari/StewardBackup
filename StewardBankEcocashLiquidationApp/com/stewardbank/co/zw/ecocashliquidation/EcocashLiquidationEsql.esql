@@ -2,6 +2,8 @@
 
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.ecocashliquidation
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
@@ -52,9 +54,9 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 				PROPAGATE TO TERMINAL 'out1';
 			END IF;
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','..............Start Ecocash Liquidation Mobiquity Logging ...........') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','Message::'||Environment.Variables.reqMsg) INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','..............Start Ecocash Liquidation Mobiquity Logging ...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Message::'||Environment.Variables.reqMsg) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 			END IF;
 			DECLARE Bank CHARACTER inRef.BANK;
 			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
@@ -63,59 +65,75 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 			DECLARE fxtid ROW;
 			DECLARE value INTEGER;
 			DECLARE value1 CHARACTER;
-			-- set fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL');
-			-- set value = fxtid.values.SEQ;
-			-- set value1 = CAST(value as CHARACTER);
-			set fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL');
-			set value = fxtid.values.SEQ;
-			set value1 = CAST(value as CHARACTER);
+			SET fxtid.values[] = PASSTHRU('SELECT NEXT VALUE FOR ECHOCASH_SEQ AS SEQ');
+			--SET fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL'); 
+			SET value = fxtid.values.SEQ;
+			SET value1 = CAST(value as CHARACTER);
 			DECLARE value2 CHARACTER;
 			DECLARE value3 CHARACTER;
-			set value3 = LENGTH(value1);
-			if (value3 = 1 or value3 = 2 or value3 = 3 or value3 = 4) then
-				set value2 = REPLACE(REPLACE(REPLACE(REPLACE(value3,'1','0000'),'2','000'),'3','00'),'4','0')||value1;
-			else
-				set value2 = value1;
-			end IF;
-			---Field to Field Mapping of CSV to JSON---
-			SET outRef.COMMAND.TYPE = 'DRSVA';
-			SET outRef.COMMAND.MSISDN = InputRoot.DFDL.StewardBank_EcoCSV.record.MSISDN;
-			SET outRef.COMMAND.IS_P2P_TRANSFER = 'Y';
-			SET outRef.COMMAND.PROVIDER= '101';
-			SET outRef.COMMAND.PAYID='12';
-			SET outRef.COMMAND.BANKID= 'IND0410171';
-			SET outRef.COMMAND.AMOUNT=InputRoot.DFDL.StewardBank_EcoCSV.record.BALANCE_USD;
-			SET outRef.COMMAND.LANGUAGE1= '1';
-			SET outRef.COMMAND.FTXNID= 'FTxnId'||value2;
-			SET outRef.COMMAND.USERTYPE= 'CHANNEL';
-			set outRef.COMMAND.REMARKS='Remarks';
-			SET outRef.COMMAND.BLOCKSMS='BOTH';
-			SET outRef.COMMAND.PRIORITY_REQUEST_TYPE='';
-			SET outRef.COMMAND.THRESHOLD_SERVICE_TYPE='';
-			SET Environment.jsonData = OutputRoot.JSON.Data;
-			SET Environment.Variables.outMsg = getPayLoad(FIELDNAME(OutputRoot.JSON),OutputRoot.JSON.Data,encodeRef,ccidRef);
-			SET OutputRoot = NULL;
-			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(Environment.Variables.UID,Environment.Variables.outMsg,'Mobiquity Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-				PROPAGATE TO TERMINAL 'out1';
+			SET value3 = LENGTH(value1);
+			IF (value3 = 1 or value3 = 2 or value3 = 3 or value3 = 4 or value3 = 5 or value3 = 6 or value3 = 7 or value3 = 8 or value3 = 9 or value3 = 10 or value3 = 11 or value3 = 12 or value3 = 13 or value3 = 14 or value3 = 15 or value3 = 16 or value3 = 17) THEN
+				SET value2 = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(value3,'1','00000000000000000'),'2','0000000000000000'),'3','000000000000000'),'4','00000000000000'),'5','0000000000000'),'6','000000000000'),'7','00000000000'),'8','0000000000'),'9','000000000'),'10','00000000'),'11','0000000'),'12','000000'),'13','00000'),'14','0000'),'15','000'),'16','00'),'17','0')||value1;
+			ELSE
+				SET value2 = value1;
 			END IF;
-			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','..............Ecocash Liquidation Mobiquity API CALL ...........') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','Message::'||Environment.Variables.outMsg) INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','MobiquityURL URL Request(POST)::'||MobiquityURL) INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+			IF CONTAINS(inRef.BALANCE_USD,'-') THEN
+				IF IsLogRequired LIKE 'Y' THEN
+					CALL DBLogging(Environment.Variables.UID,Environment.Variables.reqMsg,'Mobiquity Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
+					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q; 
+					PROPAGATE TO TERMINAL 'out1';
+				END IF;
+				IF IsLogRequired LIKE 'Y' THEN
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','..............Ecocash Liquidation Mobiquity API CALL ...........') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Message::'||Environment.Variables.reqMsg) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Negative Amount  ::'||inRef.BALANCE_USD) INTO rc;
+				END IF;
+				----db insert------
+				CALL INSERT_SB_ECOCASHLIQ(Environment.Variables.UID,FileName,Environment.Variables.reqMsg,inRef.MSISDN,inRef.BALANCE_USD,'','PENDING','FAILURE','PENDING',
+				'PENDING',inRef.BANK,'PENDING','PENDING','FAILURE','PENDING','SUCCESS',Environment.Variables.CreationDate,Environment.Variables.CreationDate); 
+				-------------------------------------------
+			ELSE
+				---Field to Field Mapping of CSV to JSON---
+				SET outRef.COMMAND.TYPE = 'DRSVA';
+				SET outRef.COMMAND.MSISDN = InputRoot.DFDL.StewardBank_EcoCSV.record.MSISDN;
+				SET outRef.COMMAND.IS_P2P_TRANSFER = 'Y';
+				SET outRef.COMMAND.PROVIDER= '101';
+				SET outRef.COMMAND.PAYID='12';
+				SET outRef.COMMAND.BANKID= 'IND0410171';
+				SET outRef.COMMAND.AMOUNT=InputRoot.DFDL.StewardBank_EcoCSV.record.BALANCE_USD;
+				SET outRef.COMMAND.LANGUAGE1= '1';
+				SET outRef.COMMAND.FTXNID= 'FTxnId'||value2;
+				SET outRef.COMMAND.USERTYPE= 'CHANNEL';
+				set outRef.COMMAND.REMARKS='Remarks';
+				SET outRef.COMMAND.BLOCKSMS='BOTH';
+				SET outRef.COMMAND.PRIORITY_REQUEST_TYPE='';
+				SET outRef.COMMAND.THRESHOLD_SERVICE_TYPE='';
+				SET Environment.jsonData = OutputRoot.JSON.Data;
+				SET Environment.Variables.outMsg = getPayLoad(FIELDNAME(OutputRoot.JSON),OutputRoot.JSON.Data,encodeRef,ccidRef);
+				SET OutputRoot = NULL;
+				IF IsLogRequired LIKE 'Y' THEN
+					CALL DBLogging(Environment.Variables.UID,Environment.Variables.outMsg,'Mobiquity Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
+					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+					PROPAGATE TO TERMINAL 'out1';
+				END IF;
+				IF IsLogRequired LIKE 'Y' THEN
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','..............Ecocash Liquidation Mobiquity API CALL ...........') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Message::'||Environment.Variables.outMsg) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','MobiquityURL URL Request(POST)::'||MobiquityURL) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+				END IF;
+				----db insert------
+				CALL INSERT_SB_ECOCASHLIQ(Environment.Variables.UID,FileName,Environment.Variables.reqMsg,inRef.MSISDN,inRef.BALANCE_USD,Environment.Variables.outMsg,'PENDING','PENDING','PENDING',
+				'PENDING',inRef.BANK,'PENDING','PENDING','PENDING','PENDING','SUCCESS',Environment.Variables.CreationDate,Environment.Variables.CreationDate);
+				-------------------------------------------
+				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json'; 
+				SET OutputRoot.JSON.Data = Environment.jsonData;
+				SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
+				SET OutputLocalEnvironment.Destination.HTTP.RequestURL = MobiquityURL;
+				PROPAGATE TO TERMINAL 'out';
 			END IF;
-			----db insert------
-			CALL INSERT_SB_ECOCASHLIQ(Environment.Variables.UID,FileName,CSV_Fields,inRef.MSISDN,inRef.BALANCE_USD,Environment.Variables.outMsg,'PENDING','PENDING','PENDING',
-			'PENDING',inRef.BANK,'PENDING','PENDING','PENDING','PENDING','SUCCESS',Environment.Variables.CreationDate,Environment.Variables.CreationDate);
-			-------------------------------------------
-			SET OutputRoot.Properties = InputRoot.Properties;
-			SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
-			SET OutputRoot.JSON.Data = Environment.jsonData;
-			SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
-			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = MobiquityURL;
-			PROPAGATE TO TERMINAL 'out';
 			RETURN FALSE;
 		ELSE
 			RETURN FALSE;
@@ -159,9 +177,9 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','Mobiquity Success Response') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','Response Message::'||Env.resMsg) INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Mobiquity Success Response') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Response Message::'||Env.resMsg) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 			END IF;
 			/* =================== END OF AUDIT LOGGING ==============*/
 			SET Environment.Variables.MobiquityRes = InputRoot.JSON.Data.COMMAND;
@@ -184,7 +202,6 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				SET outRef.invoiceReference = EnvRefer.CODE;
 				SET Environment.Variables.SB_jsonData = OutputRoot.JSON.Data;
 				--{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}
-				--{debitAccountId}/{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}
 				SET SB_T24URL = STB_T24URL||'ZWL'||'/'||EnvRefer.BANK_ACC_NUMBER||'/'|| EnvRefer.MERCHANT_NAME||'/'||'ZWL'||'/'||EnvRefer.BALANCE_USD||'/'||CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd')||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.CODE;
 				SET STB_Msg = getPayLoad(FIELDNAME(OutputRoot.JSON),OutputRoot.JSON.Data,encodeRef,ccidRef);
 				SET OutputRoot = NULL;
@@ -194,10 +211,10 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 					PROPAGATE TO TERMINAL 'out1';
 				END IF;
 				IF IsLogRequired LIKE 'Y' THEN
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','..............Ecocash Liquidation STB T24 API CALL ...........') INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','STB Message::'||STB_Msg) INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','T24 URL Request(POST)::'||SB_T24URL) INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','..............Ecocash Liquidation STB T24 API CALL ...........') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','STB Message::'||STB_Msg) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','T24 URL Request(POST)::'||SB_T24URL) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 				END IF;
 				CALL DbUpdateMobiquityStatus(Environment.Variables.UID,InRef.TXNSTATUS,'SUCCESS',Env.resMsg,InRef.DATE||' '||InRef.TIME,SB_T24URL,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));
 				SET OutputRoot.Properties = InputRoot.Properties;
@@ -208,7 +225,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 
 				PROPAGATE TO TERMINAL 'out';
 			ELSE
-				DECLARE OTBUrlParameters,OB_T24URL,OTB_Msg,narrative CHARACTER;
+				DECLARE OTBUrlParameters,OB_T24URL,OTB_Msg CHARACTER;
 				CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
 				DECLARE outRef REFERENCE TO OutputRoot.JSON;
 				CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
@@ -221,30 +238,23 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				SET outRef.branchName = EnvRefer.BRANCH_NAME;
 				SET outRef.ecocashlAcctId = '1000000047';
 				SET outRef.currency = 'ZWL';
-				DECLARE bankAccName CHARACTER EnvRefer.BANK_ACC_NAME;
-				DECLARE bankAccNameLength INTEGER LENGTH(bankAccName);
-				IF bankAccNameLength > 18 THEN
-					SET narrative = SUBSTRING(bankAccName FROM 1 FOR 18);
-				ELSE
-					SET narrative = bankAccName;
-				END IF;
-				SET outRef.bankAccName = bankAccName;  
+				SET outRef.bankAccName = EnvRefer.BANK_ACC_NAME;
 				SET outRef.bank = EnvRefer.BANK;
 				SET outRef.bankAccNumber = EnvRefer.BANK_ACC_NUMBER;
 				SET Environment.Variables.OTB_Msg = OutputRoot.JSON.Data;
 				--{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{orderingReference}/{narrative}/{debitCurrency}/{beneficiaryName}/{branch}/{beneficiaryAccountId}
-				SET OB_T24URL = OTB_T24URL||EnvRefer.MERCHANT_NAME||'/'||outRef.paymentCurrency||'/'||EnvRefer.BALANCE_USD||'/'||outRef.executionDate||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||narrative||'/'||outRef.currency||'/'||EnvRefer.BANK||'/'||EnvRefer.BRANCH_NAME||'/'||EnvRefer.BANK_ACC_NUMBER;
+				SET OB_T24URL = OTB_T24URL||EnvRefer.MERCHANT_NAME||'/'||outRef.paymentCurrency||'/'||EnvRefer.BALANCE_USD||'/'||outRef.executionDate||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.BANK_ACC_NAME||'/'||outRef.currency||'/'||EnvRefer.BANK||'/'||EnvRefer.BRANCH_NAME||'/'||EnvRefer.BANK_ACC_NUMBER;
 				SET OutputRoot = NULL;
-				IF IsLogRequired LIKE 'Y' THEN 
-					CALL DBLogging(Environment.Variables.UID,OB_T24URL,'OTB T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer); 
+				IF IsLogRequired LIKE 'Y' THEN
+					CALL DBLogging(Environment.Variables.UID,OB_T24URL,'OTB T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
 					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 					PROPAGATE TO TERMINAL 'out1';
 				END IF;
 				IF IsLogRequired LIKE 'Y' THEN
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','..............Ecocash Liquidation OTB T24 API CALL ...........') INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','OTB Message::'||OTB_Msg) INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','T24 URL Request(POST)::'||OB_T24URL) INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','..............Ecocash Liquidation OTB T24 API CALL ...........') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','OTB Message::'||OTB_Msg) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','T24 URL Request(POST)::'||OB_T24URL) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 				END IF;
 				CALL DbUpdateMobiquityStatus(Environment.Variables.UID,InRef.TXNSTATUS,'SUCCESS',Env.resMsg,InRef.DATE||' '||InRef.TIME,OB_T24URL,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));
 				SET OutputRoot.Properties = InputRoot.Properties;
@@ -262,25 +272,25 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','Mobiquity Failure Response') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','Failure Message::'||Env.resMsg) INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','TXNSTATUS::'||TxnStatus) INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationMobiquityLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Mobiquity Failure Response') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Failure Message::'||Env.resMsg) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','TXNSTATUS::'||TxnStatus) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 			END IF;
 			/* =================== END OF AUDIT LOGGING ==============*/
 			CALL DbUpdateMobiquityStatus(Environment.Variables.UID,InRef.TXNSTATUS,'FAILURE',Env.resMsg,InRef.DATE||' '||InRef.TIME,'PENDING',CAST(CURRENT_TIMESTAMP AS TIMESTAMP));
 			/* ===================T24 AUDIT LOGGING ==============*/
-			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(Env.UID,Env.resMsg,'Mobiquity Failure Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
-			END IF;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out1';
-			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','T24 Failure Response') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','Failure Message::'||Env.resMsg) INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
-			END IF;
-			/* =================== END OF AUDIT LOGGING ==============*/
+			-- IF IsLogRequired LIKE 'Y' THEN
+			-- CALL DBLogging(Env.UID,Env.resMsg,'Mobiquity Failure Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
+			-- END IF;
+			-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			-- PROPAGATE TO TERMINAL 'out1';
+			---- IF IsLogRequired LIKE 'Y' THEN
+			---- CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','T24 Failure Response') INTO rc;
+			---- CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Failure Message::'||Env.resMsg) INTO rc;
+			---- CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+			---- END IF;
+			-- /* =================== END OF AUDIT LOGGING ==============*/
 		END CASE;
 	END;
 END MODULE;
@@ -323,10 +333,10 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_T24StatusUpdate
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','..........Logging T24 Generated Response...............') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','T24 Response:: SUCCESS') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG',Env.resMsg) INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','..........Logging T24 Generated Response...............') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','T24 Response:: SUCCESS') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG',Env.resMsg) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 			END IF;
 
 			CALL DbUpdateT24Status(Env.UID,responceCode,'SUCCESS',Env.resMsg,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));
@@ -341,7 +351,8 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_T24StatusUpdate
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationT24Logger', 'DEBUG','T24 Response:: FAILURE'||'/'||'ResponseCode::'||responceCode) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','T24 Response:: FAILURE'||'/'||'ResponseCode::'||responceCode) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','T24 Response:: '||Env.data) INTO rc;
 			END IF;
 			CALL DbUpdateT24Status(Env.UID,responceCode,'FAILURE',Env.resMsg,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));
 			SET OutputRoot.JSON.Data = Env.data;
@@ -369,17 +380,17 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_BuildException
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') THEN
-			SET OutputLocalEnvironment.Destination.File.Directory = Eco_DBFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
-			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.FileName||'_'||inRefer.BANK_ACC_NUMBER||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss')||'.csv';
-		ELSE
-			SET OutputLocalEnvironment.Destination.File.Directory = Eco_FormatFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
-			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.FileName||'_'||inRefer.BANK_ACC_NUMBER||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss')||'.csv';
-		END IF;
-		SET OutputRoot.Properties.MessageSet = InputRoot.Properties.MessageSet;
-		SET OutputRoot.Properties.MessageType = InputRoot.Properties.MessageType;
-		CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')PARSE(Environment.Variables.reqMsg ENCODING encodeRef CCSID ccidRef SET '{SB_EcoCSV_Lib}' TYPE '{}:StewardBank_EcoCSV');
-		PROPAGATE TO TERMINAL 'out1';
+		-- IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') THEN
+		-- SET OutputLocalEnvironment.Destination.File.Directory = Eco_DBFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+		-- SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.FileName||'_'||inRefer.BANK_ACC_NUMBER||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss')||'.csv';
+		-- ELSE
+		-- SET OutputLocalEnvironment.Destination.File.Directory = Eco_FormatFailure||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+		-- SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.FileName||'_'||inRefer.BANK_ACC_NUMBER||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'HHmmss')||'.csv';
+		-- END IF;
+		-- SET OutputRoot.Properties.MessageSet = InputRoot.Properties.MessageSet;
+		-- SET OutputRoot.Properties.MessageType = InputRoot.Properties.MessageType;
+		-- CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')PARSE(Environment.Variables.reqMsg ENCODING encodeRef CCSID ccidRef SET '{SB_EcoCSV_Lib}' TYPE '{}:StewardBank_EcoCSV');
+		-- PROPAGATE TO TERMINAL 'out1';
 		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';

@@ -71,22 +71,22 @@ CREATE COMPUTE MODULE CassavaPickupFlow_GetPickupTransaction
 		SET Environment.t24ReqMsg = getPayLoad(FIELDNAME(InputBody),outRef,encodeRef,ccsid);
 	   SET OutputRoot.JSON = NULL;
 			IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','T24 Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','Cassava Request::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG',Environment.t24ReqMsg) INTO rc;
 		END IF;
 		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
 		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.t24ReqMsg,'T24  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.t24ReqMsg,'Cassava  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF; 
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/vnd.api+json';
-		SET OutputRoot.HTTPRequestHeader."Accept-Encoding" = 'application/vnd.api+json';
+		SET OutputRoot.HTTPRequestHeader."Content-Type" = InputRoot.MQRFH2.usr.HTTPInputHeader."Content-Type";
+		SET OutputRoot.HTTPRequestHeader."Accept-Encoding" = InputRoot.MQRFH2.usr.HTTPInputHeader.Accept;
 		SET OutputRoot.HTTPRequestHeader."Authorization" = InputRoot.MQRFH2.usr.HTTPInputHeader.Authorization;
-		SET OutputRoot.HTTPRequestHeader."app-id" = API_ID;
+		SET OutputRoot.HTTPRequestHeader."app-id" = InputRoot.MQRFH2.usr.HTTPInputHeader."App-Id";
 		SET OutputRoot.JSON.Data = Environment.data;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'PUT';
 		SET OutputLocalEnvironment.Destination.HTTP.SSLProtocol = 'SSL';
@@ -150,11 +150,11 @@ CREATE COMPUTE MODULE CassavaPickupFlow_ResponseToChannel
 			SET Environment.data = domainDataRef;
 			SET OutputRoot.JSON = NULL;
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,T24resMsg,'T24  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,T24resMsg,'Cassava  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 				PROPAGATE TO TERMINAL 'out';
 			END IF;
-			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','Response from T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','Response from Cassava::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG',T24resMsg) INTO rc;
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;

@@ -18,8 +18,8 @@ CREATE COMPUTE MODULE SCPFileReprocessFlow_trigFlowatFive
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel,'RTGSFileReprocess', 'DEBUG','..............Start RTGSIncoming Db Failure Reprocess logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel,'RTGSFileReprocess', 'DEBUG','RTGSIncoming Request Reprocess time is:'||triggerTime) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel,'SCPFileReprocess', 'DEBUG','..............Start SalaryCorporatePayments Db Failure Reprocess logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel,'SCPFileReprocess', 'DEBUG','SalaryCorporatePayments Request Reprocess time is:'||triggerTime) INTO rc; 
 		END IF;
 		IF test<test2 THEN					
 			SET OutputLocalEnvironment.TimeoutRequest.Action = 'SET';
@@ -53,9 +53,9 @@ CREATE COMPUTE MODULE SCPFileReprocessFlow_PickFilesfrmDbFailure
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSFileReprocess', 'DEBUG','..............Start SalaryCorporatePayments Db Failure Reprocess logging...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSFileReprocess', 'DEBUG','SalaryCorporatePayments Reprocess path :'||dbFailureFolderPath) INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSFileReprocess', 'DEBUG','SalaryCorporatePayments Request Reprocess time is:'||triggerTime) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'SCPFileReprocess', 'DEBUG','..............Start SalaryCorporatePayments Db Failure Reprocess logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'SCPFileReprocess', 'DEBUG','SalaryCorporatePayments Reprocess path :'||dbFailureFolderPath) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'SCPFileReprocess', 'DEBUG','SalaryCorporatePayments Request Reprocess time is:'||triggerTime) INTO rc;
 		END IF;
 --		IF hr = triggerTimeHour THEN
 --			WHILE Environment.NoMatchReason IS  NULL DO 

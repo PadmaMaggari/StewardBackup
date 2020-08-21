@@ -25,28 +25,28 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankLoanDisbursementApp/icons/full/obj16/LoanDisbursementZSSFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankLoanDisbursementApp/icons/full/obj30/LoanDisbursementZSSFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="94,68" queueName="SB_LD_ZSS_REQ" messageDomainProperty="JSON" transactionMode="no">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="70,118" queueName="SB_LD_ZSS_REQ" messageDomainProperty="JSON" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="SB_LD_ZSS_REQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="207,51" computeExpression="esql://routine/com.stewardbank.co.zw.loandisbursement#LoanDisbursementZSSFlow_RequestToZss.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="181,72" computeExpression="esql://routine/com.stewardbank.co.zw.loandisbursement#LoanDisbursementZSSFlow_RequestToZss.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="RequestToZss"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_zsscall_StewardBankZssCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="290,28">
+      <nodes xmi:type="com_stewardbank_co_zw_common_zsscall_StewardBankZssCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="264,49">
         <translation xmi:type="utility:ConstantString" string="StewardBankZssCallSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="456,39">
+      <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="430,60">
         <translation xmi:type="utility:ConstantString" string="ISOValidation"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="571,53" computeExpression="esql://routine/com.stewardbank.co.zw.loandisbursement#LoanDisbursementZSSFlow_GenereateResponseToChannel.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="557,54" computeExpression="esql://routine/com.stewardbank.co.zw.loandisbursement#LoanDisbursementZSSFlow_GenereateResponseToChannel.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenereateResponseToChannel"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="716,94" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="690,115" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="SB_LD_ZSS_RES"/>
       </nodes>
-      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="272,157">
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="246,178">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="484,161" computeExpression="esql://routine/com.stewardbank.co.zw.loandisbursement#LoanDisbursementZSSFlow_BuildException.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="458,182" computeExpression="esql://routine/com.stewardbank.co.zw.loandisbursement#LoanDisbursementZSSFlow_BuildException.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildException"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>

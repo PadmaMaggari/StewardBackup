@@ -72,66 +72,85 @@ CREATE COMPUTE MODULE rtgsIncomingFlow_RouteToT24orZss
 	*/
 	CREATE PROCEDURE GeneratingReqToT24orZSS() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-		DECLARE reqMsg,crAcctId CHARACTER ;
+		DECLARE reqMsg,crAcctId,exDate CHARACTER ;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		DECLARE envRef REFERENCE TO Environment.Variables ;
 		DECLARE sql CHARACTER;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF (rc = FALSE) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+			SET envRef.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Start RTGSIncoming Routing To T24 or ZSS...........') INTO rc;
 		END IF;
 		DECLARE Response ROW;
 		DECLARE CRLF CHARACTER CAST(X'0D0A' AS CHARACTER CCSID 1208);
-		--SET Environment.Variables.File.FieldNames =  
+		--SET envRef.File.FieldNames =  
+		SET exDate = SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 1 FOR 6);
+		DECLARE tranDate DATE;
+		SET tranDate = cast(exDate as date  format 'yyMMdd');
+		DECLARE castDate CHARACTER ;
+	    SET castDate = CAST(tranDate as CHARACTER FORMAT 'yyyyMMdd');
 		DECLARE Mt50DataAdd CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField AFTER CRLF);
-		SET Environment.Variables.exeDate = SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 1 FOR 6);
-		SET Environment.Variables.transactionAmount= LTRIM(SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 10)) ; 
-		SET Environment.Variables.debitCurrency = SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 7 FOR 3); 
-		SET Environment.Variables.ordCustomerName = SUBSTRING(Mt50DataAdd BEFORE CRLF);
-		SET Environment.Variables.narrative = LTRIM(inDomainDataRef.MT103.body.MT20);
-		SET Environment.Variables.Nation = SUBSTRING(Mt50DataAdd AFTER CRLF);
-		DECLARE mtField70 CHARACTER inDomainDataRef.MT103.body.MT70 ;
-		IF ( mtField70 NOT LIKE ' ' ) THEN
-			SET Environment.Variables.invoiceReference = SUBSTRING(mtField70 BEFORE CRLF);
-		ELSE
-			SET Environment.Variables.invoiceReference ='NOTPROVIDED';
-		END IF;
-		DECLARE mtField72 CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT72 BEFORE CRLF) ;
-		IF ( mtField72 NOT LIKE ' ' ) AND STARTSWITH(mtField72,'/') THEN
-			SET mtField72 = SUBSTRING(mtField72 AFTER '/');
-			SET Environment.Variables.endToEndReference = REPLACE(mtField72,'/',' ');
-		ELSE
-			SET Environment.Variables.endToEndReference = 'NOTPROVIDED';
-		END IF;
-		SET Environment.Variables.drAcctId = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField AFTER '/')BEFORE CRLF);
+		SET envRef.exeDate = castDate;
+		SET envRef.transactionAmount = LTRIM(SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 10)); 
+		SET envRef.drAcctId = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT50Data.MT50DataField AFTER '/')BEFORE CRLF);
 		SET  crAcctId = SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT59Data.MT59DataField AFTER '/')BEFORE CRLF);
-		SET Environment.Variables.crAcctId = crAcctId;
-		--SET Response.accountEnquiry[] = SELECT * FROM Database.ISAVE_CARD_MAPPING AS I WHERE I.ACCOUNT_ID = crAcctId;
-		--get account details from db to check weather Account belongs to Zss or T24
-		SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
-		SET Response.accountEnquiry[] = PASSTHRU(sql TO Database.{DSN} VALUES(crAcctId));
-		--*************If Account Exist in Isave table or it starts with 2 then it is ZSS Account**********
-		IF EXISTS(Response.accountEnquiry.*[]) OR STARTSWITH(crAcctId,'2') THEN
-			-- Routing to Zss Application
+		SET envRef.crAcctId = crAcctId;
+		SET envRef.debitCurrency = SUBSTRING(inDomainDataRef.MT103.body.MT32A FROM 7 FOR 3); 
+		SET envRef.ordCustomerName = SUBSTRING(Mt50DataAdd BEFORE CRLF);
+		SET envRef.narrative = LTRIM(inDomainDataRef.MT103.body.MT20);
+		SET envRef.Nation = SUBSTRING(Mt50DataAdd AFTER CRLF);
+		DECLARE mtField70 CHARACTER inDomainDataRef.MT103.body.MT70 ;
+			IF ( mtField70 NOT LIKE ' ' ) THEN
+				SET envRef.invoiceReference = SUBSTRING(mtField70 BEFORE CRLF);
+			ELSE
+				SET envRef.invoiceReference ='NOTPROVIDED';
+			END IF;
+		DECLARE mtField72 CHARACTER SUBSTRING(inDomainDataRef.MT103.body.MT72 BEFORE CRLF) ;
+			IF ( mtField72 NOT LIKE ' ' ) THEN
+				IF STARTSWITH(mtField72,'/') THEN
+					SET mtField72 = SUBSTRING(mtField72 AFTER '/');	
+				END IF;
+				SET mtField72 = REPLACE(mtField72,'/',' ') ;
+				SET envRef.endToEndReference = mtField72 ;
+				IF  LENGTH(mtField72) >= 35 THEN
+					SET envRef.endToEndReference = SUBSTRING(mtField72 FROM 1 FOR 35) ;
+				END IF;
+			ELSE
+				SET envRef.endToEndReference = 'NOTPROVIDED';
+			END IF;
+		IF envRef.transactionAmount < '0' THEN
 			IF IsLogRequired LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Account Exists in Zss ,Routing Req to Zss Flow...........') INTO rc;
-		END IF;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ZSS_REQ;
+				CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','****RTGSIncoming Transaction Failed because of Negative amount****') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','****End of RTGSIncoming Transaction Logging ****') INTO rc;
+			END IF ;	
+			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'NA','NEGATIVE AMOUNT',envRef.File.Name,'NA',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,'NA','NA','FAILURE','FAILURE',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'NA','FAILURE DUE TO NEGATIVE AMOUNT','FAILURE DUE TO NEGATIVE AMOUNT');
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RTGS_INCOMING_SB_Q ;
 		ELSE
-			-- Routing to T24 Application
-		IF IsLogRequired LIKE 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Account Exists in T24 ,Routing Req to T24 Flow...........') INTO rc;
-		END IF;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = T24_REQ;
-		END IF;
-		CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End of RTGSIncoming  Routing...........') INTO rc;
-		SET OutputRoot.MQRFH2 = Environment.Variables;
-		SET OutputRoot.DFDL = InputRoot.DFDL; 
-		
+			--get account details from db to check weather Account belongs to Zss or T24
+			SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
+			SET Response.accountEnquiry[] = PASSTHRU(sql TO Database.{DSN} VALUES(crAcctId));
+			--*************If Account Exist in Isave table or it starts with 2 then it is ZSS Account**********
+			IF EXISTS(Response.accountEnquiry.*[]) OR STARTSWITH(crAcctId,'2') THEN
+				-- Routing to Zss Application
+				IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Account Exists in Zss ,Routing Req to Zss Flow...........') INTO rc;
+				END IF;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ZSS_REQ;
+			ELSE
+				-- Routing to T24 Application
+				IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............Account Exists in T24 ,Routing Req to T24 Flow...........') INTO rc;
+				END IF;
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = T24_REQ;
+			END IF;
+			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............End of RTGSIncoming  Routing...........') INTO rc;
+		END IF ;	
+			SET OutputRoot.MQRFH2 = envRef;
+			SET OutputRoot.DFDL = InputRoot.DFDL; 
 --		SET OutputRoot.Properties.MessageSet = '{MT103}';
 --		SET OutputRoot.Properties.MessageType = '{}:MT103';
 		--CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL') PARSE(InputRoot.DFDL ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
@@ -161,19 +180,19 @@ CREATE COMPUTE MODULE rtgsIncomingFlow__GenerateExceptionDetails
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE exe_Desc CHARACTER'';  
-		IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') THEN
-			SET OutputLocalEnvironment.Destination.File.Directory = DBFailure;
-			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.File.Name||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
-		ELSE
-			SET OutputLocalEnvironment.Destination.File.Directory = FormatFailure;
-			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.File.Name||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
-		END IF;	
-		SET OutputRoot.Properties.MessageSet = '{MT103}';
-			SET OutputRoot.Properties.MessageType = '{}:MT103';
-			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
-			parse(Environment.Variables.mtReqMsg ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
-			PROPAGATE TO TERMINAL 'out1';
-			SET OutputRoot.DFDL = NULL;
+--		IF CONTAINS(excpRef.excpText,'Database') OR CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') THEN
+--			SET OutputLocalEnvironment.Destination.File.Directory = DBFailure;
+--			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.File.Name||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+--		ELSE
+--			SET OutputLocalEnvironment.Destination.File.Directory = FormatFailure;
+--			SET OutputLocalEnvironment.Destination.File.Name = Environment.Variables.File.Name||'_'||CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd');
+--		END IF;	
+--		SET OutputRoot.Properties.MessageSet = '{MT103}';
+--			SET OutputRoot.Properties.MessageType = '{}:MT103';
+--			CREATE LASTCHILD OF OutputRoot DOMAIN('DFDL')
+--			parse(Environment.Variables.mtReqMsg ENCODING encodeRef CCSID ccidRef SET '{MT103}' TYPE '{}:MT103');
+--			PROPAGATE TO TERMINAL 'out1';
+--			SET OutputRoot.DFDL = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'RTGSIncoming';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;    

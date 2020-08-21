@@ -1,4 +1,8 @@
-BROKER SCHEMA com.stewardbank.co.zw.salarycorporatepayments 
+
+
+
+
+BROKER SCHEMA com.stewardbank.co.zw.salarycorporatepayments
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
@@ -35,48 +39,68 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 			SET Environment.MQRFH2.UID = UUID;
 			SET Environment.MQRFH2.FileName = InputLocalEnvironment.File.Name;
 			DECLARE outRefer REFERENCE TO OutputRoot;
+			DECLARE inRefer REFERENCE TO InputRoot.DFDL.stewardBank_CSV.record;
 			CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 			IF ( rc = FALSE ) THEN
 				SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 			END IF;
-			/* ============== CALL ISAVE DB LOOKUP ===================== */
-			SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
-			DECLARE CreditAccount CHARACTER InputRoot.DFDL.stewardBank_CSV.record.Beneficiary_Account_Number;
-			SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(CreditAccount));
-			IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
-				--------ZSS-----------
+			IF CONTAINS(inRefer.Amount,'-') THEN
 				IF IsLogRequired LIKE 'Y' THEN
-					CALL DBLogging(Environment.MQRFH2.UID,reqMsg,'ZSS RouteFlow Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.DFDL.stewardBank_CSV.record.Purpose,outRefer);
-					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-					PROPAGATE TO TERMINAL 'out';
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','..............Start Salary & Corporate Payments Logging...........') INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','CSV Data:: '||reqMsg) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Negative Amount :: '||inRefer.Amount) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Message ID :: '|| Environment.MQRFH2.UID) INTO rc;
 				END IF;
-				IF IsLogRequired LIKE 'Y' THEN
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','..............Start Salary & Corporate Payments ZSS Logging...........') INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Sending Data to ZSS :: '||reqMsg) INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','CreditAccountId :: '||CreditAccount) INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Message ID :: '|| Environment.MQRFH2.UID) INTO rc; 
-				END IF;
-				SET OutputRoot.Properties = InputRoot.Properties;
-				SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-				SET OutputRoot.DFDL = Environment.Variable.data;
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SCP_ZSS_REQ';  
-				PROPAGATE TO TERMINAL 'out';
+				IF CONTAINS(inRefer.Purpose,'Salary') OR CONTAINS(inRefer.Purpose,'Salaries')THEN
+					CALL INSERT_SB_SCP_TRACKING(Environment.MQRFH2.UID,'PENDING','PENDING','PENDING','PENDING','PENDING',InputLocalEnvironment.File.Name,reqMsg,inRefer.Amount, 
+					inRefer.Remitter_Account_Number,inRefer.Beneficiary_Account_Number,inRefer.Date,'','PENDING','FAILURE','PENDING','FAILURE','SUCCESS',CAST(dbLoggingDate AS TIMESTAMP),CAST(dbLoggingDate AS TIMESTAMP),'FALSE');
+				ELSE
+					CALL INSERT_SB_SCP_TRACKING(Environment.MQRFH2.UID,'PENDING','PENDING','PENDING','PENDING','PENDING',InputLocalEnvironment.File.Name,reqMsg,inRefer.Amount, 
+					inRefer.Remitter_Account_Number,inRefer.Beneficiary_Account_Number,inRefer.Date,'','PENDING','FAILURE','PENDING','FAILURE','SUCCESS',CAST(dbLoggingDate AS TIMESTAMP),CAST(dbLoggingDate AS TIMESTAMP),'TRUE');
+				END IF;  
+
 			ELSE
-				--------T24----------
-				IF IsLogRequired LIKE 'Y' THEN
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','..............Start Salary & Corporate Payments T24 Logging ...........') INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','Sending Data To T24 :: '||reqMsg) INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','CreditAccountId :: '||CreditAccount) INTO rc;  
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','Message ID :: '|| Environment.MQRFH2.UID) INTO rc;
-					CALL DBLogging(Environment.MQRFH2.UID,reqMsg,'T24 RouteFlow Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),inRef.DFDL.stewardBank_CSV.record.Purpose,outRefer);
-					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+				/* ============== CALL ISAVE DB LOOKUP ===================== */
+				SET sql='SELECT * FROM ISAVE_CARD_MAPPING WHERE ACCOUNT_ID=?';
+				DECLARE CreditAccount CHARACTER InputRoot.DFDL.stewardBank_CSV.record.Beneficiary_Account_Number;
+				SET Response.accountEnquiry[]=PASSTHRU(sql VALUES(CreditAccount));
+				IF EXISTS (Response.accountEnquiry.*[]) OR STARTSWITH(CreditAccount,'2') THEN
+					--------ZSS-----------
+					IF IsLogRequired LIKE 'Y' THEN
+						CALL DBLogging(Environment.MQRFH2.UID,reqMsg,'ZSS RouteFlow Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),inRef.DFDL.stewardBank_CSV.record.Purpose,outRefer);
+						SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+						PROPAGATE TO TERMINAL 'out';
+					END IF;
+					IF IsLogRequired LIKE 'Y' THEN
+						CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','..............Start Salary & Corporate Payments ZSS Logging...........') INTO rc;
+						CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Sending Data to ZSS :: '||reqMsg) INTO rc;
+						CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','CreditAccountId :: '||CreditAccount) INTO rc;
+						CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Message ID :: '|| Environment.MQRFH2.UID) INTO rc;
+					END IF;
+					SET OutputRoot.Properties = InputRoot.Properties;
+					SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+					SET OutputRoot.DFDL = Environment.Variable.data;
+					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SCP_ZSS_REQ';
+					PROPAGATE TO TERMINAL 'out';
+				ELSE
+					--------T24----------
+					IF IsLogRequired LIKE 'Y' THEN
+						CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','..............Start Salary & Corporate Payments T24 Logging ...........') INTO rc;
+						CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','Sending Data To T24 :: '||reqMsg) INTO rc;
+						CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','CreditAccountId :: '||CreditAccount) INTO rc;
+						CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','Message ID :: '|| Environment.MQRFH2.UID) INTO rc;
+						CALL DBLogging(Environment.MQRFH2.UID,reqMsg,'T24 RouteFlow Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),inRef.DFDL.stewardBank_CSV.record.Purpose,outRefer);
+						SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+						PROPAGATE TO TERMINAL 'out';
+					END IF;
+					SET OutputRoot.Properties = InputRoot.Properties;
+					SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+					SET OutputRoot.DFDL = Environment.Variable.data;
+					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SCP_T24_REQ';
 					PROPAGATE TO TERMINAL 'out';
 				END IF;
-				SET OutputRoot.Properties = InputRoot.Properties;
-				SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-				SET OutputRoot.DFDL = Environment.Variable.data;
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SCP_T24_REQ';
-				PROPAGATE TO TERMINAL 'out';
+
+
 			END IF;
 			RETURN FALSE;
 		ELSE

@@ -66,20 +66,20 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 		SET Environment.t24ReqMsg = getPayLoad(FIELDNAME(InputBody),InputRoot.JSON.Data,encodeRef,ccsid);
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG','T24 Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG','Cassava Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG',Environment.t24ReqMsg) INTO rc;
 		END IF;
 		/* =================== CALLING LOG4J LOGGING ENDING ==============*/
 		/* =================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.t24ReqMsg,'T24  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.t24ReqMsg,'Cassava  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		--SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/vnd.api+json';
-		SET OutputRoot.HTTPRequestHeader."Accept" = 'application/vnd.api+json';
+		SET OutputRoot.HTTPRequestHeader."Content-Type" = InputRoot.MQRFH2.usr.HTTPInputHeader."Content-Type";
+		SET OutputRoot.HTTPRequestHeader."Accept-Encoding" = InputRoot.MQRFH2.usr.HTTPInputHeader.Accept;
 		SET OutputRoot.HTTPRequestHeader."Authorization" = InputRoot.MQRFH2.usr.HTTPInputHeader.Authorization;
 		-- SET OutputRoot.JSON.Data = Environment.data;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
@@ -150,7 +150,7 @@ CREATE COMPUTE MODULE CassavaLookupFlow_ResponseToChannel
 		DECLARE i INTEGER 1;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.JSON.Data;
-		DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		--DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		DECLARE rc BOOLEAN FALSE;
 		/* =================== CALLING LOG4J LOGGING ==============*/
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -183,11 +183,11 @@ CREATE COMPUTE MODULE CassavaLookupFlow_ResponseToChannel
 			SET Environment.data = domainDataRef;
 			SET OutputRoot.JSON = NULL;
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,T24resMsg,'T24  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,T24resMsg,'Cassava  Responce',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 				PROPAGATE TO TERMINAL 'out';
 			END IF;
-			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG','Response from T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG','Response from Cassava::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CassavaLookupLogger', 'DEBUG',T24resMsg) INTO rc;
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;

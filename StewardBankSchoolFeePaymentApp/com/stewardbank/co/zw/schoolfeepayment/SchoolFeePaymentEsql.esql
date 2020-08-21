@@ -1,3 +1,5 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.schoolfeepayment
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -74,9 +76,9 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 		DECLARE customer CHARACTER InputRoot.JSON.Data.debitReference;
 		DECLARE SFP_T24uRL CHARACTER;
 		--{debitAccount}/{debitCurrency}/{transactionAmount}/{executionDate}/{customer}
-		SET SFP_T24uRL = SchoolFeeURL||debitAccountId||'/'||debitCurrency||'/'||transactionAmount||'/'||executionDate||'/'||customer;     
+		SET SFP_T24uRL = SchoolFeeURL||debitAccountId||'/'||debitCurrency||'/'||transactionAmount||'/'||executionDate||'/'||customer;
 		--SET SFP_T24uRL = URL||'/'||debitAccountId||'/'||debitCurrency||'/'||creditAccountId||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||narrative||'/'||invoiceReference;
-		SET outRef = inRef; 
+		SET outRef = inRef;
 		SET Environment.Variables.jsonData = outRef;
 		SET OutputRoot = NULL;
 		----- Database Logging ------------
@@ -89,8 +91,8 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 		----------------------
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
---		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
---		MOVE outRef TO OutputRoot.JSON;
+		-- SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
+		-- MOVE outRef TO OutputRoot.JSON;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','Request To T24::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',SFP_T24uRL) INTO rc;
@@ -131,11 +133,14 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 		DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		IF FIELDNAME(InputBody) LIKE 'JSON' THEN
 			DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
-			SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+			SET Environment.Variables.errMsg = InputRoot.JSON.Data;
+			SET Environment.Variables.resData = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		ELSE
 			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
-			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(inRef,encodeRef,ccidRef); 
-			SET Environment.Variables.resData = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef); 
+			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(inRef,encodeRef,ccidRef);
+			SET domainName = 'JSON';
+			SET Environment.Variables.errMsg = OutputRoot.JSON.Data;
+			SET Environment.Variables.resData = getPayLoad(domainName,OutputRoot.JSON,encodeRef,ccidRef);
 		END IF;
 		SET OutputRoot = NULL;
 		---------DBLogging------------
@@ -158,29 +163,29 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('SchoolFeePayment');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('responseBody');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
-		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.responseBody;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 		DECLARE status CHARACTER InputRoot.JSON.Data.header.status;
 		IF status LIKE 'success' AND responceCode LIKE '200' THEN
+			SET headRef = Inrefer.header;
 			SET headRef.channel = '*236#';
-			SET headRef.processingCode = '180000';
-			SET headRef.status = 'Success';
+			SET headRef.processingCode = '400000';
 			SET headRef.responseCode = responceCode;
-			SET bodyRef = Inrefer;
+			SET bodyRef = Inrefer.body;
 		ELSE
 			SET headRef.channel = '*236#';
-			SET headRef.processingCode = '180000';
-			SET headRef.status = 'Failure'; 
+			SET headRef.processingCode = '400000';
 			SET headRef.responseCode = responceCode;
-			SET bodyRef = Environment.Variables.resData; 
+			SET headRef.status = 'Failure';
+			SET bodyRef = Environment.Variables.errMsg;
 		END IF;
 		DECLARE envref REFERENCE TO Environment.JSON.Data;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
 		CREATE LASTCHILD OF envref AS envref NAME 'Data';
 		SET envref = OutputRoot.JSON.Data;
-		SET domainDataRef = OutputRoot.JSON; 
-		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef); 
+		SET domainDataRef = OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot = NULL;
 		----- Database Logging ------------
 		IF IsLogRequired LIKE 'Y' THEN
@@ -197,7 +202,7 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 		SET OutputRoot.JSON.Data=envref;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','SchoolFeePayment Response To Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.Variables.usr.Id) INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
@@ -227,10 +232,12 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_CaptureException
 			SET errMsg = 'No Response from T24 Server';
 		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
 			SET errMsg = 'No Response from Postilion Server';
+		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+			SET errMsg = 'WebService Request Exception errors have occurred';
 		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
 			SET errMsg = 'No Response from T24 Server';
-		ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN 
-			SET errMsg = 'JSON parsing errors have occurred'; 
+		ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN
+			SET errMsg = 'JSON parsing errors have occurred';
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
@@ -251,16 +258,18 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_CaptureException
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('SchoolFeePayment');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('responseBody');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
-		DECLARE responseBody REFERENCE TO OutputRoot.JSON.Data.*.responseBody;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 		--SET headerRef = Environment.MQRFH2.header;
+		SET headerRef.channel = '*236#';    
+		SET headerRef.processingCode = '400000';  
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '000';
-		SET responseBody.source = 'ESB';
-		SET responseBody.applicationName = ApplicationLabel;
-		SET responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.SchoolFeePayment.ErrorCode;
-		SET responseBody.message = errMsg;
+		SET bodyRef.source = 'ESB';
+		SET bodyRef.applicationName = ApplicationLabel;
+		SET bodyRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.SchoolFeePayment.ErrorCode;
+		SET bodyRef.message = errMsg;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;

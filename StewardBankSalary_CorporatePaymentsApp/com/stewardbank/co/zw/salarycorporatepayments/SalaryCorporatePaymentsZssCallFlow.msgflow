@@ -18,7 +18,7 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG4J_INIT_ERROR_MSG" name="LOG4J_INIT_ERROR_MSG" defaultValueLiteral="[log4j] Initialization Error">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Users\Sreenivas Bandaru\Documents\Steward\Log\Log4jConfigurationFile.xml">
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="/log/log4j/Log4jConfigurationFile.xml">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.resQueueName" name="resQueueName" defaultValueLiteral="ALL_SB_CSV_RES">
@@ -30,14 +30,14 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.SCP_FormatFailure" name="SCP_FormatFailure" defaultValueLiteral="C:\Users\Sreenivas Bandaru\Documents\SCP_Failure\">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <translation xmi:type="utility:TranslatableString" key="SalaryCorporatePaymentsZssCallFlow" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary&amp;CorporatePaymentsApp"/>
-    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSalary&amp;CorporatePaymentsApp/icons/full/obj16/SalaryCorporatePaymentsZssCallFlow.gif"/>
-    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSalary&amp;CorporatePaymentsApp/icons/full/obj30/SalaryCorporatePaymentsZssCallFlow.gif"/>
+    <translation xmi:type="utility:TranslatableString" key="SalaryCorporatePaymentsZssCallFlow" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSalary_CorporatePaymentsApp/icons/full/obj16/SalaryCorporatePaymentsZssCallFlow.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSalary_CorporatePaymentsApp/icons/full/obj30/SalaryCorporatePaymentsZssCallFlow.gif"/>
     <composition>
       <nodes xmi:type="com_stewardbank_co_zw_common_zsscall_StewardBankZssCallSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_1" location="351,53">
         <translation xmi:type="utility:ConstantString" string="StewardBankZssCallSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="179,155" queueName="SCP_ZSS_REQ" messageDomainProperty="DFDL" messageSetProperty="{SB_CSV_Lib}" messageTypeProperty="{}:stewardBank_CSV" transactionMode="no">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="180,163" queueName="SCP_ZSS_REQ" messageDomainProperty="DFDL" messageSetProperty="{SB_CSV_Lib}" messageTypeProperty="{}:stewardBank_CSV" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="SCP_ZSS_REQ"/>
       </nodes>
       <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="514,49">
@@ -58,7 +58,7 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="622,53" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.salarycorporatepayments#SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenereateResponseToChannel"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="604,262" outputDirectory="C:\Users\Sreenivas Bandaru\Documents\SCP_Failure\" outputFilename="*">
+      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="604,262" outputDirectory="/var/DEV_TESTING/Stewardbank/ACE/SCP_Failure" outputFilename="*">
         <translation xmi:type="utility:ConstantString" string="File Output"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
@@ -76,23 +76,23 @@
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RAW_AUDIT_Q">
-        <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_Q" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary&amp;CorporatePaymentsApp"/>
+        <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_Q" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
         <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERROR_AUDIT_Q">
-          <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_Q" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary&amp;CorporatePaymentsApp"/>
+          <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_Q" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
           <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.EXCEPTION_Q">
-            <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_Q" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary&amp;CorporatePaymentsApp"/>
+            <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_Q" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
             <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
-              <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary&amp;CorporatePaymentsApp"/>
+              <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
               <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4J_INIT_ERROR_MSG">
-                <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR_MSG" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary&amp;CorporatePaymentsApp"/>
+                <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR_MSG" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
                 <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
-                  <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary&amp;CorporatePaymentsApp"/>
+                  <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
                   <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.resQueueName">
-                    <propertyName xmi:type="utility:TranslatableString" key="Property.resQueueName" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary&amp;CorporatePaymentsApp"/>
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.resQueueName" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
                     <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.SCP_DBFailure">
-                      <propertyName xmi:type="utility:TranslatableString" key="Property.SCP_DBFailure" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary&amp;CorporatePaymentsApp"/>
+                      <propertyName xmi:type="utility:TranslatableString" key="Property.SCP_DBFailure" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
                       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.SCP_FormatFailure">
-                        <propertyName xmi:type="utility:TranslatableString" key="Property.SCP_FormatFailure" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary&amp;CorporatePaymentsApp"/>
+                        <propertyName xmi:type="utility:TranslatableString" key="Property.SCP_FormatFailure" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsZssCallFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
                       </propertyDescriptor>
                     </propertyDescriptor>
                   </propertyDescriptor>
