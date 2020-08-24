@@ -1,5 +1,13 @@
 
 
+
+
+
+
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.schoolfeepayment
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -15,7 +23,7 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyEntireMessage();
-		RETURN TRUE;
+		RETURN FALSE; 
 	END;
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
@@ -60,47 +68,71 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.Variables.usr.Id) INTO rc;
 		END IF;
 		/* ==================== Framming Request to T24 ==================== */
-
-		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
-		DECLARE outRef REFERENCE TO OutputRoot.JSON;
-		CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
 		----------------------------------------------------------------
-		DECLARE debitAccountId CHARACTER InputRoot.JSON.Data.debitAccountNumber;
-		DECLARE debitCurrency CHARACTER InputRoot.JSON.Data.debitCurrency;
-		DECLARE creditAccountId CHARACTER InputRoot.JSON.Data.creditAccountNumber;
-		DECLARE orderingCustomerName CHARACTER InputRoot.JSON.Data.biller;
-		DECLARE paymentCurrency CHARACTER InputRoot.JSON.Data.debitCurrency;
-		DECLARE transactionAmount CHARACTER InputRoot.JSON.Data.debitAmount;
-		DECLARE executionDate CHARACTER CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd');
-		DECLARE narrative CHARACTER InputRoot.JSON.Data.transactionType;
-		DECLARE customer CHARACTER InputRoot.JSON.Data.debitReference;
-		DECLARE SFP_T24uRL CHARACTER;
-		--{debitAccount}/{debitCurrency}/{transactionAmount}/{executionDate}/{customer}
-		SET SFP_T24uRL = SchoolFeeURL||debitAccountId||'/'||debitCurrency||'/'||transactionAmount||'/'||executionDate||'/'||customer;
-		--SET SFP_T24uRL = URL||'/'||debitAccountId||'/'||debitCurrency||'/'||creditAccountId||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||narrative||'/'||invoiceReference;
-		SET outRef = inRef;
-		SET Environment.Variables.jsonData = outRef;
-		SET OutputRoot = NULL;
-		----- Database Logging ------------
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.Variables.usr.Id,SFP_T24uRL,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),
-			CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+		IF CONTAINS(InputRoot.JSON.Data.debitAmount,'-') THEN
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+			DECLARE outRef REFERENCE TO OutputRoot.JSON;
+			CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
+			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('SchoolFeePayment');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
+			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+			SET headRef.channel = '*236#';
+			SET headRef.processingCode = '400000';
+			SET headRef.status = 'Failure';
+			SET bodyRef.Amount = InputRoot.JSON.Data.debitAmount;
+			SET bodyRef.Message = 'Negative Amount'; 
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','..............Negative Amount in debitAmount...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','debitAmount :: '||InputRoot.JSON.Data.debitAmount) INTO rc;
+			END IF;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
+			PROPAGATE TO TERMINAL 'out1';
+		ELSE
+			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+			DECLARE outRef REFERENCE TO OutputRoot.JSON;
+			CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
+			DECLARE debitAccountId CHARACTER InputRoot.JSON.Data.debitAccountNumber;
+			DECLARE debitCurrency CHARACTER InputRoot.JSON.Data.debitCurrency;
+			DECLARE creditAccountId CHARACTER InputRoot.JSON.Data.creditAccountNumber;
+			DECLARE orderingCustomerName CHARACTER InputRoot.JSON.Data.biller;
+			DECLARE paymentCurrency CHARACTER InputRoot.JSON.Data.debitCurrency;
+			DECLARE transactionAmount CHARACTER InputRoot.JSON.Data.debitAmount;
+			DECLARE executionDate CHARACTER CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd');
+			DECLARE narrative CHARACTER InputRoot.JSON.Data.transactionType;
+			DECLARE customer CHARACTER InputRoot.JSON.Data.debitReference;
+			DECLARE SFP_T24uRL CHARACTER;
+			--{debitAccount}/{debitCurrency}/{transactionAmount}/{executionDate}/{customer}
+			SET SFP_T24uRL = SchoolFeeURL||debitAccountId||'/'||debitCurrency||'/'||transactionAmount||'/'||executionDate||'/'||customer;
+			--SET SFP_T24uRL = URL||'/'||debitAccountId||'/'||debitCurrency||'/'||creditAccountId||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||narrative||'/'||invoiceReference;
+			SET outRef = inRef;
+			SET Environment.Variables.jsonData = outRef;
+			SET OutputRoot = NULL;
+			----- Database Logging ------------
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.Variables.usr.Id,SFP_T24uRL,'T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),
+				CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
+			END IF;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+			----------------------
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			-- SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
+			-- MOVE outRef TO OutputRoot.JSON;
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','Request To T24::') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',SFP_T24uRL) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.Variables.usr.Id) INTO rc;
+			END IF;
+			SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
+			SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = SFP_T24uRL;
+			PROPAGATE TO TERMINAL 'out'; 
 		END IF;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-		PROPAGATE TO TERMINAL 'out1';
-		----------------------
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		-- SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
-		-- MOVE outRef TO OutputRoot.JSON;
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','Request To T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',SFP_T24uRL) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.Variables.usr.Id) INTO rc;
-		END IF;
-		SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
-		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = SFP_T24uRL;
 	END;
 END MODULE;
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -262,8 +294,8 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_CaptureException
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 		--SET headerRef = Environment.MQRFH2.header;
-		SET headerRef.channel = '*236#';    
-		SET headerRef.processingCode = '400000';  
+		SET headerRef.channel = '*236#';
+		SET headerRef.processingCode = '400000';
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '000';
 		SET bodyRef.source = 'ESB';
