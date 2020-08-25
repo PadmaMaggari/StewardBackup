@@ -67,10 +67,10 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 			/* =================== End of Audit Logging ==============*/
 			/*================DB Update=======================*/
 				IF CONTAINS(inRefer.Purpose,'Salary') OR CONTAINS(inRefer.Purpose,'Salaries')THEN
-				CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName,Environment.Variables.reqMsg,Env.Amount,
+				CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'','','','NOT APPLICABLE','PENDING',Env.FileName,Environment.Variables.reqMsg,Env.Amount,
 				Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,SalaryPayments_T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'FALSE'); 
 			ELSE
-				CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName,Environment.Variables.reqMsg,Env.Amount,
+				CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'','','','NOT APPLICABLE','PENDING',Env.FileName,Environment.Variables.reqMsg,Env.Amount,
 				Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,SalaryPayments_T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'TRUE'); 
 				END IF; 
 			/*=============End===============*/
@@ -101,13 +101,13 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 				/* =================== End of Audit Logging ==============*/
 				/*================DB Update=======================*/
 				IF CONTAINS(inRefer.Purpose,'Salary') OR CONTAINS(inRefer.Purpose,'Salaries')THEN
-					CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Salary Payments',Environment.Variables.reqMsg,Env.Amount,
+					CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'','','','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Salary Payments',Environment.Variables.reqMsg,Env.Amount,
 					Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,InternalCorporatePayments_T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'FALSE');
 				ELSE
-					CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Corporate Payments',Environment.Variables.reqMsg,Env.Amount,
+					CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'','','','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Corporate Payments',Environment.Variables.reqMsg,Env.Amount,
 					Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,InternalCorporatePayments_T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'TRUE');
 				END IF;
-				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.Properties = InputRoot.Properties; 
 				SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 				-- SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
 				SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
@@ -134,13 +134,13 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_RequestToT24
 				/* =================== End of Audit Logging ==============*/
 				/*================DB Update=======================*/
 				IF CONTAINS(inRefer.Purpose,'Salary') OR CONTAINS(inRefer.Purpose,'Salaries')THEN
-					CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Salary Payments',Environment.Variables.reqMsg,Env.Amount,
+					CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'','','','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Salary Payments',Environment.Variables.reqMsg,Env.Amount,
 					Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,rtgsCorporatePayments_T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'FALSE');
 				ELSE
-					CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'PENDING','PENDING','PENDING','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Corporate Payments',Environment.Variables.reqMsg,Env.Amount,
+					CALL INSERT_SB_SCP_TRACKING(Environment.Variables.UID,'','','','NOT APPLICABLE','PENDING',Env.FileName||'_'||'Corporate Payments',Environment.Variables.reqMsg,Env.Amount,
 					Env.Dbt_Acc,Env.Crt_Acc,Env.CsvDate,rtgsCorporatePayments_T24URL,'NOT APPLICABLE','NOT APPLICABLE','PENDING','PENDING','SUCCESS',Env.CreationDate,Env.CreationDate,'TRUE');
 				END IF;
-				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.Properties = InputRoot.Properties; 
 				SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 				-- SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
 				SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
@@ -187,7 +187,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 		CASE
 		WHEN responceCode LIKE '200' OR inRef.header.status LIKE 'success' THEN
 			---Success Case---
-			CALL UPDATE_SB_SCP_STATUS(Env.UID,inRef.header.id,CAST(Env.CreationDate AS CHARACTER),inRef.body.endToEndReference,responceCode,
+			CALL UPDATE_SB_SCP_STATUS(Env.UID,'','',inRef.body.endToEndReference,responceCode, 
 			'NOT APPLICABLE','NOT APPLICABLE',Environment.Variables.resMsg,'SUCCESS',CAST(Env.CreationDate AS TIMESTAMP));  
 			---DB Logging---
 			IF IsLogRequired LIKE 'Y' THEN
@@ -214,7 +214,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_GenereateResponseToChan
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
 			---Failure Case---
-			CALL UPDATE_SB_SCP_STATUS(Env.UID,'PENDING','PENDING','PENDING',responceCode,'NOT APPLICABLE','NOT APPLICABLE',Environment.Variables.resMsg,'FAILURE',CAST(Env.CreationDate AS TIMESTAMP));
+			CALL UPDATE_SB_SCP_STATUS(Env.UID,'','','',responceCode,'NOT APPLICABLE','NOT APPLICABLE',Environment.Variables.resMsg,'FAILURE',CAST(Env.CreationDate AS TIMESTAMP));
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','T24 Response:: FAILURE'||'/'||'ResponseCode::'||responceCode) INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsT24Logger', 'DEBUG','T24 Response :: '||Environment.Variables.resMsg) INTO rc;
@@ -297,7 +297,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsT24CallFlow_BuildException
 		SET outJsonRef.responseBody.source = 'ESB';
 		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsT24);
 		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsT24.ErrorCode;
-		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsT24.ErrorType;
+		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.SalaryCorporatePaymentsT24.ErrorType; 
 		/* =================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;

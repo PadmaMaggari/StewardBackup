@@ -47,9 +47,9 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 			IF CONTAINS(inRefer.Amount,'-') THEN
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','..............Start Salary & Corporate Payments Logging...........') INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','CSV Data:: '||reqMsg) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','CSV Data:: '||reqMsg) INTO rc;   
 					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Negative Amount :: '||inRefer.Amount) INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Message ID :: '|| Environment.MQRFH2.UID) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Message ID :: '|| Environment.MQRFH2.UID) INTO rc; 
 				END IF;
 				IF CONTAINS(inRefer.Purpose,'Salary') OR CONTAINS(inRefer.Purpose,'Salaries')THEN
 					CALL INSERT_SB_SCP_TRACKING(Environment.MQRFH2.UID,'PENDING','PENDING','PENDING','PENDING','PENDING',InputLocalEnvironment.File.Name,reqMsg,inRefer.Amount, 
