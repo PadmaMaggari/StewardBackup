@@ -109,7 +109,7 @@ CREATE COMPUTE MODULE CassavaFlow_ResponseToChannel
 		DECLARE statusCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		IF statusCode NOT LIKE '200' THEN
 			
-			SET errMsg = 'Error Response from T24 Server';
+			SET errMsg = 'Error Response from Cassava Auth Server';
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 			CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CassavaAuth');
