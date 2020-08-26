@@ -32,7 +32,14 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		DECLARE domainDataRef REFERENCE TO InputRoot.SOAP;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE serviceName CHARACTER;
-		SET serviceName = FIELDNAME(domainDataRef.Body.[1]);
+		SET serviceName = FIELDNAME(domainDataRef.Body.[<]);
+		
+--		DECLARE serviceNameDetails REFERENCE TO InputRoot.SOAP.Body;
+		
+		
+		
+		
+		
 		SET Environment.MQRFH2.requestDomain=domainName;
 		SET Environment.MQRFH2.RequestIdentifier = SUBSTRING(CAST(InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier  AS CHAR) FROM 3 FOR 48);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
