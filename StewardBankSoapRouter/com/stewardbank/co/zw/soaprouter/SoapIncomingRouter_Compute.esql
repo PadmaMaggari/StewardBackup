@@ -32,7 +32,14 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		DECLARE domainDataRef REFERENCE TO InputRoot.SOAP;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE serviceName CHARACTER;
-		SET serviceName = FIELDNAME(domainDataRef.Body.[1]);
+		SET serviceName = FIELDNAME(domainDataRef.Body.[<]);
+		
+--		DECLARE serviceNameDetails REFERENCE TO InputRoot.SOAP.Body;
+		
+		
+		
+		
+		
 		SET Environment.MQRFH2.requestDomain=domainName;
 		SET Environment.MQRFH2.RequestIdentifier = SUBSTRING(CAST(InputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier  AS CHAR) FROM 3 FOR 48);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
@@ -69,6 +76,10 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 					SET OutputRoot.MQRFH2.usr.resQ = Environment.resQName;
 					SET OutputRoot.SOAP = InputRoot.SOAP;
 					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.reqQName;
+					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Queue Name ============')INTO rc;
+					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG',Environment.reqQName)INTO rc;
+					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Service Name ============')INTO rc;
+					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG',serviceName)INTO rc;
 					PROPAGATE TO TERMINAL 'out';
 				ELSEIF FIELDNAME(qDetails.Values.REQ_QUEUE) IS NULL THEN
 					CALL errorResponse('','No Request Queue Available','ESB_001',serviceName);
@@ -101,6 +112,10 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 						SET OutputRoot.MQRFH2.usr.resQ = Environment.resQName;
 						SET OutputRoot.SOAP = InputRoot.SOAP;
 						SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.reqQName;
+						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Queue Name ============')INTO rc;
+						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG',Environment.reqQName)INTO rc;
+						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Service Name ============')INTO rc;
+						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG',serviceName)INTO rc;
 						PROPAGATE TO TERMINAL 'out';
 					ELSEIF FIELDNAME(qDetails.Values.REQ_QUEUE) IS NULL THEN
 						CALL errorResponse(domainName,'No Request Queue Available','ESB_001',serviceName);

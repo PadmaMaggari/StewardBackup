@@ -101,14 +101,14 @@ CREATE COMPUTE MODULE CassavaLookupFlow_GetPickupTransaction
 				CALL buildLookupUrl('sender',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
 			IF inRefJsondata.filter.sender_country LIKE 'yes' THEN
-				CALL buildLookupUrl('sender_country',CAST(inRefJsondata.id AS CHARACTER));
+				CALL buildLookupUrl('sender.country',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
 			IF inRefJsondata.filter.beneficiary LIKE 'yes' THEN
 				CALL buildLookupUrl('beneficiary',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
 
 			IF inRefJsondata.filter.beneficiary_country LIKE 'yes' THEN
-				CALL buildLookupUrl('beneficiary_country',CAST(inRefJsondata.id AS CHARACTER));
+				CALL buildLookupUrl('beneficiary.country',CAST(inRefJsondata.id AS CHARACTER));
 			END IF;
 			IF inRefJsondata.filter.available_payout_currencies LIKE 'yes' THEN
 				CALL buildLookupUrl('available_payout_currencies',CAST(inRefJsondata.id AS CHARACTER));
@@ -163,7 +163,7 @@ CREATE COMPUTE MODULE CassavaLookupFlow_ResponseToChannel
 		DECLARE statusCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		IF statusCode NOT LIKE '200' THEN
 			
-			SET errMsg = 'Error Response from T24 Server';
+			SET errMsg = 'Error Response from Cassava LookUp Server';
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 			CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('CassavaLookup');
