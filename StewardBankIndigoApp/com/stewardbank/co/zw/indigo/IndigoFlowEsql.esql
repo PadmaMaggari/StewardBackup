@@ -39,9 +39,9 @@ CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inRef REFERENCE TO InputRoot;
-		DECLARE serviseName REFERENCE TO InputRoot.SOAP.Body.[1];
+		DECLARE serviseName REFERENCE TO InputRoot.SOAP.Body.[<];
 		SET bindingOperatingName = FIELDNAME(serviseName);
-		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP.Body,encodeRef,ccsid);
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
 		 SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
