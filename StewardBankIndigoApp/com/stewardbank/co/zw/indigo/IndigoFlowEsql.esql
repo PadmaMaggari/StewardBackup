@@ -69,7 +69,7 @@ CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
 		/* ========================== FIELD TO FIELD MAPPING =============================================== */
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
 		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
-	CALL indigoSoapReqFieldToFieldMapping(bindingOperatingName,inRefSoap,outRefSoap);  
+	CALL indigoSoapReqFieldToFieldMapping(bindingOperatingName,inRefSoap,outRefSoap,serviseName);  
 		DECLARE OutRefer REFERENCE TO OutputRoot.SOAP;
 		DECLARE envref REFERENCE TO Environment.SOAP;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'SOAP';
@@ -564,7 +564,7 @@ CREATE COMPUTE MODULE IndigoFlow_BuildExceptionDetails
 END MODULE;
 
 
-CREATE PROCEDURE indigoSoapReqFieldToFieldMapping (IN bindingOperatingName CHARACTER,IN inRefSoap REFERENCE ,INOUT outRefSoap REFERENCE )
+CREATE PROCEDURE indigoSoapReqFieldToFieldMapping (IN bindingOperatingName CHARACTER,IN inRefSoap REFERENCE ,INOUT outRefSoap REFERENCE ,IN serviseName REFERENCE)
 BEGIN
 	CASE
 			
@@ -639,14 +639,17 @@ BEGIN
 		SET outRefSoap.Context.Namespace.stew = 'http://temenos.com/stewardbank';
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
-		SET outRefSoap.Header[] = inRefSoap.Header[];
-		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.company = inRefSoap.Body.ns:AccountDetails.WebRequestCommon.company;
-		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.password = inRefSoap.Body.ns:AccountDetails.WebRequestCommon.password;
-		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.userName = inRefSoap.Body.ns:AccountDetails.WebRequestCommon.userName;
-		SET outRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.columnName = inRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.columnName;
-		SET outRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.criteriaValue = inRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.criteriaValue;
-		SET outRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.operand = inRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.operand;
+		SET outRefSoap.Header = '';
+		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.company = 'ZW0010001';
+		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.password = 'T3m3nos@852';
+		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.userName = 'TWSUSER01';
 		
+		
+		
+		SET outRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection[] = serviseName.JSLCARDACCTType.enquiryInputCollection[];
+--		SET outRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.criteriaValue = inRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.criteriaValue;
+--		SET outRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.operand = inRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.operand;
+--		
 		
 		WHEN bindingOperatingName LIKE 'AmendCard' THEN
 			
