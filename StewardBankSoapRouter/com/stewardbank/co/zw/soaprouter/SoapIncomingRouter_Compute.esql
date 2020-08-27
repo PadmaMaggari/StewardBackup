@@ -34,9 +34,13 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		DECLARE serviceName CHARACTER;
 		SET serviceName = FIELDNAME(domainDataRef.Body.[<]);
 		
---		DECLARE serviceNameDetails REFERENCE TO InputRoot.SOAP.Body;
 		
+
 		
+		DECLARE envref REFERENCE TO Environment;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'SOAP';
+--		CREATE LASTCHILD OF Environment.JSON AS envref NAME 'Body';
+		SET envref = domainDataRef;
 		
 		
 		
@@ -74,7 +78,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 					SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = Environment.MQRFH2.RequestIdentifier;
 					SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
 					SET OutputRoot.MQRFH2.usr.resQ = Environment.resQName;
-					SET OutputRoot.SOAP = InputRoot.SOAP;
+					SET OutputRoot.SOAP = envref;
 					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.reqQName;
 					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Queue Name ============')INTO rc;
 					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG',Environment.reqQName)INTO rc;
@@ -110,7 +114,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 						SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = Environment.MQRFH2.RequestIdentifier;
 						SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
 						SET OutputRoot.MQRFH2.usr.resQ = Environment.resQName;
-						SET OutputRoot.SOAP = InputRoot.SOAP;
+						SET OutputRoot.SOAP = envref;
 						SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.reqQName;
 						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Queue Name ============')INTO rc;
 						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG',Environment.reqQName)INTO rc;
