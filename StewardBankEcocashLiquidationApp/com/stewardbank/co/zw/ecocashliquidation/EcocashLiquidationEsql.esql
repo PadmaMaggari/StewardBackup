@@ -1,6 +1,8 @@
 
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.ecocashliquidation
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
@@ -60,7 +62,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 			DECLARE value INTEGER;
 			DECLARE value1 CHARACTER;
 			SET fxtid.values[] = PASSTHRU('SELECT NEXT VALUE FOR ECHOCASH_SEQ AS SEQ');
-			--SET fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL'); 
+			--SET fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL');
 			SET value = fxtid.values.SEQ;
 			SET value1 = CAST(value as CHARACTER);
 			DECLARE value2 CHARACTER;
@@ -124,9 +126,9 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 				END IF;
 				----db insert------
 				CALL INSERT_SB_ECOCASHLIQ(Environment.Variables.UID,FileName,Environment.Variables.reqMsg,inRef.MSISDN,inRef.BALANCE_USD,Environment.Variables.outMsg,'PENDING','PENDING','PENDING',
-				'PENDING',inRef.BANK,'PENDING','PENDING','FAILURE','PENDING','SUCCESS',Environment.Variables.CreationDate,Environment.Variables.CreationDate);
+				'PENDING',inRef.BANK,'PENDING','PENDING','PENDING','PENDING','SUCCESS',Environment.Variables.CreationDate,Environment.Variables.CreationDate);
 				-------------------------------------------
-				SET OutputRoot.Properties = InputRoot.Properties; 
+				SET OutputRoot.Properties = InputRoot.Properties;
 				SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
 				SET OutputRoot.JSON.Data = Environment.jsonData;
 				SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
@@ -203,7 +205,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				--{debitCurrency}/{creditAccountId}/{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{narrative}/{invoiceReference}
 				SET SB_T24URL = STB_T24URL||'ZWL'||'/'||EnvRefer.BANK_ACC_NUMBER||'/'|| EnvRefer.MERCHANT_NAME||'/'||'ZWL'||'/'||EnvRefer.BALANCE_USD||'/'||CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd')||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.CODE;
 				SET STB_Msg = getPayLoad(FIELDNAME(OutputRoot.JSON),OutputRoot.JSON.Data,encodeRef,ccidRef);
-				SET Environment.Variables.T24URL = STB_Msg;  
+				SET Environment.Variables.T24URL = STB_Msg;
 				SET OutputRoot = NULL;
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL DBLogging(Environment.Variables.UID,STB_Msg,'STB T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
@@ -244,7 +246,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 				SET Environment.Variables.OTB_Msg = OutputRoot.JSON.Data;
 				--{orderingCustomerName}/{paymentCurrency}/{transactionAmount}/{executionDate}/{orderingReference}/{narrative}/{debitCurrency}/{beneficiaryName}/{branch}/{beneficiaryAccountId}
 				SET OB_T24URL = OTB_T24URL||EnvRefer.MERCHANT_NAME||'/'||outRef.paymentCurrency||'/'||EnvRefer.BALANCE_USD||'/'||outRef.executionDate||'/'||EnvRefer.BATCH_IDENTIFIER||'/'||EnvRefer.BANK_ACC_NAME||'/'||outRef.currency||'/'||EnvRefer.BANK||'/'||EnvRefer.BRANCH_NAME||'/'||EnvRefer.BANK_ACC_NUMBER;
-				SET Environment.Variables.T24URL = OB_T24URL; 
+				SET Environment.Variables.T24URL = OB_T24URL;
 				SET OutputRoot = NULL;
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL DBLogging(Environment.Variables.UID,OB_T24URL,'OTB T24 Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
@@ -417,15 +419,19 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_BuildException
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE Env REFERENCE TO Environment.Variables;
-		DECLARE EnvRef REFERENCE TO Environment.Variables.MobiquityRes; 
+		DECLARE EnvRef REFERENCE TO Environment.Variables.MobiquityRes;
 		---Failure Case Status Tracking---
-		IF EnvRef.TXNSTATUS LIKE '200' AND excpRef.excpType LIKE 'SocketException' THEN   
-		CALL DbUpdateMobiquityStatus(Environment.Variables.UID,'200','SUCCESS',Env.resMsg,EnvRef.DATE||':'||EnvRef.TIME,Environment.Variables.T24URL,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));
-			CALL DbUpdateT24Status(Env.UID,'000','FAILURE',exe_Desc,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));     
+		IF EnvRef.TXNSTATUS LIKE '200' THEN
+			CALL DbUpdateT24Status(Env.UID,'000','FAILURE',exe_Desc,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));
 		ELSE
 			CALL DbUpdateMobiquityStatus(Environment.Variables.UID,'000','FAILURE',exe_Desc,'PENDING','PENDING',CAST(CURRENT_TIMESTAMP AS TIMESTAMP));
-			CALL DbUpdateT24Status(Env.UID,'000','FAILURE','PENDING',CAST(CURRENT_TIMESTAMP AS TIMESTAMP));   
-		END IF;  
+			CALL DbUpdateT24Status(Env.UID,'000','FAILURE','PENDING',CAST(CURRENT_TIMESTAMP AS TIMESTAMP)); 
+		END IF; 
+--		IF CONTAINS(excpRef.excpText,'ParserException') THEN
+--			SET UUID = UUIDASCHAR;
+--			CALL INSERT_SB_ECOCASHLIQ(UUID,'PENDING','PENDING','PENDING','PENDING','PENDING','PENDING','FAILURE','PENDING',
+--			'PENDING','PENDING','PENDING','PENDING','FAILURE','PENDING','PENDING',Environment.Variables.CreationDate,Environment.Variables.CreationDate);   
+--		END IF;     
 		/* =================== CALLING LOG4J LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
