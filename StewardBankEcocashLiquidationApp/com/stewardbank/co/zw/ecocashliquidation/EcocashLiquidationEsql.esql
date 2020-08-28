@@ -53,9 +53,9 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 				PROPAGATE TO TERMINAL 'out1';
 			END IF;
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','..............Start EcoCash Liquidation  Logging ...........') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Message::'||Environment.Variables.reqMsg) INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','*..............Start EcoCash Liquidation  Logging ...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Message:: '||Environment.Variables.reqMsg) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID:: '||Environment.Variables.UID) INTO rc;
 			END IF;
 			DECLARE Bank CHARACTER inRef.BANK;
 			DECLARE fxtid ROW;
@@ -83,9 +83,9 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 				END IF;
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','.............. Mobiquity Failure Response ...........') INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Message::'||Environment.Variables.reqMsg) INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Negative Amount  ::'||inRef.BALANCE_USD) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID:: '||Environment.Variables.UID) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Negative Amount :: '||inRef.BALANCE_USD) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','.............. End of Logging ...........*') INTO rc;
 				END IF;
 				----db insert------
 				CALL INSERT_SB_ECOCASHLIQ(Environment.Variables.UID,FileName,Environment.Variables.reqMsg,inRef.MSISDN,inRef.BALANCE_USD,'','PENDING','FAILURE','PENDING',
@@ -120,8 +120,8 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 				END IF;
 				IF IsLogRequired LIKE 'Y' THEN
 					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','.............. Mobiquity Request for  API CALL ...........') INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Message::'||Environment.Variables.outMsg) INTO rc;
-					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','MobiquityURL URL Request(POST)::'||MobiquityURL) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Message :: '||Environment.Variables.outMsg) INTO rc;
+					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','MobiquityURL URL Request(POST):: '||MobiquityURL) INTO rc;
 					CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
 				END IF;
 				----db insert------
@@ -178,9 +178,10 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Mobiquity Success Response') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','..............Mobiquity Success Response............') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Response Message :: '||Env.resMsg) INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','.............. End of Logging ...........*') INTO rc;
 			END IF;
 			/* =================== END OF AUDIT LOGGING ==============*/
 			SET Environment.Variables.MobiquityRes = InputRoot.JSON.Data.COMMAND;
@@ -275,10 +276,11 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
 			IF IsLogRequired LIKE 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Mobiquity Failure Response') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','..............Mobiquity Failure Response..........') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Failure Message :: '||Env.resMsg) INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','TXNSTATUS :: '||TxnStatus) INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID :: '||Environment.Variables.UID) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','.............. End of Logging ...........*') INTO rc;
 			END IF;
 			/* =================== END OF AUDIT LOGGING ==============*/
 			CALL DbUpdateMobiquityStatus(Environment.Variables.UID,InRef.TXNSTATUS,'FAILURE',Env.resMsg,InRef.DATE||' '||InRef.TIME,'PENDING',CAST(CURRENT_TIMESTAMP AS TIMESTAMP));
@@ -351,6 +353,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_T24StatusUpdate
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','T24 Response :: SUCCESS') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG',Env.resMsg) INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID :: '||Environment.Variables.UID) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','.............. End of Logging ...........*') INTO rc;
 			END IF;
 
 			CALL DbUpdateT24Status(Env.UID,responceCode,'SUCCESS',Env.resMsg,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));
@@ -369,10 +372,11 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_T24StatusUpdate
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','T24 Response :: FAILURE'||'/'||'ResponseCode :: '||responceCode) INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','T24 Response Message :: '||Environment.Variables.resMsg) INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID :: '||Environment.Variables.UID) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','.............. End of Logging ...........*') INTO rc; 
 			END IF;
 			CALL DbUpdateT24Status(Env.UID,responceCode,'FAILURE',Env.resMsg,CAST(CURRENT_TIMESTAMP AS TIMESTAMP));
 			SET OutputRoot.JSON.Data = Env.data;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = resQueueName; 
 			PROPAGATE TO TERMINAL 'out';
 		END CASE;
 	END;
