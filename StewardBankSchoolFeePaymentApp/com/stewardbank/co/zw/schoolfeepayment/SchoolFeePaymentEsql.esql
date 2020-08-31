@@ -8,6 +8,8 @@
 
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.schoolfeepayment
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -23,7 +25,7 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL CopyEntireMessage();
-		RETURN FALSE; 
+		RETURN FALSE;
 	END;
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		SET Environment.MQRFH2 = InputRoot.MQRFH2;
@@ -84,7 +86,7 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 			SET headRef.processingCode = '400000';
 			SET headRef.status = 'Failure';
 			SET bodyRef.Amount = InputRoot.JSON.Data.debitAmount;
-			SET bodyRef.Message = 'Negative Amount'; 
+			SET bodyRef.Message = 'Negative Amount';
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','..............Negative Amount in debitAmount...........') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','debitAmount :: '||InputRoot.JSON.Data.debitAmount) INTO rc;
@@ -131,7 +133,7 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 			SET OutputRoot.HTTPRequestHeader."Content-Type" = 'application/json';
 			SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = SFP_T24uRL;
-			PROPAGATE TO TERMINAL 'out'; 
+			PROPAGATE TO TERMINAL 'out';
 		END IF;
 	END;
 END MODULE;
@@ -186,7 +188,7 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','T24 Response::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',Environment.Variables.resData) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.Variables.usr.Id) INTO rc;
 		END IF;
 		------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -234,8 +236,10 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateResToPostilion
 		SET OutputRoot.JSON.Data=envref;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','SchoolFeePayment Response To Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','T24 Status:: '||status) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID::'|| Environment.Variables.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','HTTP ID:: '||Environment.Variables.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SchoolFeePaymentLogger', 'DEBUG','............... End of Logging ...........*') INTO rc;   
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 	END;

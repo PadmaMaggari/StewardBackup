@@ -60,7 +60,7 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
 		SET Environment.Variables.ResponseQ = resQ;
 		SET Environment.Variables.HttpIp.ConnectionId = connId;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','..............Initializing CurrencyConverter logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','*..............Initializing CurrencyConverter logging...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','Request from Postilion::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',getPayLoad(domainName,inRef,encodeRef,ccidRef)) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
@@ -82,7 +82,7 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateReqToT24
 		SET OutputRoot.JSON.Data = Environment.Variables.jsonData;
 		MOVE outRef TO OutputRoot.JSON;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','Request URL To T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','................... Request URL To T24:: .....................') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',CC_URL) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
 		END IF;
@@ -139,16 +139,15 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 		------------------
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','T24 Response::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG',Environment.Variables.resData) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','T24 Response:: '||Environment.Variables.resData) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID:: '|| Environment.MQRFH2.usr.Id) INTO rc; 
 		END IF;
 		------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
 		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
 		DECLARE OutRefer REFERENCE to OutputRoot.JSON.Data;
 		DECLARE Inrefer REFERENCE to InputRoot.JSON.Data.body;
-		IF responceCode LIKE '200' THEN
+		IF responceCode LIKE '200'  THEN 
 			SET OutRefer.statusCode = '200';
 			SET OutRefer.message = 'SUCCESS';
 			SET OutRefer.responseBody.source = 'ESB';
@@ -214,9 +213,11 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 		SET OutputRoot.MQRFH2.usr=Environment.usr;
 		SET OutputRoot.JSON.Data=envref;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','CurrencyConvertor Response To Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','Response ::'||Environment.Variables.resMsg) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','............ CurrencyConvertor Response To Postilion:: ..........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','T24 Status Code:: '||responceCode) INTO rc;     
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','T24 Response:: '||Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','HTTP ID::'|| Environment.MQRFH2.usr.Id) INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'CurrencyConverterLogger', 'DEBUG','............... End of Logging .............*') INTO rc;
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 	END;

@@ -6,7 +6,7 @@ DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
-DECLARE IsLogRequired EXTERNAL CHARACTER'';
+DECLARE IsLogRequired EXTERNAL CHARACTER'';  
 DECLARE UUID SHARED CHARACTER '';
 DECLARE ZSS_Queue EXTERNAL CHARACTER ''; 
 CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
@@ -139,8 +139,8 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_BuildException
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SalaryCorporatePayments';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'SalaryCorporatePayments');
-		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
-		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;  
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;  
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		CALL UPDATE_SB_SCP_STATUS(Environment.Variables.UID,'PENDING','PENDING','PENDING','PENDING','PENDING','FAILURE','PENDING','FAILURE',CAST(Environment.Variables.CreationDate AS TIMESTAMP));
 		IF IsLogRequired LIKE 'Y' THEN
