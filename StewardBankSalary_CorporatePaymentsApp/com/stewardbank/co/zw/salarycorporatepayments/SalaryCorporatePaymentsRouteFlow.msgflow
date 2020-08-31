@@ -21,6 +21,9 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.IsLogRequired" name="IsLogRequired" defaultValueLiteral="Y">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ZSS_Queue" name="ZSS_Queue" defaultValueLiteral="SCP_ZSS_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
     <translation xmi:type="utility:TranslatableString" key="SalaryCorporatePaymentsRouteFlow" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsRouteFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSalary_CorporatePaymentsApp/icons/full/obj16/SalaryCorporatePaymentsRouteFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSalary_CorporatePaymentsApp/icons/full/obj30/SalaryCorporatePaymentsRouteFlow.gif"/>
@@ -34,7 +37,7 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="577,151" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.salarycorporatepayments#SalaryCorporatePaymentsFlow_BuildException.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildException"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="269,154" inputDirectory="/var/DEV_TESTING/Stewardbank/ACE/SalaryCorporatePayments" processedFileAction="moveToArchiveWithTimestamp" replaceDuplicateArchives="true" messageDomainProperty="DFDL" messageSetProperty="{SB_CSV_Lib}" messageTypeProperty="{}:stewardBank_CSV" failedFileAction="moveToBackoutWithTimestamp" recordDetection="delimited" recordDelimiter="customDelimiter" customDelimiter="0D0A" fileFtpScanDelay="15">
+      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="263,129" inputDirectory="/var/DEV_TESTING/Stewardbank/ACE/SalaryCorporatePayments" processedFileAction="moveToArchiveWithTimestamp" replaceDuplicateArchives="true" messageDomainProperty="DFDL" messageSetProperty="{SB_CSV_Lib}" messageTypeProperty="{}:stewardBank_CSV" failedFileAction="moveToBackoutWithTimestamp" recordDetection="delimited" recordDelimiter="customDelimiter" customDelimiter="0D0A" fileFtpScanDelay="15">
         <translation xmi:type="utility:ConstantString" string="Salary Payments Req"/>
       </nodes>
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="740,152" destinationMode="list">
@@ -61,6 +64,9 @@
                 <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_Q" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsRouteFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
                 <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
                   <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsRouteFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
+                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ZSS_Queue">
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.ZSS_Queue" bundleName="com/stewardbank/co/zw/salarycorporatepayments/SalaryCorporatePaymentsRouteFlow" pluginId="StewardBankSalary_CorporatePaymentsApp"/>
+                  </propertyDescriptor>
                 </propertyDescriptor>
               </propertyDescriptor>
             </propertyDescriptor>
