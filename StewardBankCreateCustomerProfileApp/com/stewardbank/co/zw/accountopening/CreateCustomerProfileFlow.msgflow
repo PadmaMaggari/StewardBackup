@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmMQInput.msgnode="ComIbmMQInput.msgnode" xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode" xmlns:com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow="com/stewardbank/co/zw/common/exceptionhandling/exceptionHandlingSubFlow.subflow" xmlns:com_stewardbank_co_zw_common_httpcall_HttpRetrySubFlow.subflow="com/stewardbank/co/zw/common/httpcall/HttpRetrySubFlow.subflow"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="com/stewardbank/co/zw/accountopening/CreateCustomerProfileFlow.msgflow" nsPrefix="com_stewardbank_co_zw_accountopening_CreateCustomerProfileFlow.msgflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG_CONFIG_PATH" name="LOG_CONFIG_PATH" defaultValueLiteral="C:\Documents\Steward\Log\Log4jConfig.xml">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RAW_AUDIT_Q" name="RAW_AUDIT_Q" defaultValueLiteral="RAW_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ERR_AUDIT_Q" name="ERR_AUDIT_Q" defaultValueLiteral="ERR_LOG_SB_REQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.EXCEPTION_Q" name="EXCEPTION_Q" defaultValueLiteral="SB_EXCQ">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ALL_SB_HTTP_RES" name="ALL_SB_HTTP_RES" defaultValueLiteral="ALL_SB_HTTP_RES">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.IsLogRequired" name="IsLogRequired" defaultValueLiteral="Y">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.LOG4J_INIT_ERROR_MSG" name="LOG4J_INIT_ERROR_MSG" defaultValueLiteral="[log4j] Initialization Error">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.IP" name="IP" defaultValueLiteral="192.168.1.233">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.PORT" name="PORT" defaultValueLiteral="8080">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.baseURL" name="baseURL" defaultValueLiteral="/stwbc/api/v1.0.0/stwb/customer/newCustomer/">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <translation xmi:type="utility:TranslatableString" key="CreateCustomerProfileFlow" bundleName="com/stewardbank/co/zw/accountopening/CreateCustomerProfileFlow" pluginId="StewardBankCreateCustomerProfileApp"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankCreateCustomerProfileApp/icons/full/obj16/CreateCustomerProfileFlow.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankCreateCustomerProfileApp/icons/full/obj30/CreateCustomerProfileFlow.gif"/>
+    <composition>
+      <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_1" location="107,211">
+        <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="32,42" queueName="CCA_SB_REQ">
+        <translation xmi:type="utility:ConstantString" string="CCP_InQ"/>
+      </nodes>
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="581,213" destinationMode="list">
+        <translation xmi:type="utility:ConstantString" string="CCP_OutQ"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="364,211" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#CreateCustomerProfileFlow_GenerateExceptionResponse.Main">
+        <translation xmi:type="utility:ConstantString" string="GenerateExceptionResponse"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="504,44" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#CreateCustomerProfileFlow_GenerateResponse.Main">
+        <translation xmi:type="utility:ConstantString" string="GenerateResponse"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="161,43" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#CreateCustomerProfileFlow_CreateProfileRequest.Main">
+        <translation xmi:type="utility:ConstantString" string="CreateProfileRequest"/>
+      </nodes>
+      <nodes xmi:type="com_stewardbank_co_zw_common_httpcall_HttpRetrySubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="329,44">
+        <translation xmi:type="utility:ConstantString" string="CreateProfileCall"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.Output1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/accountopening/CreateCustomerProfileFlow" pluginId="StewardBankCreateCustomerProfileApp"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RAW_AUDIT_Q">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.RAW_AUDIT_Q" bundleName="com/stewardbank/co/zw/accountopening/CreateCustomerProfileFlow" pluginId="StewardBankCreateCustomerProfileApp"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERR_AUDIT_Q">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.ERR_AUDIT_Q" bundleName="com/stewardbank/co/zw/accountopening/CreateCustomerProfileFlow" pluginId="StewardBankCreateCustomerProfileApp"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.EXCEPTION_Q">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.EXCEPTION_Q" bundleName="com/stewardbank/co/zw/accountopening/CreateCustomerProfileFlow" pluginId="StewardBankCreateCustomerProfileApp"/>
+              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ALL_SB_HTTP_RES">
+                <propertyName xmi:type="utility:TranslatableString" key="Property.ALL_SB_HTTP_RES" bundleName="com/stewardbank/co/zw/accountopening/CreateCustomerProfileFlow" pluginId="StewardBankCreateCustomerProfileApp"/>
+                <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
+                  <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/accountopening/CreateCustomerProfileFlow" pluginId="StewardBankCreateCustomerProfileApp"/>
+                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4J_INIT_ERROR_MSG">
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR_MSG" bundleName="com/stewardbank/co/zw/accountopening/CreateCustomerProfileFlow" pluginId="StewardBankCreateCustomerProfileApp"/>
+                    <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IP">
+                      <propertyName xmi:type="utility:TranslatableString" key="Property.IP" bundleName="com/stewardbank/co/zw/accountopening/CreateCustomerProfileFlow" pluginId="StewardBankCreateCustomerProfileApp"/>
+                      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.PORT">
+                        <propertyName xmi:type="utility:TranslatableString" key="Property.PORT" bundleName="com/stewardbank/co/zw/accountopening/CreateCustomerProfileFlow" pluginId="StewardBankCreateCustomerProfileApp"/>
+                        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.baseURL">
+                          <propertyName xmi:type="utility:TranslatableString" key="Property.baseURL" bundleName="com/stewardbank/co/zw/accountopening/CreateCustomerProfileFlow" pluginId="StewardBankCreateCustomerProfileApp"/>
+                        </propertyDescriptor>
+                      </propertyDescriptor>
+                    </propertyDescriptor>
+                  </propertyDescriptor>
+                </propertyDescriptor>
+              </propertyDescriptor>
+            </propertyDescriptor>
+          </propertyDescriptor>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>

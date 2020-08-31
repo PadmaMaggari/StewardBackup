@@ -1,0 +1,302 @@
+
+
+BROKER SCHEMA com.stewardbank.co.zw.accountopening
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE ALL_SB_HTTP_RES EXTERNAL CHAR '';
+DECLARE IsLogRequired EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE HOST EXTERNAL CHARACTER '';
+DECLARE newIndividualURL EXTERNAL CHARACTER '';
+DECLARE getIndividualURL EXTERNAL CHARACTER '';
+DECLARE rc BOOLEAN FALSE;
+
+CREATE COMPUTE MODULE CheckCustomerRecordFlow_NewIndividualRequest
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE domainDataRef REFERENCE TO InputBody;
+		DECLARE url CHAR;
+		CALL newIndividualRequest(outRefer,url);
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayLoad('JSON',domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		--------------DBLogging-------------------
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- newIndividual Request ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'newIndividual Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		-----------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = url;
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE newIndividualRequest(INOUT outRefer REFERENCE,INOUT url CHAR) BEGIN
+		DECLARE inBodyRef REFERENCE TO InputRoot.JSON.Data.*.body;
+		CREATE LASTCHILD OF outRefer AS outRefer DOMAIN('JSON');
+		CREATE LASTCHILD OF outRefer AS outRefer NAME('Data');
+		SET outRefer.dob = inBodyRef.dob; --'14/12/1992';--M
+		SET outRefer.names = inBodyRef.name; --'forbes';--M
+		SET outRefer.surname = inBodyRef.surName; --'karinda';--M
+		SET outRefer.national_id = inBodyRef.national_Id; --'12345678A00';--O
+		SET outRefer.gender = inBodyRef.gender; --'M';--M
+		SET outRefer.search_purpose = inBodyRef.search_purpose; --*/'1';--M
+		SET outRefer.email = inBodyRef.email; --*/'padma.maggari@eidiko.com';---M
+		SET Environment.MQRFH2.email = outRefer.email;
+		SET outRefer.password = inBodyRef.password; --*/'tawa@steward';--M
+		SET Environment.MQRFH2.password = outRefer.password;
+		SET outRefer.drivers_licence = inBodyRef.drivers_licence; --*/'drv';--O
+		SET outRefer.passport = inBodyRef.passport; --*/'pp';--O
+		SET outRefer.married = inBodyRef.married; --*/'M';--M
+		SET outRefer.nationality = inBodyRef.nationality; --*/'3';--M
+		SET outRefer.streetno = inBodyRef.streetno; --*/'24';--M
+		SET outRefer.streetname = inBodyRef.streetname; --*/'harvey brown';--O
+		SET outRefer.building = inBodyRef.building; --*/'fcb mansion';--O
+		SET outRefer.suburb = inBodyRef.suburb; --*/'milton park';--O
+		SET outRefer.pbag = inBodyRef.pbag; --*/'p.o. highlands';--O
+		SET outRefer.city = inBodyRef.city; --*/'harare';--M
+		SET outRefer.telephone = inBodyRef.telephone; --*/'794367-9';--O
+		SET outRefer.mobile = inBodyRef.mobile; --*/'0772495573';--O
+		SET outRefer.ind_email = inBodyRef.email; --*/'padma.maggari@eidiko.com';--O
+		SET outRefer.property_density = inBodyRef.property_density; --*/'1';--M
+		SET outRefer.property_status = inBodyRef.property_status; --*/'2';--M
+		SET outRefer.occupation_class = inBodyRef.occupation_class; --*/'1';--M
+		SET outRefer.employer = inBodyRef.employer; --*/'fcb';--O
+		SET outRefer.employer_industry = inBodyRef.employer_industry; --*/'6';--M
+		SET outRefer.salary_band = inBodyRef.salary_band; --*/'3';--M
+		SET outRefer.loan_purpose = inBodyRef.loan_purpose; --*/'3';--O
+		SET outRefer.loan_amount = inBodyRef.loan_amount; --*/'334.45';--O
+		SET url = 'https://'||HOST||newIndividualURL;
+	END;
+END MODULE;
+
+CREATE FILTER MODULE CheckCustomerRecordFlow_VerifyHITs
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE status CHAR Root.JSON.Data.status;
+		DECLARE code CHAR Root.JSON.Data.code;
+		IF code = '200' AND (status = 'OPEN' OR status = 'PENDING') THEN
+			RETURN FALSE;
+		ELSE
+			RETURN TRUE;
+		END IF;
+	END;
+END MODULE;
+
+
+
+CREATE COMPUTE MODULE CheckCustomerRecordFlow_GetIndividualRequest
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE outRefer,outRef REFERENCE TO OutputRoot;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE domainDataRef REFERENCE TO InputBody;
+		DECLARE code CHAR COALESCE(inRef.Data.code,InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code",'');
+		DECLARE status CHAR inRef.Data.individual.Report.Item[1].Status;
+		DECLARE errorMsg CHAR inRef.Data.message;
+		DECLARE url CHAR;
+		SET Environment.MQRFH2.id = InputRoot.JSON.Data.id;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		--------------DBLogging-------------------
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----newIndividual Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'newIndividual Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		-----------------------------
+		CALL getIndividualRequest(outRef,url);
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayLoad('JSON',domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		--------------DBLogging-------------------
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- getIndividual Request ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'getIndividual Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
+		------------------------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = url;
+	END;
+	CREATE PROCEDURE getIndividualRequest(INOUT outRef REFERENCE,INOUT url CHAR) BEGIN
+		CREATE LASTCHILD OF outRef AS outRef DOMAIN('JSON');
+		CREATE LASTCHILD OF outRef AS outRef NAME('Data');
+		SET outRef.id = InputRoot.JSON.Data.id;
+		SET outRef.email = Environment.MQRFH2.email;
+		SET outRef.password = Environment.MQRFH2.password;
+		SET url = 'https://'||HOST||getIndividualURL;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE CheckCustomerRecordFlow_GenerateResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL GenerateResponse();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateResponse() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE outRefer,outRef REFERENCE TO OutputRoot;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE domainDataRef REFERENCE TO InputBody;
+		DECLARE code CHAR COALESCE(inRef.Data.code,InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code",'');
+		DECLARE status CHAR inRef.Data.individual.Report.Item[1].Status;
+		DECLARE errorMsg CHAR inRef.Data.message;
+		DECLARE url CHAR;
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		--------------DBLogging-------------------
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----FCB Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'FCB Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		-----------------------------
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('searchHITsOnCustomer');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+		SET headRef = Environment.MQRFH2.ChannelRequest.header;
+		SET bodyRef = inRef.Data;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayLoad('JSON',domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		--------------DBLogging-------------------
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- getIndividual Request ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'getIndividual Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
+		------------------------------------------
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE CheckCustomerRecordFlow_GenerateErrorResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateExceptionResponse();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateExceptionResponse() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE errMsg CHARACTER;
+		IF CONTAINS(excpRef.excpText,'NewIndividualCall') THEN
+			SET errMsg = 'T24 Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'GetIndividualCall') THEN
+			SET errMsg = 'FCB Server Down';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'AccountOpening';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'AccountOpening');
+		SET Environment.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AccountOpeningResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef = Environment.MQRFH2.ChannelRequest.header;
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.UserDefinedErrorCodes.AccountOpening.ErrorCode;
+		SET errorRef.message = errMsg;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+		------------Error Logging in DB----------
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.UserDefinedErrorCodes.AccountOpening.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
+		----------------------------------
+	END;
+END MODULE;

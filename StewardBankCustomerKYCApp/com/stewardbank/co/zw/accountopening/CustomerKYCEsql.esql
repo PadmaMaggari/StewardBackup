@@ -1,0 +1,253 @@
+BROKER SCHEMA com.stewardbank.co.zw.accountopening
+PATH com.stewardbank.co.zw.common.esql;
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
+DECLARE ALL_SB_HTTP_RES EXTERNAL CHAR '';
+DECLARE IsLogRequired EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE baseURL EXTERNAL CHARACTER '';
+DECLARE IP EXTERNAL CHARACTER '';
+DECLARE PORT EXTERNAL CHARACTER '';
+DECLARE rc BOOLEAN FALSE;
+
+CREATE COMPUTE MODULE KYCFlow_GenerateDWHReq
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateDWHRequest();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateDWHRequest() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE national_ID CHARACTER;
+		IF FIELDNAME(inRef.Data.national_Id) IS NULL OR FIELDVALUE(inRef.Data.national_Id) IS NULL THEN
+			CALL GenerateKYCFailure();
+		ELSE
+			SET national_ID = inRef.Data.national_Id;
+		END IF;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE url CHAR;
+		SET url = 'http://'||IP||':'||PORT||baseURL||national_ID;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Calling DWH Service ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- '||url||' ------') INTO rc;
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.ContentType = 'application/json';
+		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = url;
+	END;
+	
+	CREATE PROCEDURE GenerateKYCFailure() BEGIN
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('KnowYourCustomer');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headRef = Environment.MQRFH2.header;
+		SET headRef.Status = 'FAILED';
+		SET headRef.ResponseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = 'AccountOpening_020';
+		SET errorRef.message = 'Field national_Id / value must be present';
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayLoad('JSON',domainDataRef,InputRoot.Properties.Encoding,InputRoot.Properties.CodedCharSetId);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			--------------DBLogging-------------------
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+			-----------------------------
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE KYCFlow_GenerateKYCResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE status CHARACTER FIELDVALUE(inRef.Data.status);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Calling DWH Service ------') INTO rc;
+		END IF;
+		IF status = '200' THEN
+			CALL GenerateDWHResponse();
+		ELSE
+			CALL GenerateKYCFailure();
+		END IF;
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateDWHResponse() BEGIN
+		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		SET OutputRoot.JSON = InputRoot.JSON;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- DWH Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'DWH Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+	END;
+
+	CREATE PROCEDURE GenerateKYCFailure() BEGIN
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('KnowYourCustomer');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headRef = Environment.MQRFH2.ChannelRequest.header;
+		SET headRef.Status = 'FAILED';
+		SET headRef.ResponseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = 'AccountOpening_021';
+		SET errorRef.message = 'No data found for given national_Id';
+		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayLoad('JSON',domainDataRef,InputRoot.Properties.Encoding,InputRoot.Properties.CodedCharSetId);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			--------------DBLogging-------------------
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out';
+			-----------------------------
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE KYCFlow_GenerateExceptionResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL GenerateExceptionResponse();
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE GenerateExceptionResponse() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE errMsg CHARACTER;
+		IF CONTAINS(excpRef.excpText,'DWHServiceCall') THEN
+			SET errMsg = 'T24 Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'FCBServiceCall') THEN
+			SET errMsg = 'FCB Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
+			SET errMsg = 'No Response from T24 Server';
+		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
+			SET errMsg = 'No Response from Postilion Server';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'AccountOpening';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'AccountOpening');
+		SET Environment.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('AccountOpeningResponse');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef = Environment.MQRFH2.ChannelRequest.header;
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.UserDefinedErrorCodes.AccountOpening.ErrorCode;
+		SET errorRef.message = errMsg;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+		PROPAGATE TO TERMINAL 'out';
+		------------Error Logging in DB----------
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.UserDefinedErrorCodes.AccountOpening.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERR_AUDIT_Q;
+		----------------------------------
+	END;
+END MODULE;
