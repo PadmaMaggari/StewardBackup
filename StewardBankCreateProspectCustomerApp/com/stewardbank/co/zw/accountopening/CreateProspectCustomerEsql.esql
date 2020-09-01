@@ -87,8 +87,9 @@ CREATE COMPUTE MODULE CreateProspectCustomerFlow_GenerateResponse
 		END IF;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('header');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('body');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('createProspectCustomer');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.body;
 		SET headRef = inheadRef;

@@ -113,12 +113,20 @@ CREATE COMPUTE MODULE KYCFlow_GenerateKYCResponse
 
 	CREATE PROCEDURE GenerateDWHResponse() BEGIN
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
+		DECLARE inBodyRef REFERENCE TO InputRoot.JSON.Data.body;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		SET OutputRoot.JSON = InputRoot.JSON;
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('KnowYourCustomer');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+		SET headRef = Environment.MQRFH2.ChannelRequest.header;
+		SET headRef.status = 'SUCCESS';
+		SET bodyRef = inBodyRef;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		IF EXISTS(Environment.JSON[]) THEN
