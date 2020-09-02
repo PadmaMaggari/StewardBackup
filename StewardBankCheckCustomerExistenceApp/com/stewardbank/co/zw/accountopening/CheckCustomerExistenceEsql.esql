@@ -37,19 +37,19 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GetCustomerRequest
 		SET mobileNumber = bodyRef.mobileNumber;
 		SET dateOfBirth = bodyRef.dateOfBirth;
 		IF (identificationDocNo IS NULL OR identificationDocNo = '') AND (mobileNumber IS NULL OR mobileNumber = '') AND (dateOfBirth IS NULL OR dateOfBirth = '') THEN
-			CALL GenerateErrorResponse('AccountOpening_23','Field identificationDocNo,mobileNumber,dateOfBirth OR values are missing');
+			CALL GenerateErrorResponse('Field identificationDocNo,mobileNumber,dateOfBirth OR values are missing');
 		ELSEIF (identificationDocNo IS NULL OR identificationDocNo = '') AND (mobileNumber IS NULL OR mobileNumber = '') THEN
-			CALL GenerateErrorResponse('AccountOpening_24','Field identificationDocNo,mobileNumber OR values are missing');
+			CALL GenerateErrorResponse('Field identificationDocNo,mobileNumber OR values are missing');
 		ELSEIF (identificationDocNo IS NULL OR identificationDocNo = '') AND (dateOfBirth IS NULL OR dateOfBirth = '') THEN
-			CALL GenerateErrorResponse('AccountOpening_25','Field identificationDocNo,dateOfBirth OR values are missing');
+			CALL GenerateErrorResponse('Field identificationDocNo,dateOfBirth OR values are missing');
 		ELSEIF (mobileNumber IS NULL OR mobileNumber = '') AND (dateOfBirth IS NULL OR dateOfBirth = '') THEN
-			CALL GenerateErrorResponse('AccountOpening_26','Field mobileNumber,dateOfBirth OR values are missing');
+			CALL GenerateErrorResponse('Field mobileNumber,dateOfBirth OR values are missing');
 		ELSEIF (mobileNumber IS NULL OR mobileNumber = '') THEN
-			CALL GenerateErrorResponse('AccountOpening_27','Field mobileNumber OR value is missing');
+			CALL GenerateErrorResponse('Field mobileNumber OR value is missing');
 		ELSEIF (dateOfBirth IS NULL OR dateOfBirth = '') THEN
-			CALL GenerateErrorResponse('AccountOpening_28','Field dateOfBirth OR value is missing');
+			CALL GenerateErrorResponse('Field dateOfBirth OR value is missing');
 		ELSEIF (identificationDocNo IS NULL OR identificationDocNo = '') THEN
-			CALL GenerateErrorResponse('AccountOpening_29','Field identificationDocNo OR value is missing');
+			CALL GenerateErrorResponse('Field identificationDocNo OR value is missing');
 		ELSEIF (identificationDocNo IS NOT NULL OR identificationDocNo <> '') AND (mobileNumber IS NOT NULL OR mobileNumber <> '') AND (dateOfBirth IS NOT NULL OR dateOfBirth <> '') THEN
 			SET url = 'http://'||IP||':'||PORT||baseURL||identificationDocNo||'/'||mobileNumber||'/'||dateOfBirth;
 			IF IsLogRequired = 'Y' THEN
@@ -63,7 +63,7 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GetCustomerRequest
 			PROPAGATE TO TERMINAL 'out';
 		END IF;
 	END;
-	CREATE PROCEDURE GenerateErrorResponse(IN errCode CHAR,IN errMsg CHAR) BEGIN
+	CREATE PROCEDURE GenerateErrorResponse(IN errMsg CHAR) BEGIN
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -76,7 +76,7 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GetCustomerRequest
 		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
 		SET headRef = Environment.MQRFH2.header;
 		SET headRef.status = 'FAILED';
-		SET errorRef.message = errCode;
+		SET errorRef.errorCode = 'ICE_025';
 		SET errorRef.message = errMsg;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
