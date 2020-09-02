@@ -181,7 +181,7 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 				MOVE mrksRef NEXTSIBLING;
 		END WHILE;
 		ELSE
-			SET OutRefer.CurrencyConverter.channel = 'MobileApp';
+			SET OutRefer.CurrencyConverter.channel = 'MobileWorld';
 			SET OutRefer.CurrencyConverter.processingCode = '330000';
 			SET OutRefer.CurrencyConverter.statusCode = '000';
 			SET OutRefer.CurrencyConverter.message = 'FAILURE';
@@ -275,7 +275,7 @@ CREATE COMPUTE MODULE CurrencyConverter_CaptureException
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE responseBody REFERENCE TO OutputRoot.JSON.Data.*.responseBody;
 		--SET headerRef = Environment.MQRFH2.header;
-		SET headerRef.channel = 'MobileApp';
+		SET headerRef.channel = 'MobileWorld';
 		SET headerRef.processingCode = '330000';
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '000';
