@@ -126,12 +126,12 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 
 			IF EXISTS(getDBDetailsCache.Values[]) THEN
 				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Values available in shared cache: '|| getDBDetailsCache.Values.*[])INTO rc;
-				SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES, P.MSGDOMAIN FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
+				SET qDetails.values[] = SELECT P.HTTP_REQ_QNAME, P.HTTP_RES_QNAME, P.MSGDOMAIN FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
 				IF EXISTS(qDetails.values[]) THEN
-					IF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NOT NULL AND FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
-						SET QueueName = qDetails.values.HTTP_REQ;
+					IF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NOT NULL AND FIELDVALUE(qDetails.values.HTTP_REQ_QNAME) IS NOT NULL THEN
+						SET QueueName = qDetails.values.HTTP_REQ_QNAME;
 						CALL generateEsbPcode(Environment.Variables.processingCode,Environment.Variables.channel);
-					ELSEIF FIELDVALUE(qDetails.values.HTTP_REQ) IS NULL THEN
+					ELSEIF FIELDVALUE(qDetails.values.HTTP_REQ_QNAME) IS NULL THEN
 						CALL errorResponse(Environment.MQRFH2.RequestDomian,'No Queues based on processingCode or Channel Name','ESB_005',serviceName);
 						RETURN;
 					ELSEIF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NULL THEN
@@ -148,12 +148,12 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			ELSE
 				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Calling the Cache')INTO rc;
 				CALL STORE_CACHE(Environment.MQRFH2.RequestDomian,serviceName);
-				SET qDetails.values[] = SELECT P.HTTP_REQ, P.HTTP_RES, P.MSGDOMAIN FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
+				SET qDetails.values[] = SELECT P.HTTP_REQ_QNAME, P.HTTP_RES_QNAME, P.MSGDOMAIN FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData AND P.CHANNEL = channel;
 				IF EXISTS(qDetails.values[]) THEN
-					IF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NOT NULL AND FIELDVALUE(qDetails.values.HTTP_REQ) IS NOT NULL THEN
-						SET QueueName = qDetails.values.HTTP_REQ;
+					IF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NOT NULL AND FIELDVALUE(qDetails.values.HTTP_REQ_QNAME) IS NOT NULL THEN
+						SET QueueName = qDetails.values.HTTP_REQ_QNAME;
 						CALL generateEsbPcode(Environment.Variables.processingCode,Environment.Variables.channel);
-					ELSEIF FIELDVALUE(qDetails.values.HTTP_REQ) IS NULL THEN
+					ELSEIF FIELDVALUE(qDetails.values.HTTP_REQ_QNAME) IS NULL THEN
 						CALL errorResponse(Environment.MQRFH2.RequestDomian,'No Queues based on processingCode or Channel Name','ESB_005',serviceName);
 						RETURN;
 					ELSEIF FIELDVALUE(qDetails.values.MSGDOMAIN) IS NULL THEN
@@ -168,7 +168,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 					RETURN;
 				END IF;
 			END IF;
-			SET Environment.MQRFH2.usr.resQueueName = qDetails.values.HTTP_RES;
+			SET Environment.MQRFH2.usr.resQueueName = qDetails.values.HTTP_RES_QNAME;
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2.reqHeader = InputRoot.HTTPInputHeader;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
@@ -189,7 +189,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 	/*Retrieve application related queues from database or cache*/
 	CREATE PROCEDURE STORE_CACHE (IN domainName CHAR,IN serviceName CHAR)
 	BEGIN
-		SET getDBDetailsCache.Values[] = SELECT A.PROC_CODE, A.HTTP_REQ, A.HTTP_RES, A.CHANNEL, A.MSGDOMAIN FROM Database.INTEGRATION_SOL_DETAILS AS A WHERE A.MSGDOMAIN = 'JSON';
+		SET getDBDetailsCache.Values[] = SELECT A.PROC_CODE, A.HTTP_REQ_QNAME, A.HTTP_RES_QNAME, A.CHANNEL, A.MSGDOMAIN FROM Database.STWB_ESB_TRAN_DETAILS AS A WHERE A.MSGDOMAIN = 'JSON';
 		IF EXISTS(getDBDetailsCache.Values[]) OR getDBDetailsCache <> '' OR getDBDetailsCache IS NOT NULL THEN
 			CALL writeToLogFile(MessageFlowLabel,'Log','DEBUG','Retrieved values from Database')INTO rc;
 		ELSE
