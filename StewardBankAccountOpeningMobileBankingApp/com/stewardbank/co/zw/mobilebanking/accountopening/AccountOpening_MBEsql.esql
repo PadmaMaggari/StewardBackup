@@ -617,6 +617,7 @@ CREATE COMPUTE MODULE AccountOpening_MBFlow_GenerateSuccessResponse
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE resHeadRef REFERENCE TO InputRoot.JSON.Data.header;
+		DECLARE resBodyRef REFERENCE TO InputRoot.JSON.Data.body;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		SET Environment.Variables.reqMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
@@ -640,8 +641,9 @@ CREATE COMPUTE MODULE AccountOpening_MBFlow_GenerateSuccessResponse
 			SET headRef.processingCode = Environment.ChannelRequest.header.processingCode;
 			SET headRef.accountOpeningCheck = Environment.ChannelRequest.header.accountOpeningCheck;
 			SET headRef.status = 'SUCCESS';
-			SET bodyRef.customerId = Environment.NewCustomer.header.id;
-			SET bodyRef = Environment.NewCustomer.body;
+			--SET bodyRef.customerId = Environment.NewCustomer.header.id;
+			--SET bodyRef = Environment.NewCustomer.body;
+			SET bodyRef = resBodyRef;
 			SET bodyRef.code = '200';
 			SET bodyRef.message = 'Account Opened Successfully';
 			IF IsLogRequired = 'Y' THEN
@@ -697,7 +699,7 @@ CREATE COMPUTE MODULE AccountOpening_MBFlow_VerifyHits
 				RETURN FALSE;
 			ELSE
 				SET OutputRoot.Properties = InputRoot.Properties;
-				SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+				SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 				SET OutputRoot.JSON = InputRoot.JSON;
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 				PROPAGATE TO TERMINAL 'out3';

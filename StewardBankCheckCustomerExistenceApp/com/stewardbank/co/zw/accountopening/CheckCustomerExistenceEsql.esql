@@ -1,3 +1,7 @@
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -16,7 +20,7 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GetCustomerRequest
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GenerateReqToCheckWhetherCustomerExists();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE GenerateReqToCheckWhetherCustomerExists() BEGIN
@@ -24,24 +28,79 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GetCustomerRequest
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
 		DECLARE bodyRef REFERENCE TO InputRoot.JSON.Data.*.body;
-		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
-		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE outRefer REFERENCE TO OutputRoot;
+		
 		DECLARE url,identificationDocNo,mobileNumber,dateOfBirth CHAR;
 		SET identificationDocNo = bodyRef.identificationDocNo;
 		SET mobileNumber = bodyRef.mobileNumber;
 		SET dateOfBirth = bodyRef.dateOfBirth;
-		SET url = 'http://'||IP||':'||PORT||baseURL||identificationDocNo||'/'||mobileNumber||'/'||dateOfBirth;
-		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- getSTWBCustomerInformation Request ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- URL :  ------'||url) INTO rc;
+		IF (identificationDocNo IS NULL OR identificationDocNo = '') AND (mobileNumber IS NULL OR mobileNumber = '') AND (dateOfBirth IS NULL OR dateOfBirth = '') THEN
+			CALL GenerateErrorResponse('AccountOpening_23','Field identificationDocNo,mobileNumber,dateOfBirth OR values are missing');
+		ELSEIF (identificationDocNo IS NULL OR identificationDocNo = '') AND (mobileNumber IS NULL OR mobileNumber = '') THEN
+			CALL GenerateErrorResponse('AccountOpening_24','Field identificationDocNo,mobileNumber OR values are missing');
+		ELSEIF (identificationDocNo IS NULL OR identificationDocNo = '') AND (dateOfBirth IS NULL OR dateOfBirth = '') THEN
+			CALL GenerateErrorResponse('AccountOpening_25','Field identificationDocNo,dateOfBirth OR values are missing');
+		ELSEIF (mobileNumber IS NULL OR mobileNumber = '') AND (dateOfBirth IS NULL OR dateOfBirth = '') THEN
+			CALL GenerateErrorResponse('AccountOpening_26','Field mobileNumber,dateOfBirth OR values are missing');
+		ELSEIF (mobileNumber IS NULL OR mobileNumber = '') THEN
+			CALL GenerateErrorResponse('AccountOpening_27','Field mobileNumber OR value is missing');
+		ELSEIF (dateOfBirth IS NULL OR dateOfBirth = '') THEN
+			CALL GenerateErrorResponse('AccountOpening_28','Field dateOfBirth OR value is missing');
+		ELSEIF (identificationDocNo IS NULL OR identificationDocNo = '') THEN
+			CALL GenerateErrorResponse('AccountOpening_29','Field identificationDocNo OR value is missing');
+		ELSEIF (identificationDocNo IS NOT NULL OR identificationDocNo <> '') AND (mobileNumber IS NOT NULL OR mobileNumber <> '') AND (dateOfBirth IS NOT NULL OR dateOfBirth <> '') THEN
+			SET url = 'http://'||IP||':'||PORT||baseURL||identificationDocNo||'/'||mobileNumber||'/'||dateOfBirth;
+			IF IsLogRequired = 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- getSTWBCustomerInformation Request ------') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- URL :  ------'||url) INTO rc;
+			END IF;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.Properties.ContentType = 'application/json';
+			SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = url;
+			PROPAGATE TO TERMINAL 'out';
 		END IF;
+	END;
+	CREATE PROCEDURE GenerateErrorResponse(IN errCode CHAR,IN errMsg CHAR) BEGIN
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('isCustomerExists');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headRef = Environment.MQRFH2.header;
+		SET headRef.status = 'FAILED';
+		SET errorRef.message = errCode;
+		SET errorRef.message = errMsg;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		------------DBLogging-------------------
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		---------------------------
 		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.Properties.ContentType = 'application/json';
-		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = url;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+		PROPAGATE TO TERMINAL 'out1';
 	END;
 END MODULE;
 
@@ -75,8 +134,8 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GenerateResponse
 		END IF;
 		---------------------------
 		IF status = '200' THEN
-			DECLARE inHeadRef REFERENCE TO InputRoot.JSON.Data.*.header;
-			DECLARE inBodyRef REFERENCE TO InputRoot.JSON.Data.*.body;
+			DECLARE inHeadRef REFERENCE TO InputRoot.JSON.Data.header;
+			DECLARE inBodyRef REFERENCE TO InputRoot.JSON.Data.body;
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 			CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('isCustomerExists');
@@ -85,11 +144,14 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GenerateResponse
 			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 			SET headRef = inHeadRef;
+			SET headRef.channel = Environment.MQRFH2.header.channel;
+			SET headRef.processingCode = Environment.MQRFH2.header.processingCode;
+			SET headRef.serviceCall = Environment.MQRFH2.header.serviceCall;
 			SET headRef.status = 'SUCCESS';
-			SET bodyRef = inBodyRef;
+			SET bodyRef = inBodyRef.Item[1];
 		ELSE
-			DECLARE inHeadRef REFERENCE TO InputRoot.JSON.Data.*.header;
-			DECLARE inErrorRef REFERENCE TO InputRoot.JSON.Data.*.body;
+			DECLARE inHeadRef REFERENCE TO InputRoot.JSON.Data.header;
+			DECLARE inErrorRef REFERENCE TO InputRoot.JSON.Data.error;
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 			CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('isCustomerExists');
@@ -98,6 +160,9 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GenerateResponse
 			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
 			SET headRef = inHeadRef;
+			SET headRef.channel = Environment.MQRFH2.header.channel;
+			SET headRef.processingCode = Environment.MQRFH2.header.processingCode;
+			SET headRef.serviceCall = Environment.MQRFH2.header.serviceCall;
 			SET headRef.status = 'FAILED';
 			SET errorRef = inErrorRef;
 		END IF;

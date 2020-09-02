@@ -1,3 +1,5 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -16,7 +18,7 @@ CREATE COMPUTE MODULE KYCFlow_GenerateDWHReq
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		CALL GenerateDWHRequest();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE GenerateDWHRequest() BEGIN
@@ -28,25 +30,25 @@ CREATE COMPUTE MODULE KYCFlow_GenerateDWHReq
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE national_ID CHARACTER;
-		IF FIELDNAME(inRef.Data.national_Id) IS NULL OR FIELDVALUE(inRef.Data.national_Id) IS NULL THEN
-			CALL GenerateKYCFailure();
-		ELSE
-			SET national_ID = inRef.Data.national_Id;
-		END IF;
+		DECLARE national_ID CHARACTER inRef.Data.*.body.national_Id;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE url CHAR;
-		SET url = 'http://'||IP||':'||PORT||baseURL||national_ID;
-		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Calling DWH Service ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- '||url||' ------') INTO rc;
+		IF national_ID IS NULL OR national_ID = '' THEN
+			CALL GenerateKYCFailure();
+		ELSE
+			SET url = 'http://'||IP||':'||PORT||baseURL||national_ID;
+			IF IsLogRequired = 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Calling DWH Service ------') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- '||url||' ------') INTO rc;
+			END IF;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.Properties.ContentType = 'application/json';
+			SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = url;
+			PROPAGATE TO TERMINAL 'out';
 		END IF;
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.Properties.ContentType = 'application/json';
-		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'GET';
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = url;
 	END;
-	
+
 	CREATE PROCEDURE GenerateKYCFailure() BEGIN
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
@@ -62,7 +64,7 @@ CREATE COMPUTE MODULE KYCFlow_GenerateDWHReq
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
 		SET errorRef.applicationErrorCode = 'AccountOpening_020';
-		SET errorRef.message = 'Field national_Id / value must be present';
+		SET errorRef.message = 'Field national_Id OR value must be present';
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayLoad('JSON',domainDataRef,InputRoot.Properties.Encoding,InputRoot.Properties.CodedCharSetId);
 		IF EXISTS(Environment.JSON[]) THEN
@@ -78,13 +80,14 @@ CREATE COMPUTE MODULE KYCFlow_GenerateDWHReq
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out';
+			PROPAGATE TO TERMINAL 'out1';
 			-----------------------------
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		SET OutputRoot.JSON = Environment.JSON;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+		PROPAGATE TO TERMINAL 'out1';
 	END;
 END MODULE;
 
@@ -100,8 +103,11 @@ CREATE COMPUTE MODULE KYCFlow_GenerateKYCResponse
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE status CHARACTER FIELDVALUE(inRef.Data.status);
 		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+		SET Environment.Variables.reqMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Calling DWH Service ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- DWH Respnse ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		END IF;
 		IF status = '200' THEN
 			CALL GenerateDWHResponse();
@@ -137,9 +143,9 @@ CREATE COMPUTE MODULE KYCFlow_GenerateKYCResponse
 		END IF;
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- DWH Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'DWH Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
 		END IF;

@@ -1,5 +1,7 @@
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -21,6 +23,7 @@ CREATE COMPUTE MODULE CheckCustomerRecordFlow_NewIndividualRequest
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -41,6 +44,7 @@ CREATE COMPUTE MODULE CheckCustomerRecordFlow_NewIndividualRequest
 		--------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- newIndividual Request ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- URL ------'||url) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'newIndividual Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -48,6 +52,8 @@ CREATE COMPUTE MODULE CheckCustomerRecordFlow_NewIndividualRequest
 		END IF;
 		-----------------------------
 		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.ContentType = 'application/json';
+		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 		SET OutputRoot.JSON = Environment.JSON;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = url;
 		RETURN TRUE;
@@ -58,9 +64,9 @@ CREATE COMPUTE MODULE CheckCustomerRecordFlow_NewIndividualRequest
 		CREATE LASTCHILD OF outRefer AS outRefer DOMAIN('JSON');
 		CREATE LASTCHILD OF outRefer AS outRefer NAME('Data');
 		SET outRefer.dob = inBodyRef.dob; --'14/12/1992';--M
-		SET outRefer.names = inBodyRef.name; --'forbes';--M
-		SET outRefer.surname = inBodyRef.surName; --'karinda';--M
-		SET outRefer.national_id = inBodyRef.national_Id; --'12345678A00';--O
+		SET outRefer.names = inBodyRef.names; --'forbes';--M
+		SET outRefer.surname = inBodyRef.surname; --'karinda';--M
+		SET outRefer.national_id = inBodyRef.national_id; --'12345678A00';--O
 		SET outRefer.gender = inBodyRef.gender; --'M';--M
 		SET outRefer.search_purpose = inBodyRef.search_purpose; --*/'1';--M
 		SET outRefer.email = inBodyRef.email; --*/'padma.maggari@eidiko.com';---M
@@ -95,6 +101,13 @@ END MODULE;
 CREATE FILTER MODULE CheckCustomerRecordFlow_VerifyHITs
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Checking newIndividual Response ------') INTO rc;
+		END IF;
 		DECLARE status CHAR Root.JSON.Data.status;
 		DECLARE code CHAR Root.JSON.Data.code;
 		IF code = '200' AND (status = 'OPEN' OR status = 'PENDING') THEN
@@ -121,7 +134,7 @@ CREATE COMPUTE MODULE CheckCustomerRecordFlow_GetIndividualRequest
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE domainDataRef REFERENCE TO InputBody;
 		DECLARE code CHAR COALESCE(inRef.Data.code,InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code",'');
-		DECLARE status CHAR inRef.Data.individual.Report.Item[1].Status;
+		DECLARE status CHAR COALESCE(inRef.Data.status,inRef.Data.individual.Report.Item[1].Status,'');
 		DECLARE errorMsg CHAR inRef.Data.message;
 		DECLARE url CHAR;
 		SET Environment.MQRFH2.id = InputRoot.JSON.Data.id;
@@ -148,14 +161,16 @@ CREATE COMPUTE MODULE CheckCustomerRecordFlow_GetIndividualRequest
 		--------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- getIndividual Request ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- URL ------'||url) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'getIndividual Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out';
+			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		------------------------------------------
 		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.Properties.ContentType = 'application/json';
+		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 		SET OutputRoot.JSON = Environment.JSON;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = url;
 	END;
@@ -173,7 +188,7 @@ END MODULE;
 CREATE COMPUTE MODULE CheckCustomerRecordFlow_GenerateResponse
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL GenerateResponse();
+		CALL GenerateResponse();
 		RETURN TRUE;
 	END;
 
@@ -189,7 +204,7 @@ CREATE COMPUTE MODULE CheckCustomerRecordFlow_GenerateResponse
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE domainDataRef REFERENCE TO InputBody;
 		DECLARE code CHAR COALESCE(inRef.Data.code,InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code",'');
-		DECLARE status CHAR inRef.Data.individual.Report.Item[1].Status;
+		DECLARE status CHAR COALESCE(inRef.Data.status,inRef.Data.individual.Report.Item[1].Status,'');
 		DECLARE errorMsg CHAR inRef.Data.message;
 		DECLARE url CHAR;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
@@ -199,7 +214,7 @@ CREATE COMPUTE MODULE CheckCustomerRecordFlow_GenerateResponse
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'FCB Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			PROPAGATE TO TERMINAL 'out1';
+			PROPAGATE TO TERMINAL 'out';
 		END IF;
 		-----------------------------
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
@@ -209,7 +224,7 @@ CREATE COMPUTE MODULE CheckCustomerRecordFlow_GenerateResponse
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
-		SET headRef = Environment.MQRFH2.ChannelRequest.header;
+		SET headRef = Environment.MQRFH2.header;
 		SET bodyRef = inRef.Data;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayLoad('JSON',domainDataRef,encodeRef,ccidRef);
@@ -222,9 +237,9 @@ CREATE COMPUTE MODULE CheckCustomerRecordFlow_GenerateResponse
 		SET OutputRoot.JSON = NULL;
 		--------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- getIndividual Request ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'getIndividual Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
 		END IF;
