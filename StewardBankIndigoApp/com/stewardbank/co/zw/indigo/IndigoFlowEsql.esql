@@ -10,6 +10,9 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
 DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER'';
 DECLARE request_Time_Out EXTERNAL CHARACTER'';
+DECLARE UASRNAME EXTERNAL CHARACTER '';
+DECLARE COMPANY EXTERNAL CHARACTER '';
+DECLARE PASSWORD EXTERNAL CHARACTER '';
 DECLARE Protocal EXTERNAL CHARACTER'';
 DECLARE ns NAMESPACE 'http://temenos.com/stewardbank';
 DECLARE ns16 NAMESPACE 'http://temenos.com/FUNDSTRANSFERCARDCHARGE';
@@ -640,9 +643,9 @@ BEGIN
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
 		SET outRefSoap.Header = '';
-		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.company = 'ZW0010001';
-		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.password = 'T3m3nos@852';
-		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.userName = 'TWSUSER01';
+		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.company = COMPANY ;
+		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.password = PASSWORD ;
+		SET outRefSoap.Body.ns:AccountDetails.WebRequestCommon.userName = UASRNAME ;
 		
 		SET outRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection[] = serviseName.JSLCARDACCTType.enquiryInputCollection[];
 --		SET outRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.criteriaValue = inRefSoap.Body.ns:AccountDetails.JSLCARDACCTType.enquiryInputCollection.criteriaValue;
