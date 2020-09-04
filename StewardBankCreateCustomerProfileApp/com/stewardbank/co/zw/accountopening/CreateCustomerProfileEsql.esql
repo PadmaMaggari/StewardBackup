@@ -2,6 +2,8 @@
 
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -58,149 +60,149 @@ CREATE COMPUTE MODULE CreateCustomerProfileFlow_CreateProfileRequest
 		--http://192.168.1.233:8080/stwbc/api/v1.0.0/stwb/customer/newCustomer/
 		--{customerMnemonic}/{displayName}/{customerName}/{phoneNumber}/{smsNumber}/{email}/{dateOfBirth}/{gender}/{maritalstatus}/{street}/{address}/{addressCity}/{legalId}/{legalDocumentName}/{title}/{lastName}/{givenName}/{issueDate}
 		IF (customerMnemonic <> '') AND (displayName <> '') AND (customerName <> '')
-		AND (phoneNumber <> '') AND (smsNumber <> '') AND (email <> '')
-		AND (dateOfBirth <> '') AND (gender <> '') AND (maritalstatus <> '')
-		AND (street <> '') AND (address <> '') AND (addressCity <> '')
-		AND (legalId <> '') AND (legalDocumentName <> '') AND (title <> '')
-		AND (lastName <> '') AND (givenName <> '') AND (issueDate <> '') THEN
-		SET url = 'http://'||IP||':'||PORT||baseURL||customerMnemonic||'/'||displayName||'/'||customerName||'/'||phoneNumber||'/'||smsNumber||'/'||email||'/'||dateOfBirth||'/'||gender||'/'||maritalstatus||'/'||street||'/'||address||'/'||addressCity||'/'||legalId||'/'||legalDocumentName||'/'||title||'/'||lastName||'/'||givenName||'/'||issueDate;
-		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
-		SET Environment.Variables.reqMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
-		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- newCustomer Request ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ---URL---'||url) INTO rc;
+			AND (phoneNumber <> '') AND (smsNumber <> '') AND (email <> '')
+			AND (dateOfBirth <> '') AND (gender <> '') AND (maritalstatus <> '')
+			AND (street <> '') AND (address <> '') AND (addressCity <> '')
+			AND (legalId <> '') AND (legalDocumentName <> '') AND (title <> '')
+			AND (lastName <> '') AND (givenName <> '') AND (issueDate <> '') THEN
+			SET url = 'http://'||IP||':'||PORT||baseURL||customerMnemonic||'/'||displayName||'/'||customerName||'/'||phoneNumber||'/'||smsNumber||'/'||email||'/'||dateOfBirth||'/'||gender||'/'||maritalstatus||'/'||street||'/'||address||'/'||addressCity||'/'||legalId||'/'||legalDocumentName||'/'||title||'/'||lastName||'/'||givenName||'/'||issueDate;
+			DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
+			SET Environment.Variables.reqMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+			IF IsLogRequired = 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- newCustomer Request ------') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ---URL---'||url) INTO rc;
+			END IF;
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.Properties.ContentType = 'application/json';
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL = url;
+			PROPAGATE TO TERMINAL 'out';
+			RETURN;
 		END IF;
+		IF (customerMnemonic IS NULL OR customerMnemonic = '') AND (displayName IS NULL OR displayName = '') AND (customerName IS NULL OR customerName = '')
+			AND (phoneNumber IS NULL OR phoneNumber = '') AND (smsNumber IS NULL OR smsNumber = '') AND (email IS NULL OR email = '')
+			AND (dateOfBirth IS NULL OR dateOfBirth = '') AND (gender IS NULL OR gender = '') AND (maritalstatus IS NULL OR maritalstatus = '')
+			AND (street IS NULL OR street = '') AND (address IS NULL OR address = '') AND (addressCity IS NULL OR addressCity = '')
+			AND (legalId IS NULL OR legalId = '') AND (legalDocumentName IS NULL OR legalDocumentName = '') AND (title IS NULL OR title = '')
+			AND (lastName IS NULL OR lastName = '') AND (givenName IS NULL OR givenName = '') AND (issueDate IS NULL OR issueDate = '') THEN
+			CALL GenerateErrorResponse('All required fields OR values are missing');
+			RETURN;
+		END IF;
+		IF (customerMnemonic IS NULL OR customerMnemonic = '') THEN
+			CALL GenerateErrorResponse('Field customerMnemonic OR value is missing');
+			RETURN;
+		END IF;
+		IF (displayName IS NULL OR displayName = '') THEN
+			CALL GenerateErrorResponse('Field displayName OR value is missing');
+			RETURN;
+		END IF;
+
+		IF (customerName IS NULL OR customerName = '') THEN
+			CALL GenerateErrorResponse('Field customerName OR value is missing');
+			RETURN;
+		END IF;
+
+		IF (phoneNumber IS NULL OR phoneNumber = '') THEN
+			CALL GenerateErrorResponse('Field phoneNumber OR value is missing');
+			RETURN;
+		END IF;
+
+		IF (smsNumber IS NULL OR smsNumber = '') THEN
+			CALL GenerateErrorResponse('Field smsNumber OR value is missing');
+			RETURN;
+		END IF;
+
+		IF (email IS NULL OR email = '') THEN
+			CALL GenerateErrorResponse('Field email OR value is missing');
+			RETURN;
+		END IF;
+		IF (dateOfBirth IS NULL OR dateOfBirth = '') THEN
+			CALL GenerateErrorResponse('Field dateOfBirth OR value is missing');
+			RETURN;
+		END IF;
+		IF (gender IS NULL OR gender = '') THEN
+			CALL GenerateErrorResponse('Field gender OR value is missing');
+			RETURN;
+		END IF;
+		IF (maritalstatus IS NULL OR maritalstatus = '') THEN
+			CALL GenerateErrorResponse('Field maritalstatus OR value is missing');
+			RETURN;
+		END IF;
+		IF (street IS NULL OR street = '') THEN
+			CALL GenerateErrorResponse('Field street OR value is missing');
+			RETURN;
+		END IF;
+		IF (address IS NULL OR address = '') THEN
+			CALL GenerateErrorResponse('Field address OR value is missing');
+			RETURN;
+		END IF;
+		IF (addressCity IS NULL OR addressCity = '') THEN
+			CALL GenerateErrorResponse('Field addressCity OR value is missing');
+			RETURN;
+		END IF;
+		IF (legalId IS NULL OR legalId = '') THEN
+			CALL GenerateErrorResponse('Field legalId OR value is missing');
+			RETURN;
+		END IF;
+		IF (legalDocumentName IS NULL OR legalDocumentName = '') THEN
+			CALL GenerateErrorResponse('Field legalDocumentName OR value is missing');
+			RETURN;
+		END IF;
+		IF (title IS NULL OR title = '') THEN
+			CALL GenerateErrorResponse('Field title OR value is missing');
+			RETURN;
+		END IF;
+		IF (lastName IS NULL OR lastName = '') THEN
+			CALL GenerateErrorResponse('Field lastName OR value is missing');
+			RETURN;
+		END IF;
+		IF (givenName IS NULL OR givenName = '') THEN
+			CALL GenerateErrorResponse('Field givenName OR value is missing');
+			RETURN;
+		END IF;
+		IF (issueDate IS NULL OR issueDate = '') THEN
+			CALL GenerateErrorResponse('Field issueDate OR value is missing');
+			RETURN;
+		END IF;
+	END;
+	CREATE PROCEDURE GenerateErrorResponse(IN errMsg CHAR) BEGIN
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('createCustomerProfile');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headRef = Environment.MQRFH2.header;
+		SET headRef.status = 'FAILED';
+		SET errorRef.errorCode = 'CCP_025';
+		SET errorRef.message = errMsg;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.JSON[]) THEN
+			SET Environment.JSON = OutputRoot.JSON;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN('JSON');
+			SET Environment.JSON = OutputRoot.JSON;
+		END IF;
+		SET OutputRoot.JSON = NULL;
+		------------DBLogging-------------------
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		---------------------------
 		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.Properties.ContentType = 'application/json';
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = url;
-		PROPAGATE TO TERMINAL 'out';
-		RETURN;
-	END IF;
-	IF (customerMnemonic IS NULL OR customerMnemonic = '') AND (displayName IS NULL OR displayName = '') AND (customerName IS NULL OR customerName = '')
-		AND (phoneNumber IS NULL OR phoneNumber = '') AND (smsNumber IS NULL OR smsNumber = '') AND (email IS NULL OR email = '')
-		AND (dateOfBirth IS NULL OR dateOfBirth = '') AND (gender IS NULL OR gender = '') AND (maritalstatus IS NULL OR maritalstatus = '')
-		AND (street IS NULL OR street = '') AND (address IS NULL OR address = '') AND (addressCity IS NULL OR addressCity = '')
-		AND (legalId IS NULL OR legalId = '') AND (legalDocumentName IS NULL OR legalDocumentName = '') AND (title IS NULL OR title = '')
-		AND (lastName IS NULL OR lastName = '') AND (givenName IS NULL OR givenName = '') AND (issueDate IS NULL OR issueDate = '') THEN
-		CALL GenerateErrorResponse('All required fields OR values are missing');
-		RETURN;
-	END IF;
-	IF (customerMnemonic IS NULL OR customerMnemonic = '') THEN
-		CALL GenerateErrorResponse('Field customerMnemonic OR value is missing');
-		RETURN;
-	END IF;
-	IF (displayName IS NULL OR displayName = '') THEN
-		CALL GenerateErrorResponse('Field displayName OR value is missing');
-		RETURN;
-	END IF;
-
-	IF (customerName IS NULL OR customerName = '') THEN
-		CALL GenerateErrorResponse('Field customerName OR value is missing');
-		RETURN;
-	END IF;
-
-	IF (phoneNumber IS NULL OR phoneNumber = '') THEN
-		CALL GenerateErrorResponse('Field phoneNumber OR value is missing');
-		RETURN;
-	END IF;
-
-	IF (smsNumber IS NULL OR smsNumber = '') THEN
-		CALL GenerateErrorResponse('Field smsNumber OR value is missing');
-		RETURN;
-	END IF;
-
-	IF (email IS NULL OR email = '') THEN
-		CALL GenerateErrorResponse('Field email OR value is missing');
-		RETURN;
-	END IF;
-	IF (dateOfBirth IS NULL OR dateOfBirth = '') THEN
-		CALL GenerateErrorResponse('Field dateOfBirth OR value is missing');
-		RETURN;
-	END IF;
-	IF (gender IS NULL OR gender = '') THEN
-		CALL GenerateErrorResponse('Field gender OR value is missing');
-		RETURN;
-	END IF;
-	IF (maritalstatus IS NULL OR maritalstatus = '') THEN
-		CALL GenerateErrorResponse('Field maritalstatus OR value is missing');
-		RETURN;
-	END IF;
-	IF (street IS NULL OR street = '') THEN
-		CALL GenerateErrorResponse('Field street OR value is missing');
-		RETURN;
-	END IF;
-	IF (address IS NULL OR address = '') THEN
-		CALL GenerateErrorResponse('Field address OR value is missing');
-		RETURN;
-	END IF;
-	IF (addressCity IS NULL OR addressCity = '') THEN
-		CALL GenerateErrorResponse('Field addressCity OR value is missing');
-		RETURN;
-	END IF;
-	IF (legalId IS NULL OR legalId = '') THEN
-		CALL GenerateErrorResponse('Field legalId OR value is missing');
-		RETURN;
-	END IF;
-	IF (legalDocumentName IS NULL OR legalDocumentName = '') THEN
-		CALL GenerateErrorResponse('Field legalDocumentName OR value is missing');
-		RETURN;
-	END IF;
-	IF (title IS NULL OR title = '') THEN
-		CALL GenerateErrorResponse('Field title OR value is missing');
-		RETURN;
-	END IF;
-	IF (lastName IS NULL OR lastName = '') THEN
-		CALL GenerateErrorResponse('Field lastName OR value is missing');
-		RETURN;
-	END IF;
-	IF (givenName IS NULL OR givenName = '') THEN
-		CALL GenerateErrorResponse('Field givenName OR value is missing');
-		RETURN;
-	END IF;
-	IF (issueDate IS NULL OR issueDate = '') THEN
-		CALL GenerateErrorResponse('Field issueDate OR value is missing');
-		RETURN;
-	END IF;
-END;
-CREATE PROCEDURE GenerateErrorResponse(IN errMsg CHAR) BEGIN
-	DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
-	DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-	DECLARE outRefer REFERENCE TO OutputRoot;
-	CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
-	CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-	CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('createCustomerProfile');
-	CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
-	CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
-	DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
-	DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
-	SET headRef = Environment.MQRFH2.header;
-	SET headRef.status = 'FAILED';
-	SET errorRef.errorCode = 'CCP_025';
-	SET errorRef.message = errMsg;
-	DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
-	SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
-	IF EXISTS(Environment.JSON[]) THEN
-		SET Environment.JSON = OutputRoot.JSON;
-	ELSE
-		CREATE LASTCHILD OF Environment DOMAIN('JSON');
-		SET Environment.JSON = OutputRoot.JSON;
-	END IF;
-	SET OutputRoot.JSON = NULL;
-	------------DBLogging-------------------
-	IF IsLogRequired = 'Y' THEN
-		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
-		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON = Environment.JSON;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 		PROPAGATE TO TERMINAL 'out1';
-	END IF;
-	---------------------------
-	SET OutputRoot.Properties = InputRoot.Properties;
-	SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-	SET OutputRoot.JSON = Environment.JSON;
-	SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
-	PROPAGATE TO TERMINAL 'out1';
-END;
+	END;
 END MODULE;
 
 
@@ -223,6 +225,7 @@ CREATE COMPUTE MODULE CreateCustomerProfileFlow_GenerateResponse
 		DECLARE inheadRef REFERENCE TO InputRoot.JSON.Data.header;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
 		DECLARE HTTPStatusCode CHAR InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		DECLARE responseStatus CHAR InputRoot.JSON.Data.header.status;
 		SET Environment.Variables.reqMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----newCustomer Response------') INTO rc;
@@ -236,17 +239,27 @@ CREATE COMPUTE MODULE CreateCustomerProfileFlow_GenerateResponse
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('createCustomerProfile');
-			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
-			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
-			SET headRef = inheadRef;
-			SET headRef.channel = Environment.MQRFH2.header.channel;
-			SET headRef.processingCode = Environment.MQRFH2.header.processingCode;
-			SET headRef.serviceCall = Environment.MQRFH2.header.serviceCall;
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		SET headRef = inheadRef;
+		SET headRef.channel = Environment.MQRFH2.header.channel;
+		SET headRef.processingCode = Environment.MQRFH2.header.processingCode;
+		SET headRef.serviceCall = Environment.MQRFH2.header.serviceCall;
 		IF HTTPStatusCode = '200' THEN
 			DECLARE inBodyRef REFERENCE TO InputRoot.JSON.Data.body;
 			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 			SET bodyRef = inBodyRef;
+		ELSEIF 	responseStatus = 'failed' AND responseStatus <> '' THEN
+			DECLARE inBodyRef REFERENCE TO InputRoot.JSON.Data.body;
+			DECLARE inOverrideRef REFERENCE TO InputRoot.JSON.Data.override;
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('override');
+			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+			DECLARE overrideRef REFERENCE TO OutputRoot.JSON.Data.*.override;
+			SET bodyRef = inBodyRef;
+			CREATE LASTCHILD OF overrideRef IDENTITY(JSON.Array)overrideDetails;
+			SET overrideRef.overrideDetails =  inOverrideRef.overrideDetails;
 		ELSE
 			DECLARE inErrorRef REFERENCE TO InputRoot.JSON.Data.error;
 			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
