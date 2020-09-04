@@ -1,4 +1,3 @@
-
 /*
 Application Name : ZIPIT SEND.
 Description :
@@ -6,7 +5,7 @@ Description :
 2) Audit Logging and DB Logging has been done here.
 3) Checks with T24 with the processingcode.
 Date :28-3-2020 .
-Modified Date : 21-05-2020.
+Modified Date : 24-06-2020.
 Author : G Raghavender Yadav.
 =================================================================================================================== */
 BROKER SCHEMA com.stewardbank.co.zw.zipitsend
@@ -24,7 +23,6 @@ CREATE COMPUTE MODULE ZipitSendFlow_GenerateReqToT24
 		RETURN TRUE;
 	END;
 	CREATE PROCEDURE GenerateReqToT24() BEGIN
-
 	SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -82,20 +80,17 @@ CREATE COMPUTE MODULE ZipitSendFlow_GenerateReqToT24
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','Request To T24::') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc; 
 		CALL writeToLogFile(MessageFlowLabel, 'ZipitSendLogger', 'DEBUG','TCPIP ID::'|| InputRoot.MQRFH2.usr.Id) INTO rc;
-		END IF;
-		
+		END IF;		
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		SET OutputRoot.DFDL = NULL;
 		PROPAGATE TO TERMINAL 'out1';
 		----------------------
 		SET OutputRoot.Properties=InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.DFDL = Environment.dfdlData;
-		
+		SET OutputRoot.DFDL = Environment.dfdlData;		
 	END;
-	
-
 END MODULE;
+
 /*==================================================================================================================
 Application Name : ZIPIT SEND.
 Description :

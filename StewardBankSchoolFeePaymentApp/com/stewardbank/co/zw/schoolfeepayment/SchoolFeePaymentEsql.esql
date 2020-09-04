@@ -109,7 +109,6 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_GenerateReqToT24
 			DECLARE SFP_T24uRL CHARACTER;
 			--{debitAccount}/{debitCurrency}/{transactionAmount}/{executionDate}/{customer}
 			SET SFP_T24uRL = SchoolFeeURL||debitAccountId||'/'||debitCurrency||'/'||transactionAmount||'/'||executionDate||'/'||customer;
-			--SET SFP_T24uRL = URL||'/'||debitAccountId||'/'||debitCurrency||'/'||creditAccountId||'/'||orderingCustomerName||'/'||paymentCurrency||'/'||transactionAmount||'/'||executionDate||'/'||narrative||'/'||invoiceReference;
 			SET outRef = inRef;
 			SET Environment.Variables.jsonData = outRef;
 			SET OutputRoot = NULL;
@@ -301,7 +300,7 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_CaptureException
 		SET headerRef.channel = '*236#';
 		SET headerRef.processingCode = '400000';
 		SET headerRef.status = 'FAILED';
-		SET headerRef.responseCode = '000';
+		SET headerRef.responseCode = '999';
 		SET bodyRef.source = 'ESB';
 		SET bodyRef.applicationName = ApplicationLabel;
 		SET bodyRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.SchoolFeePayment.ErrorCode;

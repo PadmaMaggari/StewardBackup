@@ -1,7 +1,4 @@
-
-
 BROKER SCHEMA com.stewardbank.co.zw.salarycorporatepayments
-
 PATH com.stewardbank.co.zw.common.esql;
 CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -26,11 +23,9 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		SET csvDate = CAST(str AS CHARACTER FORMAT pattern);
 		DECLARE indomainDataRef REFERENCE TO InputRoot.DFDL.stewardBank_CSV;
 		DECLARE domainName CHARACTER 'stewardBank_CSV';
-		--SET Environment.Variables.csvReqMsg = getPayLoad(FIELDNAME(InputRoot.DFDL),InputRoot.DFDL,encodeRef,ccidRef);
 		SET Environment.Variables.csvReqMsg = getPayLoad(domainName,indomainDataRef,encodeRef,ccidRef);
 		-- SET DBLogging Properties ==============
 		SET Environment.Variables.FileName = SUBSTRING(InputRoot.MQRFH2.FileName BEFORE '.csv' );
-		SET Environment.Variables.Fields = 'tran id,date, remitter account number, beneficiary bank name, beneficiary bank code, beneficiary account number, beneficiary name, amount, currency, purpose, remitter name';
 		SET Environment.Variables.Amount = inRef.Amount;
 		SET Environment.Variables.Dbt_Acc = inRef.Remitter_Account_Number;
 		SET Environment.Variables.Crt_Acc = inRef.Beneficiary_Account_Number;

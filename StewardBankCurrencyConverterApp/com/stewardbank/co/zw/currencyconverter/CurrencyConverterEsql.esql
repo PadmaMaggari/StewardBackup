@@ -1,5 +1,14 @@
-
-
+/*
+Application Name : Currency Converter.
+Description :
+1) From HTTP router we get the JSON data, here we are generating request to T24 URL.
+2) Audit Logging and DB Logging has been done here.
+3) Checks with T24 with the processingcode & channel.
+4) After Successful or Unsuccessful response from T24, we Audit log the responses and send it to the Front end via Outgoing Http Router.
+Date :28-5-2020 .
+Modified Date : 24-07-2020.
+Author : G Raghavender Yadav.
+=================================================================================================================== */
 BROKER SCHEMA com.stewardbank.co.zw.currencyconverter
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -203,7 +212,6 @@ CREATE COMPUTE MODULE CurrencyConverter_GenerateResToPostilion
 			CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',OutRef);
 		END IF;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-
 		PROPAGATE TO TERMINAL 'out';
 		----------------------
 		SET OutputRoot.Properties=InputRoot.Properties;
