@@ -71,9 +71,11 @@ CREATE COMPUTE MODULE HttpRetrySubFlow_ConvertBLOBToJSON
 		IF EXISTS(InputRoot.BLOB[]) THEN
 			IF STARTSWITH(Environment.Variables.reqMsg,'{') THEN
 				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.HTTPResponseHeader = InputRoot.HTTPResponseHeader;
 				CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON') PARSE(InputRoot.BLOB.BLOB);
 			ELSEIF STARTSWITH(Environment.Variables.reqMsg,'<') THEN
 				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.HTTPResponseHeader = InputRoot.HTTPResponseHeader;
 				CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC') PARSE(InputRoot.BLOB.BLOB);
 			END IF;
 		ELSE

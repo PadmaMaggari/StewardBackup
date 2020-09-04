@@ -1,3 +1,5 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.accountopening
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
@@ -24,6 +26,7 @@ CREATE COMPUTE MODULE CreateCustomerAccountFlow_CreateAccountRequest
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -66,16 +69,18 @@ CREATE COMPUTE MODULE CreateCustomerAccountFlow_CreateAccountRequest
 			-----------------------------
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.ContentType = 'application/json';
+		SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 		SET OutputRoot.JSON = Environment.JSON;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = url;
 	END;
 END MODULE;
 
 
-CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GenerateResponse
+CREATE COMPUTE MODULE CreateCustomerAccountFlow_GenerateResponse
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL GenerateResponse();
+		CALL GenerateResponse();
 		RETURN TRUE;
 	END;
 
@@ -88,9 +93,10 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GenerateResponse
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		DECLARE inBodyRef REFERENCE TO InputRoot.JSON.Data.body;
+
 		DECLARE inheadRef REFERENCE TO InputRoot.JSON.Data.header;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+		DECLARE HTTPStatusCode CHAR InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		SET Environment.Variables.reqMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----startSTWBArrangementCreation Response------') INTO rc;
@@ -104,15 +110,23 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GenerateResponse
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('openCustomerAccount');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
-		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.header;
-		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.body;
-		SET headRef = inheadRef;
-		SET headRef.channel = Environment.MQRFH2.ChannelRequest.header.channel;
-		SET headRef.processingCode = Environment.MQRFH2.ChannelRequest.header.processingCode;
-		SET headRef.serviceCall = Environment.MQRFH2.ChannelRequest.header.serviceCall;
-		SET bodyRef = inBodyRef;
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+			SET headRef = inheadRef;
+			SET headRef.channel = Environment.MQRFH2.header.channel;
+			SET headRef.processingCode = Environment.MQRFH2.header.processingCode;
+			SET headRef.serviceCall = Environment.MQRFH2.header.serviceCall;
+		IF HTTPStatusCode = '200' THEN
+			DECLARE inBodyRef REFERENCE TO InputRoot.JSON.Data.body;
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
+			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+			SET bodyRef = inBodyRef;
+		ELSE
+			DECLARE inErrorRef REFERENCE TO InputRoot.JSON.Data.error;
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+			SET errorRef = inErrorRef;
+		END IF;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		IF EXISTS(Environment.JSON[]) THEN
@@ -207,4 +221,3 @@ CREATE COMPUTE MODULE CreateCustomerAccountFlow_GenerateExceptionResponse
 		----------------------------------
 	END;
 END MODULE;
-

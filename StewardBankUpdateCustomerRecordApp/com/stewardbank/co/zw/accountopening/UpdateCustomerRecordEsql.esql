@@ -25,9 +25,11 @@ CREATE COMPUTE MODULE UpdateCustomerRecordFlow_UpdateRecordRequest
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE inRef REFERENCE TO InputRoot.JSON;
 		DECLARE inHeadRef REFERENCE TO InputRoot.JSON.Data.*.header;
 		DECLARE inBodyRef REFERENCE TO InputRoot.JSON.Data.*.body;
+		DECLARE inLoanRef REFERENCE TO InputRoot.JSON.Data.*.body.loanProfiles;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -55,7 +57,9 @@ CREATE COMPUTE MODULE UpdateCustomerRecordFlow_UpdateRecordRequest
 		CREATE LASTCHILD OF outRef NAME ('nationality') VALUE inBodyRef.nationality;
 		CREATE LASTCHILD OF outRef NAME ('residence') VALUE inBodyRef.residence;
 		CREATE LASTCHILD OF outRef NAME ('customerName') VALUE inBodyRef.customerName;
-		CREATE LASTCHILD OF outRef NAME ('loanProfiles') VALUE inBodyRef.loanProfiles;
+		--CREATE LASTCHILD OF outRef IDENTITY(JSON.Array)loanProfiles;
+		--DECLARE loanRef REFERENCE TO OutputRoot.JSON.Data.loanProfiles;
+		--SET loanRef = inLoanRef;
 		SET url = 'http://'||IP||':'||PORT||baseURL;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
@@ -101,9 +105,9 @@ CREATE COMPUTE MODULE UpdateCustomerRecordFlow_GenerateResponse
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		DECLARE inBodyRef REFERENCE TO InputRoot.JSON.Data.body;
-		DECLARE inheadRef REFERENCE TO InputRoot.JSON.Data.header;
+		DECLARE inHeadRef REFERENCE TO InputRoot.JSON.Data.header;
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
+		DECLARE HTTPStatusCode CHAR InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
 		SET Environment.Variables.reqMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----UpdateCustomer Response------') INTO rc;
@@ -118,14 +122,22 @@ CREATE COMPUTE MODULE UpdateCustomerRecordFlow_GenerateResponse
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('updateCustomerRecord');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
-		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.header;
-		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.body;
-		SET headRef = inheadRef;
-		SET headRef.channel = Environment.MQRFH2.ChannelRequest.header.channel;
-		SET headRef.processingCode = Environment.MQRFH2.ChannelRequest.header.processingCode;
-		SET headRef.serviceCall = Environment.MQRFH2.ChannelRequest.header.serviceCall;
-		SET bodyRef = inBodyRef;
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		SET headRef = inHeadRef;
+		SET headRef.channel = Environment.MQRFH2.header.channel;
+		SET headRef.processingCode = Environment.MQRFH2.header.processingCode;
+		SET headRef.serviceCall = Environment.MQRFH2.header.serviceCall;
+		IF HTTPStatusCode = '200' THEN
+			DECLARE inBodyRef REFERENCE TO InputRoot.JSON.Data.body;
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
+			DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+			SET bodyRef = inBodyRef;
+		ELSE
+			DECLARE inErrorRef REFERENCE TO InputRoot.JSON.Data.error;
+			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+			SET errorRef = inErrorRef;
+		END IF;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		IF EXISTS(Environment.JSON[]) THEN
@@ -168,13 +180,7 @@ CREATE COMPUTE MODULE UpdateCustomerRecordFlow_GenerateExceptionResponse
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'UpdateCustomerCall') THEN
-			SET errMsg = 'T24 Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'FCBServiceCall') THEN
-			SET errMsg = 'FCB Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from T24 Server';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from Postilion Server';
+			SET errMsg = 'DWH Server Down';
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;

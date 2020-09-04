@@ -37,25 +37,25 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankCreateProspectCustomerApp/icons/full/obj16/CreateProspectCustomerFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankCreateProspectCustomerApp/icons/full/obj30/CreateProspectCustomerFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="586,214" destinationMode="list">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="580,213" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="CPC_OutQ"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="509,45" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#CreateProspectCustomerFlow_GenerateResponse.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="509,45" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#CreateProspectCustomerFlow_GenerateResponse.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateResponse"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="166,44" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#CreateProspectCustomerFlow_CreateProcpectRequest.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="166,44" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#CreateProspectCustomerFlow_CreateProcpectRequest.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="CreateProcpectRequest"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_4" location="112,212">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="37,43" queueName="CCA_SB_REQ">
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="37,43" queueName="CPC_SB_REQ">
         <translation xmi:type="utility:ConstantString" string="CPC_InQ"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_httpcall_HttpRetrySubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="334,45">
         <translation xmi:type="utility:ConstantString" string="CreateProspectCall"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="369,212" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#CreateProspectCustomerFlow_GenerateExceptionResponse.Main">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="369,212" computeExpression="esql://routine/com.stewardbank.co.zw.accountopening#CreateProspectCustomerFlow_GenerateExceptionResponse.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenerateExceptionResponse"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
@@ -67,6 +67,7 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
