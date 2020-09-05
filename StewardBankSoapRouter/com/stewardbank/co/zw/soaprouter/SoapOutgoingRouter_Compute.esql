@@ -52,7 +52,7 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 		END IF;
 		SET OutputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier = CAST(InputRoot.MQRFH2.usr.SoapReplyIdentifier AS BLOB);
 --		SET OutputLocalEnvironment.SOAP.Envelope = '';
-		SET OutputRoot.SOAP.Body = InputRoot.XMLNSC;
+		SET OutputRoot = InputRoot;
 	END;
 END MODULE;
 
