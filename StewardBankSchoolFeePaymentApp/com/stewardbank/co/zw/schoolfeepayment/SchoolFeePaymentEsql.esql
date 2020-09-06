@@ -298,7 +298,7 @@ CREATE COMPUTE MODULE SchoolFeePaymentFlow_CaptureException
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 		--SET headerRef = Environment.MQRFH2.header;
 		SET headerRef.channel = '*236#';
-		SET headerRef.processingCode = '400000';
+		SET headerRef.processingCode = '400000';  
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '999';
 		SET bodyRef.source = 'ESB';
