@@ -31,20 +31,20 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/SB_SalaryCorporatePayments_FileReprocess/icons/full/obj16/SCPFileReprocessFlow.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/SB_SalaryCorporatePayments_FileReprocess/icons/full/obj30/SCPFileReprocessFlow.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmFileRead.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="376,317" inputDirectory="C:\STEWARD_Bank" fileDispositionAction="moveToArchiveWithTimestamp">
+      <nodes xmi:type="ComIbmFileRead.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="428,316" inputDirectory="C:\STEWARD_Bank" fileDispositionAction="moveToArchiveWithTimestamp">
         <translation xmi:type="utility:ConstantString" string="File Read"/>
       </nodes>
       <nodes xmi:type="ComIbmTimeoutNotification.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="101,312" uniqueIdentifier="CtrlScp" operationMode="controlled" timeoutInterval="3600">
         <translation xmi:type="utility:ConstantString" string="Timeout Notification"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="618,322" outputDirectory="C:\Users\Sreenivas Bandaru\Documents\SCP_Input" outputFilename="*">
-        <translation xmi:type="utility:ConstantString" string="File Output"/>
+      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="722,321" outputDirectory="C:\Users\Sreenivas Bandaru\Documents\SCP_Input" outputFilename="*">
+        <translation xmi:type="utility:ConstantString" string="DropingFilesIn_InputPath"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="267,312" computeExpression="esql://routine/com.stewardbank.co.zw.scpfilereprocess#SCPFileReprocessFlow_PickFilesfrmDbFailure.Main" computeMode="destinationAndMessage">
-        <translation xmi:type="utility:ConstantString" string="Compute"/>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="251,313" computeExpression="esql://routine/com.stewardbank.co.zw.scpfilereprocess#SCPFileReprocessFlow_PickFilesfrmDbFailure.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="PickingFilesFrom_DBFailure"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="508,317" computeExpression="esql://routine/com.stewardbank.co.zw.scpfilereprocess#SCPFileReprocessFlow_PlaceFilesInSCP_Input.Main" computeMode="destinationAndMessage">
-        <translation xmi:type="utility:ConstantString" string="Compute1"/>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="549,315" computeExpression="esql://routine/com.stewardbank.co.zw.scpfilereprocess#SCPFileReprocessFlow_PlaceFilesInSCP_Input.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="PlacingFilesIn_InputPath"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="305,206">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
@@ -56,7 +56,7 @@
         <translation xmi:type="utility:ConstantString" string="Timeout Control"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="265,86" computeExpression="esql://routine/com.stewardbank.co.zw.scpfilereprocess#SCPFileReprocessFlow_trigFlowatFive.Main" computeMode="destinationAndMessage">
-        <translation xmi:type="utility:ConstantString" string="TriggerSCP"/>
+        <translation xmi:type="utility:ConstantString" string="Triggering"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
