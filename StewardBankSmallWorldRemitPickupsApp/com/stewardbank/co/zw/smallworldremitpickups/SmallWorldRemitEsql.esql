@@ -13,6 +13,7 @@ DECLARE Protocal EXTERNAL CHARACTER'';
 DECLARE URL EXTERNAL CHARACTER'';  
 
 DECLARE soapenv EXTERNAL NAMESPACE '';
+--DECLARE ns NAMESPACE 'http://webservice.ie.smallworldfs.com/';
 DECLARE ns NAMESPACE 'http://webservice.ie.smallworldfs.com/';
 DECLARE ns1 EXTERNAL NAMESPACE '';
 
@@ -72,11 +73,12 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenReqToSWAckn
 		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
 		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
 		SET outRefSoap.Context.Namespace.soapenv = soapenv;
-		SET outRefSoap.Context.Namespace.stew = 'http://webservice.ie.smallworldfs.com/';
+		SET outRefSoap.Context.Namespace.web = 'http://webservice.ie.smallworldfs.com/';
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
 		SET outRefSoap.Header[] = inRefSoap.Header[];
 		SET outRefSoap.Body.ns:acknowledgeTransactionExport.arg0=inRefSoap.Body.ns:acknowledgeTransactionExport.arg0;
+		--SET outRefSoap.Body.ns:acknowledgeTransactionExport.arg0
 		SET outRefSoap.Body.ns:acknowledgeTransactionExport.arg1=inRefSoap.Body.ns:acknowledgeTransactionExport.arg1;
 		SET outRefSoap.Body.ns:acknowledgeTransactionsExport.arg2=inRefSoap.Body.ns:acknowledgeTransactionExport.arg2;
 		DECLARE OutRefer REFERENCE TO OutputRoot.SOAP;
@@ -215,7 +217,7 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_BuildException
 	END;
 		CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
 	BEGIN
-              SET OutputRoot.MQRFH2 = mqrfRef;
+            SET OutputRoot.MQRFH2 = mqrfRef;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
@@ -253,7 +255,7 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenReqToSWGetTransacti
 		 SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CREATE LASTCHILD OF InputRoot DOMAIN 'SOAP';
+		--CREATE LASTCHILD OF InputRoot DOMAIN 'SOAP';
 		DECLARE inRefSoap REFERENCE TO InputRoot.SOAP;
 		IF IsLogRequired LIKE 'Y' THEN
 		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
@@ -273,37 +275,50 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenReqToSWGetTransacti
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		/* ========================== FIELD TO FIELD MAPPING =============================================== */
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
-		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
-		SET outRefSoap.Context.operation=inRefSoap.Context.operation;
-		SET outRefSoap.Context.operationType = inRefSoap.Context.operationType;
-		SET outRefSoap.Context.portType = inRefSoap.Context.portType;
-		SET outRefSoap.Context.portTypeNamespace = inRefSoap.Context.portTypeNamespace;
-		SET outRefSoap.Context.port = inRefSoap.Context.port;
-		SET outRefSoap.Context.service = inRefSoap.Context.service;
-		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
-		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
-		SET outRefSoap.Context.Namespace.soapenv = soapenv;
-		SET outRefSoap.Context.Namespace.stew = 'http://webservice.ie.smallworldfs.com/';
-		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
-		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
-		SET outRefSoap.Header[] = inRefSoap.Header[];
-		SET outRefSoap.Body.ns:getTransactionExportTransactions.arg0=inRefSoap.Body.ns:getTransactionExportTransactions.arg0;
-		SET outRefSoap.Body.ns:getTransactionExportTransactions.arg1=inRefSoap.Body.ns:getTransactionExportTransactions.arg1;
-		SET outRefSoap.Body.ns:getTransactionExportTransactions.arg2=inRefSoap.Body.ns:getTransactionExportTransactions.arg2;
-		DECLARE OutRefer REFERENCE TO OutputRoot.SOAP;
-		DECLARE envref REFERENCE TO Environment.SOAP;
-		CREATE LASTCHILD OF Environment AS envref DOMAIN 'SOAP';
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		DECLARE outRefSoap REFERENCE TO OutputRoot.XMLNSC;
+		--SET outRefSoap=inRefSoap;
+--		SET outRefSoap.Context.operation=inRefSoap.Context.operation;
+--		SET outRefSoap.Context.operationType = inRefSoap.Context.operationType;
+--		SET outRefSoap.Context.portType = inRefSoap.Context.portType;
+--		SET outRefSoap.Context.portTypeNamespace = inRefSoap.Context.portTypeNamespace;
+--		SET outRefSoap.Context.port = inRefSoap.Context.port;
+--		SET outRefSoap.Context.service = inRefSoap.Context.service;
+--		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
+--		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
+--		SET outRefSoap.Context.Namespace.soapenv = 'http://schemas.xmlsoap.org/soap/envelope/';
+--		SET outRefSoap.Context.Namespace.web = 'http://webservice.ie.smallworldfs.com/';
+--		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
+--		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
+--		SET outRefSoap.Header = '';
+--		
+		DECLARE web NAMESPACE 'http://webservice.ie.smallworldfs.com/';
+		
+        --SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
+		SET outRefSoap.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
+		
+		SET outRefSoap.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:web = 'http://webservice.ie.smallworldfs.com/';
+		SET outRefSoap.soapenv:Envelope.soapenv:Header='';
+		SET outRefSoap.soapenv:Envelope.soapenv:Body.web:getTransactionExportTransactions.arg0=inRefSoap.Body.ns:getTransactionExportTransactions.arg0;
+		SET outRefSoap.soapenv:Envelope.soapenv:Body.web:getTransactionExportTransactions.arg1=inRefSoap.Body.ns:getTransactionExportTransactions.arg1;
+		SET outRefSoap.soapenv:Envelope.soapenv:Body.web:getTransactionExportTransactions.arg2=inRefSoap.Body.ns:getTransactionExportTransactions.arg2;
+	 
+		DECLARE OutRefer REFERENCE TO OutputRoot.XMLNSC;
+		--PROPAGATE TO TERMINAL 'out2';
+		DECLARE envref REFERENCE TO Environment.XMLNSC;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'XMLNSC';
 		SET envref = OutRefer;
+		
 		DECLARE reqData CHARACTER'';
-		SET Environment.reqData = getPayLoad(FIELDNAME(InputBody),OutputRoot.SOAP.Body,encodeRef,ccsid);
+		SET Environment.reqData = getPayLoad(FIELDNAME(OutputRoot.XMLNSC),OutRefer,encodeRef,ccsid);
+		
 		SET OutputRoot = NULL;
 		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
 		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start T24 Request logging...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','T24 Request::') INTO rc; 
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.reqMsgT24) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.reqData) INTO rc;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
 		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'T24  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
@@ -312,10 +327,24 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenReqToSWGetTransacti
 		END IF; 
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
+		
+		SET OutputRoot.SOAP.Context.operation=inRefSoap.Context.operation;
+		SET OutputRoot.SOAP.Context.operationType = inRefSoap.Context.operationType;
+		SET OutputRoot.SOAP.Context.portType = inRefSoap.Context.portType;
+		SET OutputRoot.SOAP.Context.portTypeNamespace = inRefSoap.Context.portTypeNamespace;
+		SET OutputRoot.SOAP.Context.port = inRefSoap.Context.port;
+		SET OutputRoot.SOAP.Context.service = inRefSoap.Context.service;
+		SET OutputRoot.SOAP.Context.fileName = inRefSoap.Context.fileName;
+		SET outRefSoap.Context.Namespace.soapenv = 'http://schemas.xmlsoap.org/soap/envelope/';
+		SET OutputRoot.SOAP.Context.Namespace.web = 'http://webservice.ie.smallworldfs.com/';
+		SET OutputRoot.SOAP.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
+		SET OutputRoot.SOAP.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
+		
+		
 		SET OutputRoot.SOAP = envref;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation  = bindingOperatingName;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.Timeout = request_Time_Out;
-		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.SSLProtocol = Protocal;
+		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.SSLProtocol = 'SSL';
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.WebServiceURL = URL;
 		PROPAGATE TO TERMINAL 'out';
 	END;
@@ -501,7 +530,7 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_GenReqToSWUpdateTra
 		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
 		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
 		SET outRefSoap.Context.Namespace.soapenv = soapenv;
-		SET outRefSoap.Context.Namespace.stew = 'http://webservice.ie.smallworldfs.com/';
+		SET outRefSoap.Context.Namespace.web = 'http://webservice.ie.smallworldfs.com/';
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
 		SET outRefSoap.Header[] = inRefSoap.Header[];
