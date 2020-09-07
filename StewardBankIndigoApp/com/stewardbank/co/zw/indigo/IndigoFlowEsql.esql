@@ -155,6 +155,18 @@ CREATE COMPUTE MODULE IndigoFlow_ReqToFrondEnd
 		END IF;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		DECLARE outRefSoap REFERENCE TO OutputRoot.XMLNSC;
+		
+		
+--		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.enquiryInputCollection.columnName = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.enquiryInputCollection.columnName;
+--		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.enquiryInputCollection.criteriaValue =  InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.enquiryInputCollection.criteriaValue;
+--		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.enquiryInputCollection.operand = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.enquiryInputCollection.operand;
+--		
+--		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.g = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.g;
+--		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.m = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.m
+--		
+--		
+--		
+--		
 		CALL soapResFieldToFieldMapping(bindingOperatingName,inRefSoap,outRefSoap,serviseName);
 
 		DECLARE OutRefer REFERENCE TO OutputRoot.XMLNSC;
@@ -651,6 +663,8 @@ BEGIN
 
 
 	WHEN bindingOperatingName LIKE 'AccountBalanceResponse' THEN
+		
+		
 		DECLARE S NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
 		DECLARE s NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
 		SET outRefSoap.S:Envelope.(XMLNSC.NamespaceDecl)xmlns:S = S;
@@ -667,27 +681,7 @@ BEGIN
 		SET OutBodyRef.Status.transactionId = serviseName.Status.transactionId;
 
 
-
-
-
-
-
 	WHEN bindingOperatingName LIKE 'CardChargesResponse' THEN		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-
-
-
 
 		SET outRefSoap.Body.ns:CardChargesResponse.Status.application = inRefSoap.Body.ns:CardChargesResponse.Status.application;
 		SET outRefSoap.Body.ns:CardChargesResponse.Status.messageId = inRefSoap.Body.ns:CardChargesResponse.Status.messageId;
@@ -1032,7 +1026,7 @@ BEGIN
 		SET OutBodyRef.Status.messages = serviseName.Status.messages;
 		SET OutBodyRef.Status.successIndicator = serviseName.Status.successIndicator;
 		SET OutBodyRef.Status.transactionId = serviseName.Status.transactionId;
-
+                           
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.g = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.g;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.ResponseCode = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:ResponseCode;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.CustomerID = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:CustomerID;
