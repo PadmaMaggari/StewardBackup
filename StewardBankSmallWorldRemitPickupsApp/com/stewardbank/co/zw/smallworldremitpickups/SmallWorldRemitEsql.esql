@@ -1,19 +1,20 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.smallworldremitpickups
-PATH  com.stewardbank.co.zw.common.esql;  
+PATH com.stewardbank.co.zw.common.esql;
 
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
-DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';	
+DECLARE RAW_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE ERROR_AUDIT_QNAME EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
-DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';     
+DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER'';
-DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER'';
+DECLARE SOAP_RES_Q EXTERNAL CHARACTER'';
 DECLARE request_Time_Out EXTERNAL CHARACTER'';
 DECLARE Protocal EXTERNAL CHARACTER'';
-DECLARE URL EXTERNAL CHARACTER'';  
+DECLARE URL EXTERNAL CHARACTER'';
 
 DECLARE soapenv EXTERNAL NAMESPACE '';
---DECLARE ns NAMESPACE 'http://webservice.ie.smallworldfs.com/';
 DECLARE ns NAMESPACE 'http://webservice.ie.smallworldfs.com/';
 DECLARE ns1 EXTERNAL NAMESPACE '';
 
@@ -21,7 +22,7 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenReqToSWAckn
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 
-		 CALL GenerateReqToSmallWorldAcknowledgeTransactionExport();
+		CALL GenerateReqToSmallWorldAcknowledgeTransactionExport();
 		RETURN TRUE;
 	END;
 
@@ -39,26 +40,26 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenReqToSWAckn
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
-		 SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
+		SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		CREATE LASTCHILD OF InputRoot DOMAIN 'SOAP';
 		DECLARE inRefSoap REFERENCE TO InputRoot.SOAP;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
-		END IF; 
-			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
-			/* =================== CALLING LOG4J LOGGING  ==============*/
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
-		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out1';
 		END IF;
-		
+		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+		/* =================== CALLING LOG4J LOGGING ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start Application Request logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','Incoming Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','Incoming Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		/* ========================== FIELD TO FIELD MAPPING =============================================== */
@@ -73,12 +74,11 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenReqToSWAckn
 		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
 		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
 		SET outRefSoap.Context.Namespace.soapenv = soapenv;
-		SET outRefSoap.Context.Namespace.web = 'http://webservice.ie.smallworldfs.com/';
+		SET outRefSoap.Context.Namespace.stew = ns;
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
 		SET outRefSoap.Header[] = inRefSoap.Header[];
 		SET outRefSoap.Body.ns:acknowledgeTransactionExport.arg0=inRefSoap.Body.ns:acknowledgeTransactionExport.arg0;
-		--SET outRefSoap.Body.ns:acknowledgeTransactionExport.arg0
 		SET outRefSoap.Body.ns:acknowledgeTransactionExport.arg1=inRefSoap.Body.ns:acknowledgeTransactionExport.arg1;
 		SET outRefSoap.Body.ns:acknowledgeTransactionsExport.arg2=inRefSoap.Body.ns:acknowledgeTransactionExport.arg2;
 		DECLARE OutRefer REFERENCE TO OutputRoot.SOAP;
@@ -88,22 +88,22 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenReqToSWAckn
 		DECLARE reqData CHARACTER'';
 		SET Environment.reqData = getPayLoad(FIELDNAME(InputBody),OutputRoot.SOAP.Body,encodeRef,ccsid);
 		SET OutputRoot = NULL;
-		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
-		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
+		/* =================== CALLING LOG4J LOGGING ENDING ==============*/
+		/* =================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start T24 Request logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','T24 Request::') INTO rc; 
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.reqMsgT24) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance Request logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.reqData) INTO rc;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'T24  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
-		END IF; 
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorld Remittance  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.SOAP = envref;
-		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation  = bindingOperatingName;
+		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation = bindingOperatingName;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.Timeout = request_Time_Out;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.SSLProtocol = Protocal;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.WebServiceURL = URL;
@@ -117,16 +117,16 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenResToT24Ack
 		-- CALL CopyMessageHeaders();
 		CALL GenerateResToT24AcknowledgeTransactionExport();
 		RETURN TRUE;
-	END;
+	END;	
 
-	
+
 
 	CREATE PROCEDURE GenerateResToT24AcknowledgeTransactionExport() BEGIN
-				DECLARE rc BOOLEAN FALSE;
-			/* =================== CALLING LOG4J LOGGING  ==============*/
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		DECLARE rc BOOLEAN FALSE;
+		/* =================== CALLING LOG4J LOGGING ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE bindingOperatingName CHARACTER'';
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
@@ -138,98 +138,98 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenResToT24Ack
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
-		END IF; 
-			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorld Remittance Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance  Response  logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Response::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.resMsg) INTO rc;
 		END IF;
---		CALL soapResFieldToFieldMapping(bindingOperatingName);
+		-- CALL soapResFieldToFieldMapping(bindingOperatingName);
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.SOAP = InputRoot.SOAP;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SOAP_RES_Q;
 		PROPAGATE TO TERMINAL 'out';
 	END;
-	
+
 END MODULE;
 CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-	 CALL BuildException();
+		CALL BuildException();
 		RETURN FALSE;
-	END;
+	END;	
 
-	
+
 
 	CREATE PROCEDURE BuildException() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE mqrfRef REFERENCE TO InputRoot.MQRFH2;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
-		
+
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
-		DECLARE errMsg CHARACTER;  
+		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'SocketException') THEN
-			
-			SET errMsg = 'T24 Server Down';
-			CALL errorResponse(mqrfRef,'T24 Server Down','ESB_001',ApplicationLabel);
-		END IF;
-		
-		
+
+			SET errMsg = 'SmallWorld Remittance Server Down';
+			CALL errorResponse(mqrfRef,'SmallWorld Remittance Server Down','ESB_001',ApplicationLabel);
+		END IF;		
+
+
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
---		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		-- DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SmallWorldRemittanceResponse';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SmallWorldRemittanceAcknowledgeTransactionResponse';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'SmallWorldRemittanceResponse');
+		CALL BuildExceptionDetails(excpRef,outRef,'SmallWorldRemittanceAcknowledgeTransactionResponse');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.XMLNSC = NULL;
---		
+		--		
 		
 		
-		
-		
+
+
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SmallWorldRemittanceResponse.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SmallWorldRemittanceAcknowledgeTransactionResponse.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;  
-		PROPAGATE TO TERMINAL 'out';  
-		----------------------------------	
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
+		----------------------------------
 	END;
-		CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
+	CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
 	BEGIN
-            SET OutputRoot.MQRFH2 = mqrfRef;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
-			
-			PROPAGATE TO TERMINAL 'out';
---		END IF;
-	END;
-	
-	
+		SET OutputRoot.MQRFH2 = mqrfRef;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SOAP_RES_Q;
+
+		PROPAGATE TO TERMINAL 'out';
+		-- END IF;
+	END;	
+
+
 END MODULE;
 CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenReqToSWGetTransaction
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -316,32 +316,23 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenReqToSWGetTransacti
 		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
 		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start T24 Request logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','T24 Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance Request  logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Request ::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.reqData) INTO rc;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'T24  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorld Remittance  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF; 
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
-		
-		SET OutputRoot.SOAP.Context.operation=inRefSoap.Context.operation;
-		SET OutputRoot.SOAP.Context.operationType = inRefSoap.Context.operationType;
-		SET OutputRoot.SOAP.Context.portType = inRefSoap.Context.portType;
-		SET OutputRoot.SOAP.Context.portTypeNamespace = inRefSoap.Context.portTypeNamespace;
-		SET OutputRoot.SOAP.Context.port = inRefSoap.Context.port;
-		SET OutputRoot.SOAP.Context.service = inRefSoap.Context.service;
-		SET OutputRoot.SOAP.Context.fileName = inRefSoap.Context.fileName;
-		SET outRefSoap.Context.Namespace.soapenv = 'http://schemas.xmlsoap.org/soap/envelope/';
-		SET OutputRoot.SOAP.Context.Namespace.web = 'http://webservice.ie.smallworldfs.com/';
-		SET OutputRoot.SOAP.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
-		SET OutputRoot.SOAP.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
+		SET OutputRoot.SOAP.Context[]=inRefSoap.Context[];
+		SET OutputRoot.SOAP.Header[] = inRefSoap.Context.Header[];
 		
 		
-		SET OutputRoot.SOAP = envref;
+		SET OutputRoot.SOAP.Body = envref;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation  = bindingOperatingName;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.Timeout = request_Time_Out;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.SSLProtocol = 'SSL';
@@ -353,18 +344,18 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenResToT24GetTransact
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		-- CALL CopyMessageHeaders();
-		 CALL GenerateReSToT24GetTransaction();
+		CALL GenerateReSToT24GetTransaction();
 		RETURN TRUE;
-	END;
+	END;	
 
-	
+
 
 	CREATE PROCEDURE GenerateReSToT24GetTransaction() BEGIN
-					DECLARE rc BOOLEAN FALSE;
-			/* =================== CALLING LOG4J LOGGING  ==============*/
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		DECLARE rc BOOLEAN FALSE;
+		/* =================== CALLING LOG4J LOGGING ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE bindingOperatingName CHARACTER'';
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
@@ -372,104 +363,100 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenResToT24GetTransact
 		DECLARE inRef REFERENCE TO InputRoot;
 		DECLARE serviceName REFERENCE TO InputRoot.SOAP.Body.[1];
 		SET bindingOperatingName = FIELDNAME(serviceName);
-		SET Environment.resMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP.Body,encodeRef,ccsid);
+		SET Environment.resMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP,encodeRef,ccsid);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
-		END IF; 
-			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorld Remittance Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance  Response  logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Response::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.resMsg) INTO rc;
 		END IF;
---		CALL soapResFieldToFieldMapping(bindingOperatingName);
+		-- CALL soapResFieldToFieldMapping(bindingOperatingName);
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.SOAP = InputRoot.SOAP;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SOAP_RES_Q;
 		PROPAGATE TO TERMINAL 'out';
 	END;
-		
+
 
 END MODULE;
 
 CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		 CALL BuildException();
+		CALL BuildException();
 		RETURN FALSE;
-	END;
+	END;	
 
-	
+
 
 	CREATE PROCEDURE BuildException() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE mqrfRef REFERENCE TO InputRoot.MQRFH2;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
-		
+
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
-		DECLARE errMsg CHARACTER;  
+		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'SocketException') THEN
-			
-			SET errMsg = 'T24 Server Down';
-			CALL errorResponse(mqrfRef,'T24 Server Down','ESB_001',ApplicationLabel);
-		END IF;
-		
-		
+
+			SET errMsg = 'SmallWorld Remittance Server Down';
+			CALL errorResponse(mqrfRef,'SmallWorld Remittance Server Down','ESB_001',ApplicationLabel);
+		END IF;		
+
+
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
---		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		-- DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SmallWorldRemittanceResponse';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SmallWorldRemittanceGetTransactionResponse';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'SmallWorldRemittanceResponse');
+		CALL BuildExceptionDetails(excpRef,outRef,'SmallWorldRemittanceGetTransactionResponse');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.XMLNSC = NULL;
---		
-		
-		
-		
-		
+
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SmallWorldRemittanceResponse.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SmallWorldRemittanceGetTransactionResponse.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;  
-		PROPAGATE TO TERMINAL 'out';  
-		----------------------------------	
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
+		----------------------------------
 	END;
-		CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
+	CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
 	BEGIN
-              SET OutputRoot.MQRFH2 = mqrfRef;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
-			
-			PROPAGATE TO TERMINAL 'out';
---		END IF;
-	END;
-	
-	
+		SET OutputRoot.MQRFH2 = mqrfRef;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SOAP_RES_Q;
+
+		PROPAGATE TO TERMINAL 'out';
+		-- END IF;
+	END;	
+
+
 END MODULE;
 
 
@@ -477,13 +464,13 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_GenReqToSWUpdateTra
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		-- CALL CopyMessageHeaders();
-		 CALL GenerateReqToSmallWorldUpdateTransaction();
+		CALL GenerateReqToSmallWorldUpdateTransaction();
 		RETURN TRUE;
 	END;
 
 
 	CREATE PROCEDURE GenerateReqToSmallWorldUpdateTransaction() BEGIN
-			SET Environment.MQRFH2= InputRoot.MQRFH2;
+		SET Environment.MQRFH2= InputRoot.MQRFH2;
 		SET Environment.Variables.RequestIdentifier = InputRoot.MQRFH2.usr.SoapReplyIdentifier;
 		DECLARE reqMsg,bindingOperatingName CHARACTER '';
 		DECLARE rc BOOLEAN FALSE;
@@ -496,26 +483,26 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_GenReqToSWUpdateTra
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
-		 SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
+		SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		CREATE LASTCHILD OF InputRoot DOMAIN 'SOAP';
 		DECLARE inRefSoap REFERENCE TO InputRoot.SOAP;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
-		END IF; 
-			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
-			/* =================== CALLING LOG4J LOGGING  ==============*/
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
-		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out1';
 		END IF;
-		
+		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+		/* =================== CALLING LOG4J LOGGING ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start Application Request logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','Incoming Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','Incoming Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		/* ========================== FIELD TO FIELD MAPPING =============================================== */
@@ -530,7 +517,7 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_GenReqToSWUpdateTra
 		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
 		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
 		SET outRefSoap.Context.Namespace.soapenv = soapenv;
-		SET outRefSoap.Context.Namespace.web = 'http://webservice.ie.smallworldfs.com/';
+		SET outRefSoap.Context.Namespace.stew = ns;
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
 		SET outRefSoap.Header[] = inRefSoap.Header[];
@@ -544,46 +531,46 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_GenReqToSWUpdateTra
 		DECLARE reqData CHARACTER'';
 		SET Environment.reqData = getPayLoad(FIELDNAME(InputBody),OutputRoot.SOAP.Body,encodeRef,ccsid);
 		SET OutputRoot = NULL;
-		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
-		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
+		/* =================== CALLING LOG4J LOGGING ENDING ==============*/
+		/* =================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start T24 Request logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','T24 Request::') INTO rc; 
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.reqMsgT24) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance Request logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.reqData) INTO rc;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'T24  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
-		END IF; 
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorld Remittance  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.SOAP = envref;
-		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation  = bindingOperatingName;
+		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation = bindingOperatingName;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.Timeout = request_Time_Out;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.SSLProtocol = Protocal;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.WebServiceURL = URL;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
-	
+
 
 
 CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_GenResToT24UpdateTransaction
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		-- CALL CopyMessageHeaders();
-		 CALL GenerateResToT24UpdateTransaction();
+		CALL GenerateResToT24UpdateTransaction();
 		RETURN TRUE;
 	END;
 
 
 	CREATE PROCEDURE GenerateResToT24UpdateTransaction() BEGIN
-			DECLARE rc BOOLEAN FALSE;
-			/* =================== CALLING LOG4J LOGGING  ==============*/
-		CALL initLog4j(LOG_CONFIG_PATH) INTO rc; 			
+		DECLARE rc BOOLEAN FALSE;
+		/* =================== CALLING LOG4J LOGGING ==============*/
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE bindingOperatingName CHARACTER'';
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
@@ -595,21 +582,21 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_GenResToT24UpdateTr
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out1';
-		END IF; 
-			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorld Remittance Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance  Response  logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Response::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.resMsg) INTO rc;
 		END IF;
---		CALL soapResFieldToFieldMapping(bindingOperatingName);
+		-- CALL soapResFieldToFieldMapping(bindingOperatingName);
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.SOAP = InputRoot.SOAP;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SOAP_RES_Q;
 		PROPAGATE TO TERMINAL 'out';
 	END;
 END MODULE;
@@ -618,72 +605,72 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_BuildExceptionDetai
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		-- CALL CopyMessageHeaders();
-		 CALL BuildException();
+		CALL BuildException();
 		RETURN TRUE;
 	END;
 
 
 	CREATE PROCEDURE BuildException() BEGIN
-			DECLARE rc BOOLEAN FALSE;
+		DECLARE rc BOOLEAN FALSE;
 		DECLARE mqrfRef REFERENCE TO InputRoot.MQRFH2;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
-		
+
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
-		DECLARE errMsg CHARACTER;  
+		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'SocketException') THEN
-			
-			SET errMsg = 'T24 Server Down';
-			CALL errorResponse(mqrfRef,'T24 Server Down','ESB_001',ApplicationLabel);
-		END IF;
-		
-		
+
+			SET errMsg = 'SmallWorld Remittance Server Down';
+			CALL errorResponse(mqrfRef,'SmallWorld Remittance Server Down','ESB_001',ApplicationLabel);
+		END IF;		
+
+
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
---		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		-- DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SmallWorldRemittanceResponse';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SmallWorldRemittanceUpdateTransactionResponse';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'SmallWorldRemittanceResponse');
+		CALL BuildExceptionDetails(excpRef,outRef,'SmallWorldRemittanceUpdateTransactionResponse');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.XMLNSC = NULL;
---		
+		--		
 		
 		
-		
-		
+
+
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		CALL Error_DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SmallWorldRemittanceResponse.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.SmallWorldRemittanceUpdateTransactionResponse.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;  
-		PROPAGATE TO TERMINAL 'out';  
-		----------------------------------	
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out';
+		----------------------------------
 	END;
-		CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
+	CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
 	BEGIN
-              SET OutputRoot.MQRFH2 = mqrfRef;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
-			
-			PROPAGATE TO TERMINAL 'out';
---		END IF;
-		
+		SET OutputRoot.MQRFH2 = mqrfRef;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SOAP_RES_Q;
+
+		PROPAGATE TO TERMINAL 'out';
+		-- END IF;
+
 	END;
 END MODULE;
