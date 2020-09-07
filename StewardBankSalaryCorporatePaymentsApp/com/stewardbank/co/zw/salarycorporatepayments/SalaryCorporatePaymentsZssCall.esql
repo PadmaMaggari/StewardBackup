@@ -1,3 +1,7 @@
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.salarycorporatepayments
 PATH com.stewardbank.co.zw.common.esql;
 CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
@@ -108,7 +112,17 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		DECLARE domainDataRef REFERENCE TO OutputRoot.DFDL;
 		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),domainDataRef,encodeRef,ccidRef);
 		SET Environment.dfdlData = OutputRoot.DFDL;
+		--
+		DECLARE reqMsgJson CHARACTER'';
+		DECLARE logRef REFERENCE TO OutputRoot.DFDL.ISO8583WithHeader;
+		DECLARE jsonRef REFERENCE TO OutputRoot;
+		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
+		--CALL JSONLogMessage(logRef,jsonRef);
+		SET jsonRef = logRef;
+		SET reqMsgJson = getPayLoad('JSON',jsonRef,encodeRef,ccidRef);
 		SET OutputRoot.DFDL = NULL;
+		SET OutputRoot.JSON=NULL;
 		/*=================== Audit Logging ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Environment.Variables.UID,Environment.Variables.reqMsg,'ZSS Request Call',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),Env.RRN,outRefer);
@@ -118,6 +132,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_RequestToZss
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Generating Request to ZSS::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','ZSS ISO Request in JSON:: '||reqMsgJson) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Message ID :: '||Environment.Variables.UID) INTO rc;
 		END IF;
 		/*===================End of Audit Logging==============*/
@@ -168,6 +183,15 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel
 			---Success Case DB Update---
 			CALL UPDATE_SB_SCP_STATUS(Env.UID,inRef.SystemsTraceAuditNumber_011,CAST(Env.CreationDate AS CHARACTER),inRef.RetrievalReferenceNumber_037,inRef.ResponseCode_039,Env.reqMsg,'SUCCESS','NOT APPLICABLE','NOT APPLICABLE',CAST(Env.CreationDate AS TIMESTAMP));
 			---------------------------
+			DECLARE reqMsgJson CHARACTER'';
+			DECLARE logRef REFERENCE TO InputRoot.DFDL.ISO8583WithHeader;
+			DECLARE jsonRef REFERENCE TO OutputRoot;
+			CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
+			CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
+			--CALL JSONLogMessage(logRef,jsonRef);
+			SET jsonRef = logRef;
+			SET reqMsgJson = getPayLoad('JSON',jsonRef,encodeRef,ccidRef);  
+			SET OutputRoot.JSON=NULL;
 			---DB Logging---
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL DBLogging(Env.UID,Env.reqMsg,'ZSS Success Response',ApplicationLabel,BrokerName,inRef.TimeLocalTransaction_012,inRef.DateLocalTransaction_013,Env.RRN,outRefer);
@@ -178,6 +202,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_GenereateResponseToChannel
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','..........Logging Success Response...............') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','ZSS Status :: Success') INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG',Env.reqMsg) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','ZSS Response in JSON:: '||reqMsgJson) INTO rc; 
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','Message ID :: '||Environment.Variables.UID) INTO rc;
 				CALL writeToLogFile(MessageFlowLabel, 'SalaryCorporatePaymentsZssLogger', 'DEBUG','..............End of Logging...........*') INTO rc;
 			END IF;
@@ -247,7 +272,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsZssFlow_BuildException
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		DECLARE Env REFERENCE TO Environment.Variables;
 		PROPAGATE TO TERMINAL 'out';
-		SET OutputRoot.DFDL = NULL; 
+		SET OutputRoot.DFDL = NULL;
 		---Failure DB Status Update---
 		CALL UPDATE_SB_SCP_STATUS(Env.UID,'PENDING','PENDING','PENDING','PENDING',exe_Desc,'FAILURE','NOT APPLICABLE','NOT APPLICABLE',CAST(Env.CreationDate AS TIMESTAMP));
 		------------
