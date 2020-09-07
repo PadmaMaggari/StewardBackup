@@ -36,9 +36,9 @@
     <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.RTGS_INCOMING_SB_Q" name="RTGS_INCOMING_SB_Q" defaultValueLiteral="RTGS_INCOMING_SB_Q">
       <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eStructuralFeatures>
-    <translation xmi:type="utility:TranslatableString" key="rtgsIncomingFlow" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
-    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankIncomingRtgsApp/icons/full/obj16/rtgsIncomingFlow.gif"/>
-    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankIncomingRtgsApp/icons/full/obj30/rtgsIncomingFlow.gif"/>
+    <translation xmi:type="utility:TranslatableString" key="rtgsIncomingFlow" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRtgsIncomingApp"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankRtgsIncomingApp/icons/full/obj16/rtgsIncomingFlow.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankRtgsIncomingApp/icons/full/obj30/rtgsIncomingFlow.gif"/>
     <composition>
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="592,98" destinationMode="list">
         <translation xmi:type="utility:ConstantString" string="OutQ"/>
@@ -52,7 +52,7 @@
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="380,155" computeExpression="esql://routine/com.stewardbank.co.zw.rtgsincoming#rtgsIncomingFlow__GenerateExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GeneratingExceptionDetails"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="38,110" inputDirectory="C:\STEWARD_Bank\Rtgs" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtpTransferMode="ASCII">
+      <nodes xmi:type="ComIbmFileInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="38,110" inputDirectory="/var/DEV_TESTING/Stewardbank/ACE/RtgsIncoming" filenamePattern="STPLINK_SWIFTToSTEWARD_*" fileFtpTransferMode="ASCII">
         <translation xmi:type="utility:ConstantString" string="Fectching Mt103 form Remote"/>
       </nodes>
       <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="322,81" messageDomain="DFDL" resetMessageDomain="true" messageSet="{MT103}" resetMessageSet="true" messageType="{}:MT103" validateTiming="immediate" validateMaster="contentAndValue">
@@ -61,8 +61,8 @@
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="174,160">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="588,169">
-        <translation xmi:type="utility:ConstantString" string="File Output"/>
+      <nodes xmi:type="ComIbmFileOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="591,160">
+        <translation xmi:type="utility:ConstantString" string="DropsReprocessingFiles"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
@@ -76,27 +76,27 @@
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
-        <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+        <propertyName xmi:type="utility:TranslatableString" key="Property.LOG_CONFIG_PATH" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRtgsIncomingApp"/>
         <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG4J_INIT_ERROR">
-          <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+          <propertyName xmi:type="utility:TranslatableString" key="Property.LOG4J_INIT_ERROR" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRtgsIncomingApp"/>
           <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.SB_EXCQ">
-            <propertyName xmi:type="utility:TranslatableString" key="Property.SB_EXCQ" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+            <propertyName xmi:type="utility:TranslatableString" key="Property.SB_EXCQ" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRtgsIncomingApp"/>
             <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ERROR_AUDIT_Q">
-              <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_Q" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+              <propertyName xmi:type="utility:TranslatableString" key="Property.ERROR_AUDIT_Q" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRtgsIncomingApp"/>
               <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.IsLogRequired">
-                <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+                <propertyName xmi:type="utility:TranslatableString" key="Property.IsLogRequired" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRtgsIncomingApp"/>
                 <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ZSS_REQ">
-                  <propertyName xmi:type="utility:TranslatableString" key="Property.ZSS_REQ" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+                  <propertyName xmi:type="utility:TranslatableString" key="Property.ZSS_REQ" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRtgsIncomingApp"/>
                   <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.T24_REQ">
-                    <propertyName xmi:type="utility:TranslatableString" key="Property.T24_REQ" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.T24_REQ" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRtgsIncomingApp"/>
                     <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.DSN">
-                      <propertyName xmi:type="utility:TranslatableString" key="Property.DSN" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+                      <propertyName xmi:type="utility:TranslatableString" key="Property.DSN" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRtgsIncomingApp"/>
                       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.DBFailure">
-                        <propertyName xmi:type="utility:TranslatableString" key="Property.DBFailure" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+                        <propertyName xmi:type="utility:TranslatableString" key="Property.DBFailure" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRtgsIncomingApp"/>
                         <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.FormatFailure">
-                          <propertyName xmi:type="utility:TranslatableString" key="Property.FormatFailure" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+                          <propertyName xmi:type="utility:TranslatableString" key="Property.FormatFailure" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRtgsIncomingApp"/>
                           <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.RTGS_INCOMING_SB_Q">
-                            <propertyName xmi:type="utility:TranslatableString" key="Property.RTGS_INCOMING_SB_Q" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankIncomingRtgsApp"/>
+                            <propertyName xmi:type="utility:TranslatableString" key="Property.RTGS_INCOMING_SB_Q" bundleName="com/stewardbank/co/zw/rtgsincoming/rtgsIncomingFlow" pluginId="StewardBankRtgsIncomingApp"/>
                           </propertyDescriptor>
                         </propertyDescriptor>
                       </propertyDescriptor>

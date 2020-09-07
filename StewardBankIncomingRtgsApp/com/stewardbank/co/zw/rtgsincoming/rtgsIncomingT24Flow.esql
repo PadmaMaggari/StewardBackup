@@ -43,10 +43,12 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GeneratingT24Request
 		  -- Appending path parameters to stiring--
 		  SET RtgsIncomingUrlPathparameters = envRef.debitCurrency||'/'||envRef.crAcctId||'/'||envRef.ordCustomerName||'/'||envRef.debitCurrency||'/'||envRef.transactionAmount||'/'||envRef.exeDate||'/'||envRef.narrative||'/'||envRef.invoiceReference||'/'||envRef.endToEndReference;
 		  SET OutputLocalEnvironment.Destination.HTTP.RequestURL = RtgsIncomingT24Url||RtgsIncomingUrlPathparameters ;
-		  IF IsLogRequired LIKE 'Y' THEN
+		   IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............T24 Request Url..........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',RtgsIncomingT24Url||RtgsIncomingUrlPathparameters) INTO rc;
 		  END IF;	
+		  		 --******************Insertingvalues into ISAVE table with T24 Request Message ************
+		  		  CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'NA','PENDING',envRef.File.Name,'NA',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'NA','NA','PENDING',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'RTGS INCOMING','PENDING','NA');
 		 ELSE
 		  SET outRef.debitAccountId = envRef.drAcctId;
 		  SET outRef.debitCurrency = envRef.debitCurrency;
@@ -64,13 +66,12 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GeneratingT24Request
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............T24 Request Url..........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',RtgsReturnsT24Url||RtgsIncomingUrlPathparameters) INTO rc;
 		  END IF;	
+		  		 --******************Insertingvalues into ISAVE table with T24 Request Message ************
+		  CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'NA','PENDING',envRef.File.Name,'NA',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'NA','NA','PENDING',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'RTGS RETURNS','PENDING','NA');
 		 END IF;
-		 	  
-		 --******************Insertingvalues into ISAVE table with T24 Request Message ************
-		  --  SET OutputRoot = NULL;
+		 	  --  SET OutputRoot = NULL;
 			SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
 			
-			CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'NA','PENDING',envRef.File.Name,'NA',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'NA','NA','PENDING',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'NA','PENDING','NA');
 			IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG','..............T24 Request..........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',reqMsg) INTO rc;
@@ -177,7 +178,7 @@ END MODULE;
 	CREATE PROCEDURE insertIntoSbIsaveTable(IN PAYNET_GUID CHARACTER,IN PAYNET_STAN_NUM CHARACTER, IN PAYNET_STANDATE CHARACTER
 ,IN PAYNET_RRN_REF CHARACTER,IN PAYNET_ISO_REQUEST_MSG CHARACTER,IN PAYNET_ISO_RESPONSE_CODE CHARACTER,IN PAYNET_MT103_FILENAME CHARACTER,IN PAYNET_MT103_FIELDS CHARACTER,IN PAYNET_MT103_AMOUNT CHARACTER,
 IN PAYNET_MT103_DTACCOUNT CHARACTER,IN PAYNET_MT103_CRACCOUNT CHARACTER,IN PAYNET_MT103_DTDATE CHARACTER,IN PAYNET_MT103_T24_MSG CHARACTER,IN PAYNET_ISO_FT CHARACTER,
-IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_MT103_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP,IN TAXABLE CHARACTER,IN T24RESPONSE CHARACTER,IN ZSSRESPONSE CHARACTER)
+IN PAYNET_ZSS_STATUS CHARACTER,IN PAYNET_T24_STATUS CHARACTER,IN PAYNET_MT103_STATUS CHARACTER,IN PAYNET_DATECREATED TIMESTAMP,IN PAYNET_DATEUPDATED TIMESTAMP,IN TRANTYPE CHARACTER,IN T24RESPONSE CHARACTER,IN ZSSRESPONSE CHARACTER)
 	LANGUAGE DATABASE
 	EXTERNAL NAME "INSERT_SB_ISAVE_PAYNET";
 		--*********************Procedure to Update Database Status***************
