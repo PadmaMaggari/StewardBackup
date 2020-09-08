@@ -78,7 +78,7 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenReqToSWAckn
 		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
 		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
 		SET outRefSoap.Context.Namespace.soapenv = soapenv;
-		SET outRefSoap.Context.Namespace.stew = ns;
+		SET outRefSoap.Context.Namespace.stew = ns;     
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
 		SET outRefSoap.Header[] = inRefSoap.Header[];
@@ -308,12 +308,14 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenReqToSWGetTransacti
 		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
 
 
-		SET outRefSoap.Context.Namespace.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
-
-		SET outRefSoap.Context.Namespace.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:web = 'http://webservice.ie.smallworldfs.com/';
-		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
-		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
-		SET outRefSoap.soapenv:Header='';
+--		SET outRefSoap.Context.Namespace.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
+--
+--		SET outRefSoap.Context.Namespace.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:web = 'http://webservice.ie.smallworldfs.com/';
+--		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
+--		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
+--		SET outRefSoap.soapenv:Header='';
+        SET outRefSoap.Context[] = inRefSoap.Context[];
+        SET outRefSoap.Header[] = inRefSoap.Header[];
 		SET outRefSoap.soapenv:Body.web:getTransactionExportTransactions.arg0=inRefSoap.Body.ns:getTransactionExportTransactions.arg0;
 		SET outRefSoap.soapenv:Body.web:getTransactionExportTransactions.arg1=inRefSoap.Body.ns:getTransactionExportTransactions.arg1;
 		SET outRefSoap.soapenv:Body.web:getTransactionExportTransactions.arg2=inRefSoap.Body.ns:getTransactionExportTransactions.arg2;
@@ -342,9 +344,9 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenReqToSWGetTransacti
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQMD = InputRoot.MQMD;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+--		SET OutputRoot.Properties = InputRoot.Properties;
+--		SET OutputRoot.MQMD = InputRoot.MQMD;
+--		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		-- CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
 		-- SET OutputRoot.SOAP.Context[]=inRefSoap.Context[];
 		-- SET OutputRoot.SOAP.Header[] = inRefSoap.Context.Header[];
