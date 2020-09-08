@@ -43,8 +43,8 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSmallWorldRemitOpenPaymentApp/icons/full/obj16/SmallWorldGetTransactionExportByMtn.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/StewardBankSmallWorldRemitOpenPaymentApp/icons/full/obj30/SmallWorldGetTransactionExportByMtn.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="79,40" queueName="SWGT_SB_SOAP_REQ" messageDomainProperty="XMLNSC" transactionMode="no">
-        <translation xmi:type="utility:ConstantString" string="MQ Input"/>
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="79,40" queueName="SWGTM_SB_SOAP_REQ" messageDomainProperty="XMLNSC" transactionMode="no">
+        <translation xmi:type="utility:ConstantString" string="SmallWorldGetTransMtn_Req"/>
       </nodes>
       <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="199,45" computeExpression="esql://routine/com.stewardbank.co.zw.smallworldopenpayment#SmallWorldGetTransactionExportByMtn_GenReqToGetTrans.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenReqToGetTrans"/>
@@ -56,7 +56,7 @@
         <translation xmi:type="utility:ConstantString" string="GenResToGetTrans"/>
       </nodes>
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="645,190" destinationMode="list">
-        <translation xmi:type="utility:ConstantString" string="MQ Output"/>
+        <translation xmi:type="utility:ConstantString" string="SmallWorldGetTransMtn_Res"/>
       </nodes>
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="176,166">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
@@ -72,6 +72,8 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.Output1" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
