@@ -352,8 +352,12 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenReqToSWGetTransacti
 		-- SET OutputRoot.SOAP.Header[] = inRefSoap.Context.Header[];
 
 
-		SET OutputRoot.SOAP = envref.SOAP;
+		SET OutputRoot.SOAP = envref.SOAP;      
+--		SET OutputRoot.SOAP.Body.ns:getTransactionExportTransactions.arg0 = InputRoot.SOAP.Body.ns:getTransactionExportTransactions.arg0;
+--		SET OutputRoot.SOAP.Body.ns:getTransactionExportTransactions.arg1 = InputRoot.SOAP.Body.ns:getTransactionExportTransactions.arg1;
+--		SET OutputRoot.SOAP.Body.ns:getTransactionExportTransactions.arg2 = InputRoot.SOAP.Body.ns:getTransactionExportTransactions.arg2;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation = bindingOperatingName;
+		SET OutputLocalEnvironment.Destination.SOAP.Request.TransportType = 'Application/xml';
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.Timeout = request_Time_Out;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.SSLProtocol = 'SSL';
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.WebServiceURL = URL;
