@@ -24,7 +24,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		DECLARE msg,PROC_CODE,MSGDOMAIN,reqQName CHARACTER ;
+		DECLARE msg,SERVICE_NAME,MSGDOMAIN,reqQName CHARACTER ;
 		CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','=====================================  INCOMMING  ROUTER =================================') INTO rc ;
 		DECLARE inRefData REFERENCE TO InputRoot.SOAP;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
@@ -68,11 +68,11 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		/*======================================= Calling data base values Existed  in cache ===================================*/
 		IF EXISTS(getDBDetailsCache.values[])THEN
 			CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Values available in shared cache: '|| getDBDetailsCache.values.*[])INTO rc;
-			SET qDetails.Values[] = SELECT A.PROC_CODE,A.MSGDOMAIN,A.REQ_QUEUE,A.RES_QUEUE FROM getDBDetailsCache.values[] AS A WHERE A.PROC_CODE = serviceName AND A.MSGDOMAIN = domainName ;
+			SET qDetails.Values[] = SELECT A.SERVICE_NAME,A.MSGDOMAIN,A.REQ_QUEUE,A.RES_QUEUE FROM getDBDetailsCache.values[] AS A WHERE A.SERVICE_NAME = serviceName AND A.MSGDOMAIN = domainName ;
 			IF EXISTS(qDetails.Values[]) THEN
 				IF FIELDNAME(qDetails.Values.MSGDOMAIN) IS NOT NULL AND FIELDNAME(qDetails.Values.REQ_QUEUE) IS NOT NULL AND FIELDNAME(qDetails.Values.RES_QUEUE)IS NOT NULL THEN
 					SET Environment.reqQName = qDetails.Values.REQ_QUEUE;
-					SET Environment.reqServiseName = qDetails.Values.PROC_CODE;
+					SET Environment.reqServiseName = qDetails.Values.SERVICE_NAME;
 					SET Environment.resQName = qDetails.Values.RES_QUEUE;
 					SET OutputRoot.Properties = InputRoot.Properties;
 					SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = Environment.MQRFH2.RequestIdentifier;
@@ -104,11 +104,11 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 			ELSE	
 				CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Calling the Cache')INTO rc;
 				CALL CALL_STORED_CACHE(serviceName,domainName);
-				SET qDetails.Values[] = SELECT A.PROC_CODE,A.MSGDOMAIN,A.REQ_QUEUE,A.RES_QUEUE FROM getDBDetailsCache.values[] AS A WHERE A.PROC_CODE = serviceName AND A.MSGDOMAIN = domainName ;
+				SET qDetails.Values[] = SELECT A.SERVICE_NAME,A.MSGDOMAIN,A.REQ_QUEUE,A.RES_QUEUE FROM getDBDetailsCache.values[] AS A WHERE A.SERVICE_NAME = serviceName AND A.MSGDOMAIN = domainName ;
 				IF EXISTS(qDetails.Values[]) THEN
 					IF FIELDNAME(qDetails.Values.MSGDOMAIN) IS NOT NULL AND FIELDNAME(qDetails.Values.REQ_QUEUE) IS NOT NULL AND FIELDNAME(qDetails.Values.RES_QUEUE)IS NOT NULL THEN
 						SET Environment.reqQName = qDetails.Values.REQ_QUEUE;
-						SET Environment.reqServiseName = qDetails.Values.PROC_CODE;
+						SET Environment.reqServiseName = qDetails.Values.SERVICE_NAME;
 						SET Environment.resQName = qDetails.Values.RES_QUEUE;
 						SET OutputRoot.Properties = InputRoot.Properties;
 						SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = Environment.MQRFH2.RequestIdentifier;
