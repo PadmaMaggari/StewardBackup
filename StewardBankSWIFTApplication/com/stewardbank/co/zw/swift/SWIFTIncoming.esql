@@ -8,9 +8,10 @@ CREATE COMPUTE MODULE SWIFTIncoming_FramingT24DropLocation
 	BEGIN
 		 CALL FramingT24DropLocation();
 		RETURN TRUE;
+		
 	END;
 	CREATE PROCEDURE FramingT24DropLocation() BEGIN
-		SET OutputRoot.Properties = InputRoot.Properties;
+		
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE reqMsg CHARACTER;
@@ -46,10 +47,11 @@ CREATE COMPUTE MODULE SWIFTIncoming_FramingT24DropLocation
 			CALL writeToLogFile(MessageFlowLabel, 'SwiftInLog', 'DEBUG','T24System Path:'||SwiftIncomingT24Dir) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SwiftInLog', 'DEBUG','************Swift Incoming logging Completed**********') INTO rc;
 		END IF;
-		SET OutputLocalEnvironment.Destination.File.Directory = SwiftIncomingT24Dir ;
-		SET OutputLocalEnvironment.Destination.File.Name = InputLocalEnvironment.File.Name ;
-		SET OutputRoot = InputRoot ;
-	END ;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.BLOB.BLOB = InputRoot.BLOB.BLOB ;
+		SET OutputLocalEnvironment.Destination.File.Remote.ServerDirectory = SwiftIncomingT24Dir ;
+		SET OutputLocalEnvironment.Destination.File.Name = BrokerName||'_'||InputLocalEnvironment.File.Name ;
+		END ;
 END MODULE;
 CREATE COMPUTE MODULE SWIFTIncoming_GenerateExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
