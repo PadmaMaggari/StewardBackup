@@ -68,12 +68,12 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 		/*======================================= Calling data base values Existed  in cache ===================================*/
 		IF EXISTS(getDBDetailsCache.values[])THEN
 			CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Values available in shared cache: '|| getDBDetailsCache.values.*[])INTO rc;
-			SET qDetails.Values[] = SELECT A.SERVICE_NAME,A.MSGDOMAIN,A.REQ_QUEUE,A.RES_QUEUE FROM getDBDetailsCache.values[] AS A WHERE A.SERVICE_NAME = serviceName AND A.MSGDOMAIN = domainName ;
+			SET qDetails.Values[] = SELECT A.SERVICE_NAME,A.MSGDOMAIN,A.TCP_REQ_QNAME,A.TCP_RES_QNAME FROM getDBDetailsCache.values[] AS A WHERE A.SERVICE_NAME = serviceName AND A.MSGDOMAIN = domainName ;
 			IF EXISTS(qDetails.Values[]) THEN
-				IF FIELDNAME(qDetails.Values.MSGDOMAIN) IS NOT NULL AND FIELDNAME(qDetails.Values.REQ_QUEUE) IS NOT NULL AND FIELDNAME(qDetails.Values.RES_QUEUE)IS NOT NULL THEN
-					SET Environment.reqQName = qDetails.Values.REQ_QUEUE;
+				IF FIELDNAME(qDetails.Values.MSGDOMAIN) IS NOT NULL AND FIELDNAME(qDetails.Values.TCP_REQ_QNAME) IS NOT NULL AND FIELDNAME(qDetails.Values.TCP_RES_QNAME)IS NOT NULL THEN
+					SET Environment.reqQName = qDetails.Values.TCP_REQ_QNAME;
 					SET Environment.reqServiseName = qDetails.Values.SERVICE_NAME;
-					SET Environment.resQName = qDetails.Values.RES_QUEUE;
+					SET Environment.resQName = qDetails.Values.TCP_RES_QNAME;
 					SET OutputRoot.Properties = InputRoot.Properties;
 					SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = Environment.MQRFH2.RequestIdentifier;
 					SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
@@ -85,12 +85,12 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Service Name ============')INTO rc;
 					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG',serviceName)INTO rc;
 					PROPAGATE TO TERMINAL 'out';
-				ELSEIF FIELDNAME(qDetails.Values.REQ_QUEUE) IS NULL THEN
+				ELSEIF FIELDNAME(qDetails.Values.TCP_REQ_QNAME) IS NULL THEN
 					CALL errorResponse('','No Request Queue Available','ESB_001',serviceName);
 					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Request Queue Available')INTO rc;
 					RETURN;
 
-				ELSEIF FIELDNAME(qDetails.Values.RES_QUEUE) IS NULL THEN
+				ELSEIF FIELDNAME(qDetails.Values.TCP_RES_QNAME) IS NULL THEN
 					CALL errorResponse(domainName,'No Response Queue Available','ESB_002',serviceName);
 					CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Response Queue Available')INTO rc;
 					RETURN;
@@ -104,12 +104,12 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 			ELSE	
 				CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Calling the Cache')INTO rc;
 				CALL CALL_STORED_CACHE(serviceName,domainName);
-				SET qDetails.Values[] = SELECT A.SERVICE_NAME,A.MSGDOMAIN,A.REQ_QUEUE,A.RES_QUEUE FROM getDBDetailsCache.values[] AS A WHERE A.SERVICE_NAME = serviceName AND A.MSGDOMAIN = domainName ;
+				SET qDetails.Values[] = SELECT A.SERVICE_NAME,A.MSGDOMAIN,A.TCP_REQ_QNAME,A.TCP_RES_QNAME FROM getDBDetailsCache.values[] AS A WHERE A.SERVICE_NAME = serviceName AND A.MSGDOMAIN = domainName ;
 				IF EXISTS(qDetails.Values[]) THEN
-					IF FIELDNAME(qDetails.Values.MSGDOMAIN) IS NOT NULL AND FIELDNAME(qDetails.Values.REQ_QUEUE) IS NOT NULL AND FIELDNAME(qDetails.Values.RES_QUEUE)IS NOT NULL THEN
-						SET Environment.reqQName = qDetails.Values.REQ_QUEUE;
+					IF FIELDNAME(qDetails.Values.MSGDOMAIN) IS NOT NULL AND FIELDNAME(qDetails.Values.TCP_REQ_QNAME) IS NOT NULL AND FIELDNAME(qDetails.Values.TCP_RES_QNAME)IS NOT NULL THEN
+						SET Environment.reqQName = qDetails.Values.TCP_REQ_QNAME;
 						SET Environment.reqServiseName = qDetails.Values.SERVICE_NAME;
-						SET Environment.resQName = qDetails.Values.RES_QUEUE;
+						SET Environment.resQName = qDetails.Values.TCP_RES_QNAME;
 						SET OutputRoot.Properties = InputRoot.Properties;
 						SET OutputRoot.MQRFH2.usr.SoapReplyIdentifier = Environment.MQRFH2.RequestIdentifier;
 						SET OutputRoot.MQRFH2.usr.dbLog = Environment.MQRFH2.usr;
@@ -121,11 +121,11 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Service Name ============')INTO rc;
 						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG',serviceName)INTO rc;
 						PROPAGATE TO TERMINAL 'out';
-					ELSEIF FIELDNAME(qDetails.Values.REQ_QUEUE) IS NULL THEN
+					ELSEIF FIELDNAME(qDetails.Values.TCP_REQ_QNAME) IS NULL THEN
 						CALL errorResponse(domainName,'No Request Queue Available','ESB_001',serviceName);
 						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Request Queue Available')INTO rc;
 						RETURN;
-					ELSEIF FIELDNAME(qDetails.Values.RES_QUEUE) IS NULL THEN
+					ELSEIF FIELDNAME(qDetails.Values.TCP_RES_QNAME) IS NULL THEN
 						CALL errorResponse(domainName,'No Response Queue Available','ESB_002',serviceName);
 						CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','No Response Queue Available')INTO rc;
 						RETURN;
@@ -154,7 +154,7 @@ CREATE COMPUTE MODULE SoapIncomingRouter_Compute
 
 	CREATE PROCEDURE CALL_STORED_CACHE (IN serviceName CHARACTER, IN domainName CHARACTER)
 	BEGIN
-		SET getDBDetailsCache.values[] = SELECT  * FROM Database.INTEGRATION_SOL_DETAILS ;
+		SET getDBDetailsCache.values[] = SELECT  * FROM Database.STWB_ESB_TRAN_DETAILS ;
 		IF EXISTS(getDBDetailsCache.values[]) OR getDBDetailsCache IS NOT NULL THEN
 			CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','Retrieved values from Database')INTO rc;
 		ELSE
