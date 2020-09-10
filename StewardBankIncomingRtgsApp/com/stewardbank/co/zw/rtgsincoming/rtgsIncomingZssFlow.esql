@@ -12,7 +12,9 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_GeneratingReqToZss
 	 BEGIN
 		DECLARE rc BOOLEAN ;
 		DECLARE trnTime TIMESTAMP CURRENT_GMTTIMESTAMP;
-		DECLARE Field12,Field13,Field7 CHARACTER;
+		--Assigning values to ISO fields
+		DECLARE Field12,Field13,Field7,charField4 CHARACTER;
+		DECLARE Field4 DECIMAL ;
 		SET Field12 = CAST(trnTime AS CHARACTER FORMAT 'HHmmss');
 		SET Field13 = CAST(trnTime AS CHARACTER FORMAT 'MMdd');
 		SET Field7 = CAST(trnTime AS CHARACTER FORMAT 'MMddHHmmss');
@@ -25,6 +27,8 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_GeneratingReqToZss
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE isoField43,isoField43Data,iso127_19Field CHARACTER ;
 		DECLARE inDomainDataRef REFERENCE TO InputRoot.DFDL;
+		SET Field4 = CAST(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 10) AS DECIMAL);
+		SET charField4 = CAST(Field4 AS CHARACTER);
 		SET isoField43 = Environment.Variables.drAcctId||Environment.Variables.ordCustomerName;
 		IF (LENGTH(isoField43) > 41) THEN
 			SET isoField43Data = SUBSTRING(isoField43 FROM 1 FOR 40);
@@ -58,7 +62,12 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_GeneratingReqToZss
 			SET outRef.MTI_MessageFunction = 0;
 			SET outRef.MTI_MessageOrigin = 0;
 			SET outRef.ProcessingCode_003 = '212000';
-			SET outRef.AmountTransaction_004 = CAST(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 10) AS DECIMAL);
+--			IF CONTAINS(charField4,'.') THEN
+--				SET outRef.AmountTransaction_004 = Field4 ;
+--			ELSE
+				SET charField4 = charField4 ||'00';
+				SET outRef.AmountTransaction_004 = CAST(charField4 AS DECIMAL );	
+--			END IF;
 			SET outRef.TransmissionDatetime_007 = Field7;
 			SET outRef.SystemsTraceAuditNumber_011 = '397520';
 			SET outRef.TimeLocalTransaction_012 = Field12 ;
