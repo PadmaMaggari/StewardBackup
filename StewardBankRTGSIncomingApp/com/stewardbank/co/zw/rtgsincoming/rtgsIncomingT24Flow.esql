@@ -48,7 +48,7 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GeneratingT24Request
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',RtgsIncomingT24Url||RtgsIncomingUrlPathparameters) INTO rc;
 		  END IF;	
 		  		 --******************Insertingvalues into ISAVE table with T24 Request Message ************
-		  		  CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'NA','PENDING',envRef.File.Name,'NA',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'NA','NA','PENDING',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'RTGS INCOMING','PENDING','NA');
+		  		  CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'NA','PENDING',envRef.File.Name,'NA',SUBSTRING(envRef.transactionAmount BEFORE ','),envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'NA','NA','PENDING',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'RTGS INCOMING','PENDING','NA');
 		 ELSE
 		  SET outRef.debitAccountId = envRef.drAcctId;
 		  SET outRef.debitCurrency = envRef.debitCurrency;
@@ -67,7 +67,7 @@ CREATE COMPUTE MODULE rtgsIncomingT24Flow_GeneratingT24Request
 			CALL writeToLogFile(MessageFlowLabel, 'RTGSIncoming', 'DEBUG',RtgsReturnsT24Url||RtgsIncomingUrlPathparameters) INTO rc;
 		  END IF;	
 		  		 --******************Insertingvalues into ISAVE table with T24 Request Message ************
-		  CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'NA','PENDING',envRef.File.Name,'NA',envRef.transactionAmount,envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'NA','NA','PENDING',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'RTGS RETURNS','PENDING','NA');
+		  CALL insertIntoSbIsaveTable(envRef.Guid,CAST(inDomainDataRef.MT103.header.Block1.SessionNumber AS CHARACTER),CAST(CURRENT_TIMESTAMP AS CHARACTER),CAST(inDomainDataRef.MT103.header.Block1.SequenceNum AS CHARACTER),'NA','PENDING',envRef.File.Name,'NA',SUBSTRING(envRef.transactionAmount BEFORE ','),envRef.drAcctId,envRef.crAcctId,envRef.exeDate,reqMsg,'NA','NA','PENDING',envRef.File.Status,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'RTGS RETURNS','PENDING','NA');
 		 END IF;
 		 	  --  SET OutputRoot = NULL;
 			SET OutputLocalEnvironment.Destination.HTTP.RequestLine.Method = 'POST';
