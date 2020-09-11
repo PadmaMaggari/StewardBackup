@@ -1,0 +1,274 @@
+BROKER SCHEMA com.stewardbank.co.zw.fundingagentlines
+path com.stewardbank.co.zw.common.esql;
+DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
+DECLARE ExceptionQ,DSN EXTERNAL CHARACTER '';
+DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
+DECLARE LOG4J_INIT_ERROR_MSG,IsLogRequired EXTERNAL CHARACTER '';
+DECLARE FundingAgentLinesBackendUrl,ALL_SB_HTTP_RES EXTERNAL CHARACTER '';
+CREATE COMPUTE MODULE FundingAgentLines_GeneratingReqToMobiquity
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		  CALL reqToMobiquity();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE reqToMobiquity() BEGIN
+		SET Environment.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			DECLARE msg CHARACTER ;
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		SET Environment.MQRFH2.RequestIdentifier = InputRoot.MQRFH2.RequestIdentifier;
+		--SET Environment.Variables.RequestIdentifier=Environment.MQRFH2.RequestIdentifier;
+		/* =================== CALLING DB LOGGING   ==============*/
+	    IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
+			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		/* ==================== Database Logging End ==================== */
+		/* =================== CALLING  LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'FundingAgentLines', 'DEBUG','****..............Initializing FundingAgentLines logging...........*****') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'FundingAgentLines', 'DEBUG','Application Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'FundingAgentLines', 'DEBUG', Environment.Variables.reqMsg) INTO rc;
+		END IF;
+		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
+		/*===========Framing request to Mobiquity============*/
+		DECLARE reqData CHARACTER '';	
+		DECLARE env REFERENCE TO Environment.Variables;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data.FundingAgentLines.body.COMMAND ;
+			-- Generating unique Ftxnid  
+			 DECLARE ftxnid ROW;
+			 DECLARE ftxnidVal INTEGER;
+			 DECLARE ftxnId CHARACTER ;
+			 --set ftxnid.values[] = PASSTHRU('select FTXNIDSEQ.NEXTVAL AS SEQ from DUAL'); --Retriving Sequence from Oracle
+			  set ftxnid.values[] = PASSTHRU('SELECT NEXT VALUE FOR FTXNIDSEQ AS SEQ'); --Retriving Sequence from Ms Sql 
+			 SET ftxnidVal = ftxnid.values.SEQ ;
+			 SET ftxnId = CAST(ftxnidVal AS CHARACTER);
+			 DECLARE ftxnUniqId CHARACTER;
+			 DECLARE ftxnidLength CHARACTER;
+			 set ftxnidLength = LENGTH(ftxnId);
+			 if (ftxnidLength = 1 or ftxnidLength = 2 or ftxnidLength = 3 or ftxnidLength = 4 OR ftxnidLength = 5 OR ftxnidLength = 6 OR ftxnidLength = 7 OR ftxnidLength = 8) then
+			 set ftxnUniqId = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(ftxnidLength,'1','00000000'),'2','0000000'),'3','000000'),'4','00000'),'5','0000'),'6','000'),'7','00'),'8','0')||ftxnId; 
+			 else
+			 set ftxnUniqId = ftxnId;
+			 end IF;
+	 
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME 'COMMAND'; 
+		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data.COMMAND ;
+		SET outRef.TYPE = inRef.TYPE;
+		SET outRef.MSISDN2 = inRef.MSISDN2;
+		SET outRef.PROVIDER = inRef.PROVIDER;
+		SET outRef.PAYID = inRef.PAYID;
+		SET outRef.BANKID = inRef.BANKID;
+		SET outRef.AMOUNT = inRef.AMOUNT;
+		SET outRef.LANGUAGE1 = inRef.LANGUAGE1;
+		SET outRef.FTXNID = 'FTxn'||ftxnUniqId; 
+		SET outRef.USERTYPE = inRef.USERTYPE;
+		SET outRef.REMARKS = inRef.REMARKS;
+		SET outRef.BLOCKSMS = inRef.BLOCKSMS;
+		SET outRef.SVATYPE = inRef.SVATYPE ;
+		SET outRef.INVOICENUMBER = inRef.INVOICENUMBER ;
+		SET outRef.PAYERMSISDN = inRef.PAYERMSISDN ;
+		SET outRef.TRANSACTORMSISDN = inRef.TRANSACTORMSISDN ;
+		SET reqData = getPayLoad(FIELDNAME(OutputRoot.JSON),outRef,encodeRef,ccidRef);
+		SET Environment.Variables.jsonData = outRef;
+		SET OutputRoot = NULL;
+		
+		/* =================== CALLING DB LOGGING   ==============*/
+	  IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,reqData,'Mobiquity Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,
+			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		/* ==================== Database Logging End ==================== */
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON.Data.COMMAND = Environment.Variables.jsonData;
+			/* =================== CALLING  LOG4J LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'FundingAgentLines', 'DEBUG','Mobiquity Url::'||FundingAgentLinesBackendUrl) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'FundingAgentLines', 'DEBUG','Request to Mobiquity::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'FundingAgentLines', 'DEBUG',reqData) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'FundingAgentLines', 'DEBUG','Sending Request to Mobiquity::') INTO rc;
+		END IF;
+		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
+		
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = FundingAgentLinesBackendUrl;
+		
+	END;
+END MODULE;
+CREATE COMPUTE MODULE FundingAgentLines_GeneratingResToFrontEnd
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL resToFrontend();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE resToFrontend() BEGIN
+		SET Environment.MQMD = InputRoot.MQMD;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE outRef REFERENCE TO OutputRoot;
+		DECLARE responseCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		DECLARE resMsg CHARACTER;
+--		IF FIELDNAME(InputBody) LIKE 'JSON' THEN
+--			DECLARE inRef REFERENCE TO InputRoot.JSON.Data.COMMAND;
+--			SET resMsg = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+--		ELSE
+--			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
+--			SET resMsg = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+--		END IF;
+			DECLARE inRef REFERENCE TO InputRoot.JSON.Data.COMMAND;
+			SET resMsg = getPayLoad(FIELDNAME(InputBody),inRef,encodeRef,ccidRef);
+		DECLARE rc BOOLEAN FALSE;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'FundingAgentLines', 'DEBUG','..............Mobiquity Response..........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'FundingAgentLines', 'DEBUG',resMsg) INTO rc;
+		END IF;
+		/* =================== CALLING DB LOGGING   ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,resMsg,'Mobiquity Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		END IF; 
+		/* =================== CALLING DB LOGGING ENDING  ==============*/
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('FundingAgentLines');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.FundingAgentLines NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.FundingAgentLines NAME ('body');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.FundingAgentLines.body NAME 'COMMAND';
+		DECLARE outputRef REFERENCE TO OutputRoot.JSON.Data;
+		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.FundingAgentLines.header;
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.FundingAgentLines.body.COMMAND;
+		
+		IF responseCode LIKE '200' AND inRef.TXNSTATUS LIKE '200' THEN
+			SET headRef = Environment.MQRFH2.header ;
+			SET headRef.status = 'SUCCESS';
+			SET headRef.responseCode = responseCode ;
+			SET bodyRef = inRef;
+		ELSEIF responseCode LIKE '200' AND inRef.TXNSTATUS NOT LIKE '200' THEN
+			SET headRef.channel = 'Branch';
+			SET headRef.processingCode = '050000';
+			SET headRef.status = inRef.COMMAND.MESSAGE ;
+			SET headRef.responseCode = responseCode;
+			SET bodyRef = inRef;
+		ELSE 
+			SET headRef.channel ='Branch';
+			SET headRef.processingCode = '050000';
+			SET headRef.status = 'FAILED';
+			SET headRef.responseCode = responseCode;
+			SET bodyRef = inRef ;	
+		END IF;	
+		-----------------
+		DECLARE frontendRes CHARACTER ;
+		SET frontendRes = getPayLoad(FIELDNAME(OutputRoot.JSON),outputRef,encodeRef,ccidRef);
+		DECLARE envref REFERENCE TO Environment.JSON.Data;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
+		CREATE LASTCHILD OF envref AS envref NAME 'Data';
+		SET envref = outputRef ;
+		SET OutputRoot = NULL;
+		
+		/* =================== CALLING DB LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,frontendRes,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		END IF; 
+		/* =================== CALLING DB LOGGING ENDING  ==============*/
+		SET OutputRoot.Properties=InputRoot.Properties;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.JSON.Data = envref;
+		
+		/* =================== CALLING LOG4J LOGGING  ==============*/
+		IF IsLogRequired LIKE 'Y' THEN
+			DECLARE outDomainDataRef REFERENCE TO OutputRoot.JSON.Data;
+			CALL writeToLogFile(MessageFlowLabel, 'FundingAgentLines', 'DEBUG','Application Response ::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'FundingAgentLines', 'DEBUG',frontendRes) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'FundingAgentLines', 'DEBUG','************************End of FundingAgentLines Application Logging****************') INTO rc;
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
+	END;
+END MODULE;
+CREATE COMPUTE MODULE FundingAgentLines_BuildException
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL buildException();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE buildException() BEGIN
+		DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE errMsg CHARACTER;
+		IF CONTAINS(excpRef.excpText,'connection refused') OR CONTAINS(excpRef.excpText,'SOCKET error') THEN
+			SET errMsg = 'Mobiquity Server Down';
+
+		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
+			SET errMsg = 'No Response from Mobiquity Server';
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'FundingAgent';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+		CALL BuildExceptionDetails(excpRef,outRef,'FundingAgent');
+		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('FundingAgent');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef.channel = 'Branch';
+		SET headerRef.processingCode = '050000';
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.FundingAgent.ErrorCode;
+		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.FundingAgent.ErrorType,'');
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef); 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;  
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc; 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ExceptionQ;
+		PROPAGATE TO TERMINAL 'out';
+		------------Error Logging in DB----------
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.FundingAgent.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q ;
+	END;
+END MODULE;
+
