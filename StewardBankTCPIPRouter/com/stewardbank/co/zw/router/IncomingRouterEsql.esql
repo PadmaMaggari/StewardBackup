@@ -93,29 +93,9 @@ DECLARE ISO EXTERNAL CHARACTER '';
 		--========================== END OF RAW AUDIT DB LOGGING ======================
 		SET OutputRoot.Properties= InputRoot.Properties;
 		SET OutputRoot.MQRFH2= Environment.MQRFH2;
-		IF FIELDNAME(inRef.ResponseCode_039) IS NOT NULL AND (version||class||funct||origin = '0210' OR version||class||funct||origin = '0410') THEN
+		--IF domainName LIKE 'DFDL' THEN
 			IF EXISTS(getDBDetailsCache.Values[]) THEN
-				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','Values available in shared cache: '||getDBDetailsCache.Values.*[])INTO rc;
-				--SET DBDetails.values[] = select A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData and A.DOMAIN = domainName;
-				DECLARE qDetails ROW;
-				SET qDetails.values[] = SELECT P.HTTP_REQ_QNAME, P.HTTP_RES_QNAME FROM getDBDetailsCache.Values[] AS P WHERE P.PROC_CODE = procCodeData;
-				SET QueueName = qDetails.values;
-				SET OutputRoot.MQRFH2.usr.resQueueName = qDetails.values.HTTP_RES_QNAME;
-			ELSE
-				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','Calling the Cache')INTO rc;
-				CALL STORE_CACHE(procCodeData);
-				DECLARE DBValues ROW;
-				SET DBValues.values[] = SELECT T.HTTP_REQ_QNAME, T.HTTP_RES_QNAME FROM getDBDetailsCache.Values[] AS T WHERE T.PROC_CODE = procCodeData;
-				SET QueueName = DBValues.values;
-				SET OutputRoot.MQRFH2.usr.resQueueName = DBValues.values.HTTP_RES_QNAME;
-			END IF;
-			SET OutputRoot.DFDL = InputRoot.DFDL;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;
-			PROPAGATE TO TERMINAL 'out';
-		ELSE
-			--IF domainName LIKE 'DFDL' THEN
-			IF EXISTS(getDBDetailsCache.Values[]) THEN
-				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','Values available in shared cache: '||getDBDetailsCache.Values.*[])INTO rc;
+				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','Values available in shared cache: ')INTO rc;
 				--SET DBDetails.values[] = select A.PROC_CODE,A.REQ_QUEUE_NAME,A.RESQ_QUEUE_NAME,A.DOMAIN from Database.DSN.SYSTEM.INTEGRATION_SOL_DETAILS AS A WHERE A.PROC_CODE = procCodeData and A.DOMAIN = domainName;
 				DECLARE qDetails ROW;
 				IF version||class||funct||origin = '0800' OR version||class||funct||origin = '0801' THEN
@@ -147,7 +127,6 @@ DECLARE ISO EXTERNAL CHARACTER '';
 			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG',QueueName) INTO rc ;
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = QueueName;
 			PROPAGATE TO TERMINAL 'out' ;
-		END IF;
 	END;
 
 	CREATE PROCEDURE STORE_CACHE (IN procCodeData CHARACTER)
