@@ -55,7 +55,7 @@ CREATE COMPUTE MODULE RtgsIncomingDbReprocess_PickFilesfrmDbFailure
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
 		CALL writeToLogFile(MessageFlowLabel,'RTGSFileReprocess', 'DEBUG','..............Start picking up the files from Dbfailure folder ...........') INTO rc;
-		CALL writeToLogFile(MessageFlowLabel,'RTGSFileReprocess', 'DEBUG','RTGSIncoming Reprocess path for DbFailure :'||dbFailureFolderPath||dateFolder) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel,'RTGSFileReprocess', 'DEBUG','RTGSIncoming Reprocess path for DbFailure :'||dbFailureFolderPath) INTO rc;
 		CALL writeToLogFile(MessageFlowLabel,'RTGSFileReprocess', 'DEBUG','RTGSIncoming Request Reprocess time is:'||triggerTime) INTO rc;
 		END IF;
 		WHILE Environment.NoMatchReason IS  NULL DO 
