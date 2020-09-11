@@ -157,16 +157,17 @@ CREATE COMPUTE MODULE IndigoFlow_ReqToFrondEnd
 		DECLARE outRefSoap REFERENCE TO OutputRoot.XMLNSC;
 		
 		
---		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.enquiryInputCollection.columnName = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.enquiryInputCollection.columnName;
---		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.enquiryInputCollection.criteriaValue =  InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.enquiryInputCollection.criteriaValue;
---		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.enquiryInputCollection.operand = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.enquiryInputCollection.operand;
---		
---		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.g = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.g;
---		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.m = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.m
---		
---		
---		
---		
+		
+		
+--		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:Account = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:Account;
+--		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:AccountName = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:AccountName;
+--		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:Balance = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType;
+--		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:Category = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType;
+--		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:CURRENCY = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType;
+--		SET OutputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:SelAccount = InputRoot.SOAP.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType;
+--		 
+		
+			
 		CALL soapResFieldToFieldMapping(bindingOperatingName,inRefSoap,outRefSoap,serviseName);
 
 		DECLARE OutRefer REFERENCE TO OutputRoot.XMLNSC;
@@ -671,15 +672,23 @@ BEGIN
 		SET outRefSoap.S:Envelope.s:Header.(XMLNSC.NamespaceDecl)xmlns:s = s;
 
 		DECLARE ns2 NAMESPACE 'T24WebServicesImpl';
-		SET outRefSoap.S:Envelope.S:Body.ns2:AccountDetailsResponse.(XMLNSC.NamespaceDecl)xmlns:ns2=ns2;
-		DECLARE OutBodyRef REFERENCE TO outRefSoap.S:Envelope.S:Body.ns2:AccountDetailsResponse;
+		SET outRefSoap.S:Envelope.S:Body.ns2:AccountBalanceResponse.(XMLNSC.NamespaceDecl)xmlns:ns2=ns2;
+		DECLARE OutBodyRef REFERENCE TO outRefSoap.S:Envelope.S:Body.ns2:AccountBalanceResponse;
 
 		SET OutBodyRef.Status.application = serviseName.Status.application;
 		SET OutBodyRef.Status.messageId = serviseName.Status.messageId;
 		SET OutBodyRef.Status.messages = serviseName.Status.messages;
 		SET OutBodyRef.Status.successIndicator = serviseName.Status.successIndicator;
 		SET OutBodyRef.Status.transactionId = serviseName.Status.transactionId;
-
+		
+		
+		SET OutBodyRef.GETACCTBALType.gGETACCTBALDetailType.mGETACCTBALDetailType.ID = inRefSoap.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:Account;
+		SET OutBodyRef.GETACCTBALType.gGETACCTBALDetailType.mGETACCTBALDetailType.ONLINEACTUALBAL = inRefSoap.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:Balance;
+		SET OutBodyRef.GETACCTBALType.gGETACCTBALDetailType.mGETACCTBALDetailType.CURRENCY = inRefSoap.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:CURRENCY;
+		SET OutBodyRef.GETACCTBALType.gGETACCTBALDetailType.mGETACCTBALDetailType.ACCOUNTTITLE1 = inRefSoap.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:AccountName;
+		SET OutBodyRef.GETACCTBALType.gGETACCTBALDetailType.mGETACCTBALDetailType.Category = inRefSoap.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:Category;
+		SET OutBodyRef.GETACCTBALType.gGETACCTBALDetailType.mGETACCTBALDetailType.SelAccount = inRefSoap.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:SelAccount;
+		 
 
 	WHEN bindingOperatingName LIKE 'CardChargesResponse' THEN		
 
@@ -1031,11 +1040,13 @@ BEGIN
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.ResponseCode = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:ResponseCode;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.CustomerID = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:CustomerID;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.CustomerName = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:CustomerName;
-		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.Addrline1 = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:Addrline1;
-		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.AddressLine2 = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:AddressLine2;
+		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.AddrLine1 = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:Addrline1;
+		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.AddrLine2 = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:AddressLine2;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.City = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:City;	
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.StateCode = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:StateCode;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.PostalCode = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:PostalCode;
+		
+		                   																											
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.CustomerPhoneNo = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:CustomerPhoneNo;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.AccountType = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:AccountType;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.AccountCurrency= inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:AccountCurrency;
