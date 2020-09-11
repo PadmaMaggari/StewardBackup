@@ -50,7 +50,7 @@ CREATE COMPUTE MODULE SWIFTIncoming_FramingT24DropLocation
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.BLOB.BLOB = InputRoot.BLOB.BLOB ;
 		SET OutputLocalEnvironment.Destination.File.Remote.ServerDirectory = SwiftIncomingT24Dir ;
-		SET OutputLocalEnvironment.Destination.File.Name = BrokerName||'_'||InputLocalEnvironment.File.Name ;
+		SET OutputLocalEnvironment.Destination.File.Name = InputLocalEnvironment.File.Name ;
 		END ;
 END MODULE;
 CREATE COMPUTE MODULE SWIFTIncoming_GenerateExceptionDetails
@@ -76,16 +76,16 @@ CREATE COMPUTE MODULE SWIFTIncoming_GenerateExceptionDetails
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE exe_Desc CHARACTER'';  
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'Swift';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SwiftIn';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;    
-		CALL BuildExceptionDetails(excpRef,outRef,'Swift');
+		CALL BuildExceptionDetails(excpRef,outRef,'SwiftIn');
 		SET Environment.userDefineError = OutputRoot.XMLNSC;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SB_EXCQ ;
 		PROPAGATE TO TERMINAL 'out';
 				-- DB Logging===================
 		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
 		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
-		CALL Error_DBLogging(Environment.Variables.Guid,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.userDefineError.Swift.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.Variables.Guid,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.userDefineError.SwiftIn.ErrorCode,outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out';
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............End of SwiftIncoming Exception logging...........') INTO rc;
