@@ -8,7 +8,7 @@ DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER'';  
 DECLARE UUID SHARED CHARACTER '';
-DECLARE ZSS_Queue EXTERNAL CHARACTER ''; 
+DECLARE ZSS_Queue, T24_Queue EXTERNAL CHARACTER ''; 
 CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -96,7 +96,7 @@ CREATE COMPUTE MODULE SalaryCorporatePaymentsFlow_RouteBasedOnT24OrZSS
 					SET OutputRoot.Properties = InputRoot.Properties;
 					SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 					SET OutputRoot.DFDL = Environment.Variable.data;
-					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SCP_T24_REQ';
+					SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = T24_Queue; 
 					PROPAGATE TO TERMINAL 'out';
 				END IF;
 			END IF;
