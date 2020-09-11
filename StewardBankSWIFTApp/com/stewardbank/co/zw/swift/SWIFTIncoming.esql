@@ -1,0 +1,94 @@
+BROKER SCHEMA com.stewardbank.co.zw.swift
+
+path com.stewardbank.co.zw.common.esql ;
+DECLARE LOG_CONFIG_PATH,LOG4J_INIT_ERROR,SB_EXCQ,ERROR_AUDIT_Q,SWIFT_SB_Q,IsLogRequired,RAW_AUDIT_Q ,SwiftIncomingT24Dir EXTERNAL CHARACTER ' ';
+DECLARE UUID SHARED CHARACTER '';
+CREATE COMPUTE MODULE SWIFTIncoming_FramingT24DropLocation
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 CALL FramingT24DropLocation();
+		RETURN TRUE;
+		
+	END;
+	CREATE PROCEDURE FramingT24DropLocation() BEGIN
+		
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE reqMsg CHARACTER;
+		SET UUID = UUIDASCHAR;
+		SET	Environment.Variables.Guid = UUID ; 
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.BLOB;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		SET Environment.Variables.reqMsg = reqMsg ;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF (rc = FALSE) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+		END IF;
+		IF IsLogRequired LIKE 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel, 'SwiftInLog', 'DEBUG','..............Start SwiftIncoimng Application logging...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'SwiftInLog', 'DEBUG','Swift Request in RAW data in BLOB start') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'SwiftInLog', 'DEBUG',reqMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'SwiftInLog', 'DEBUG','Swift Request in RAW data end') INTO rc;
+		END IF;
+		/* =================== CALLING DB LOGGING   ==============*/
+	    IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(UUID,reqMsg,'SWIFTIncoming Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',outRefer);
+		END IF;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		/* ==================== Database Logging End ==================== */
+		SET OutputRoot = NULL;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'SwiftInLog', 'DEBUG','***************Logging T24 System Path*********') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SwiftInLog', 'DEBUG','T24System Path:'||SwiftIncomingT24Dir) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SwiftInLog', 'DEBUG','************Swift Incoming logging Completed**********') INTO rc;
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.BLOB.BLOB = InputRoot.BLOB.BLOB ;
+		SET OutputLocalEnvironment.Destination.File.Remote.ServerDirectory = SwiftIncomingT24Dir ;
+		SET OutputLocalEnvironment.Destination.File.Name = InputLocalEnvironment.File.Name ;
+		END ;
+END MODULE;
+CREATE COMPUTE MODULE SWIFTIncoming_GenerateExceptionDetails
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		 SET OutputRoot.Properties = InputRoot.Properties;
+		 CALL BuildErrorMessage();
+		RETURN TRUE;
+	END;
+	CREATE PROCEDURE BuildErrorMessage() BEGIN
+		DECLARE dbLoggingDate TIMESTAMP CURRENT_DATE;
+		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+		DECLARE rc BOOLEAN FALSE;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF (rc = FALSE) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR;
+		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............Start SwiftIncoming Exception logging...........') INTO rc;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		DECLARE exe_Desc CHARACTER'';  
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'SwiftIn';
+		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;    
+		CALL BuildExceptionDetails(excpRef,outRef,'SwiftIn');
+		SET Environment.userDefineError = OutputRoot.XMLNSC;
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SB_EXCQ ;
+		PROPAGATE TO TERMINAL 'out';
+				-- DB Logging===================
+		SET exe_Desc = getPayLoad(FIELDNAME(InputBody),domainDataRef,encodeRef,ccidRef);
+		CALL writeToLogFile(MessageFlowLabel,'ErrorLogger','ERROR','Exception Details: '||exe_Desc) INTO rc ;
+		CALL Error_DBLogging(Environment.Variables.Guid,Environment.Variables.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),' ',CAST(excpRef.excpNumber AS CHARACTER),Environment.userDefineError.SwiftIn.ErrorCode,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out';
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............End of SwiftIncoming Exception logging...........') INTO rc;
+	END;
+END MODULE;
+
