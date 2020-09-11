@@ -5,8 +5,8 @@ DECLARE ERROR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE ExceptionQ,DSN EXTERNAL CHARACTER '';
 DECLARE LOG_CONFIG_PATH EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG,IsLogRequired EXTERNAL CHARACTER '';
-DECLARE EcocashFundingBackendUrl,ALL_SB_HTTP_RES EXTERNAL CHARACTER '';
-CREATE COMPUTE MODULE EchoCashFunding_GeneratingReqToMobiquity
+DECLARE FundingAgentLinesBackendUrl,ALL_SB_HTTP_RES EXTERNAL CHARACTER '';
+CREATE COMPUTE MODULE FundingAgentLines_GeneratingReqToMobiquity
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		  CALL reqToMobiquity();
@@ -102,18 +102,18 @@ CREATE COMPUTE MODULE EchoCashFunding_GeneratingReqToMobiquity
 		SET OutputRoot.JSON.Data.COMMAND = Environment.Variables.jsonData;
 			/* =================== CALLING  LOG4J LOGGING   ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'EchoCashFunding', 'DEBUG','Mobiquity Url::'||EcocashFundingBackendUrl) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'EchoCashFunding', 'DEBUG','Mobiquity Url::'||FundingAgentLinesBackendUrl) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'EchoCashFunding', 'DEBUG','Request to Mobiquity::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'EchoCashFunding', 'DEBUG',reqData) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'EchoCashFunding', 'DEBUG','Sending Request to Mobiquity::') INTO rc;
 		END IF;
 		/* =================== CALLING  LOG4J LOGGING ENDING  ==============*/
 		
-		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = EcocashFundingBackendUrl;
+		SET OutputLocalEnvironment.Destination.HTTP.RequestURL = FundingAgentLinesBackendUrl;
 		
 	END;
 END MODULE;
-CREATE COMPUTE MODULE EchoCashFunding_GeneratingResToFrontEnd
+CREATE COMPUTE MODULE FundingAgentLines_GeneratingResToFrontEnd
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 CALL resToFrontend();
@@ -206,7 +206,7 @@ CREATE COMPUTE MODULE EchoCashFunding_GeneratingResToFrontEnd
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 	END;
 END MODULE;
-CREATE COMPUTE MODULE EchoCashFunding_BuildException
+CREATE COMPUTE MODULE FundingAgentLines_BuildException
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 CALL buildException();
