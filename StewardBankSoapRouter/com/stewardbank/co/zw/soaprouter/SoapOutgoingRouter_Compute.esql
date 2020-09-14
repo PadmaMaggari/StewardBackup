@@ -35,9 +35,9 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 		DECLARE inRefData REFERENCE TO InputRoot.XMLNSC.parent;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC.smallworld;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC.smallworld.Body;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		SET Environment.Variables.reqMsg = getPayLoad(domainName,InputRoot.XMLNSC,encodeRef,ccidRef);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(CAST(InputRoot.MQRFH2.usr.SoapReplyIdentifier AS CHARACTER),Environment.Variables.reqMsg,'Router Response',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.dbLog.dbLogTime,InputRoot.MQRFH2.usr.dbLog.dbLogDate,
