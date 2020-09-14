@@ -29,7 +29,33 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		CALL writeToLogFile(MessageFlowLabel,'SoapRouterLog','DEBUG','=====================================  OUTGOING  ROUTER =================================') INTO rc ;
+		--------------------small world-------------------
+		IF FIELDNAME(InputRoot.MQRFH2.smallworld.operation) IS NOT NULL THEN
+			
+		DECLARE inRefData REFERENCE TO InputRoot.XMLNSC.parent;
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC.smallworld;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,InputRoot.XMLNSC,encodeRef,ccidRef);
+		DECLARE outRefer REFERENCE TO OutputRoot;
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL DBLogging(CAST(InputRoot.MQRFH2.usr.SoapReplyIdentifier AS CHARACTER),Environment.Variables.reqMsg,'Router Response',ApplicationLabel,BrokerName,InputRoot.MQRFH2.usr.dbLog.dbLogTime,InputRoot.MQRFH2.usr.dbLog.dbLogDate,
+			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		PROPAGATE TO TERMINAL 'out1';
+		END IF;
 		
+		
+		IF IsLogRequired LIKE 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP Router Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SoapRouterLog', 'DEBUG','SOAP ID::'|| CAST(InputRoot.MQRFH2.usr.SoapReplyIdentifier AS CHARACTER)) INTO rc;
+		END IF;
+		SET OutputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier = CAST(InputRoot.MQRFH2.usr.SoapReplyIdentifier AS BLOB);
+		SET OutputRoot.SOAP = InputRoot.XMLNSC.smallworld;
+		-----------------	
+		ELSE		
 		DECLARE inRefData REFERENCE TO InputRoot.XMLNSC;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
@@ -53,6 +79,7 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 		SET OutputLocalEnvironment.Destination.SOAP.Reply.ReplyIdentifier = CAST(InputRoot.MQRFH2.usr.SoapReplyIdentifier AS BLOB);
 --		SET OutputLocalEnvironment.SOAP.Envelope = '';
 		SET OutputRoot = InputRoot;
+		END IF;
 	END;
 END MODULE;
 
