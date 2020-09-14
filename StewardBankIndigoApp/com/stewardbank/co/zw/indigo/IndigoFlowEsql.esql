@@ -24,6 +24,7 @@ DECLARE URL EXTERNAL CHARACTER'';
 DECLARE soapenv EXTERNAL NAMESPACE '';
 DECLARE ns10 NAMESPACE 'http://temenos.com/GETACCTBAL';
 DECLARE ns14 NAMESPACE 'http://temenos.com/FUNDSTRANSFER';
+DECLARE ns6 NAMESPACE 'http://temenos.com/ACCOUNT';
 DECLARE ns1 EXTERNAL NAMESPACE '';
 CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -146,9 +147,108 @@ CREATE COMPUTE MODULE IndigoFlow_ReqToFrondEnd
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		DECLARE outRefSoap REFERENCE TO OutputRoot.XMLNSC;
 		
-		
-		
-		 
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.Status.application = InputRoot.SOAP.Body.ns:AmendCardResponse.Status.application;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.Status.messageId = InputRoot.SOAP.Body.ns:AmendCardResponse.Status.messageId;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.Status.messages = InputRoot.SOAP.Body.ns:AmendCardResponse.Status.messages;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.Status.successIndicator = InputRoot.SOAP.Body.ns:AmendCardResponse.Status.successIndicator;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.Status.transactionId = InputRoot.SOAP.Body.ns:AmendCardResponse.Status.transactionId;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.id = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.id;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ACCOUNTINGCOMPANY = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ACCOUNTINGCOMPANY;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ACCOUNTOFFICER = InputRoot .SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ACCOUNTOFFICER;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ALLINONEPRODUCT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ALLINONEPRODUCT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ALLOWEDBVDATE = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ALLOWEDBVDATE;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ALLOWNETTING = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ALLOWNETTING;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTCRAUTO = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTCRAUTO;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTCRBANK = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTCRBANK;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTCRCUST = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTCRCUST;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTDRAUTO = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTDRAUTO;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTDRBANK = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTDRBANK;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTDRCUST = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTDRCUST;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:APR = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:APR;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ARRANGEMENTID = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ARRANGEMENTID;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AUDITDATETIME = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AUDITDATETIME;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AUDITORCODE = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AUDITORCODE;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AUTHORISER = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AUTHORISER;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AUTOPAYACCT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AUTOPAYACCT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AVAILABLEBALUPD = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AVAILABLEBALUPD; 
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:BALANCECONVERSIONMKT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:BALANCECONVERSIONMKT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CAPBACKVALUE = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CAPBACKVALUE;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CATEGORY = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CATEGORY;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CHARGEACCOUNT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CHARGEACCOUNT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CHARGECCY = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CHARGECCY;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CHARGEMKT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CHARGEMKT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CLOSEDONLINE = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CLOSEDONLINE;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CLOSUREDATE = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CLOSUREDATE;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CLOSUREREASON = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CLOSUREREASON;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:COCODE = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:COCODE;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONCHARGEACCR = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONCHARGEACCR;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONDITIONGROUP = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONDITIONGROUP;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONINTERESTACCR = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONINTERESTACCR;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONSOLIDATEENT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONSOLIDATEENT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONSOLKEY = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONSOLKEY;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONTINGENTBALCR = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONTINGENTBALCR;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONTINGENTBALDR = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONTINGENTBALDR;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONTINGENTINT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONTINGENTINT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CR2ADJAMOUNT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CR2ADJAMOUNT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CRADJAMOUNT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CRADJAMOUNT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CREDITCHECK = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CREDITCHECK;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CREDITCHKCONDITION = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CREDITCHKCONDITION;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CREDITCHKTXNTYPE = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CREDITCHKTXNTYPE;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CURRENCY = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CURRENCY;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CURRENCYMARKET = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CURRENCYMARKET;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CURRNO = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CURRNO;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CUSTOMER = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CUSTOMER;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTCRAUTO = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTCRAUTO;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTCRBANK = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTCRBANK;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTCRCUST = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTCRCUST;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTDRAUTO = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTDRAUTO;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTDRBANK = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTCRBANK;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTDRCUST = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTDRCUST;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTUPDATE = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTUPDATE;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DEBITCARD = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DEBITCARD;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DEPTCODE = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DEPTCODE;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DISPOEXEMPT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DISPOEXEMPT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DISPOOFFICER = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DISPOOFFICER;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DR2ADJAMOUNT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DR2ADJAMOUNT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DRADJAMOUNT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DRADJAMOUNT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:EXTERNALPOSTING = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:EXTERNALPOSTING;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:FIRSTAFDATE = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:FIRSTAFDATE;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCDEBLIMIT.g = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCDEBLIMIT.g;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCDEBLIMIT.ns6:ACCDEBLIMIT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCDEBLIMIT.ns6:ACCDEBLIMIT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCOUNTTITLE1.g = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCOUNTTITLE1.g;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCOUNTTITLE1.ns6:ACCOUNTTITLE1 = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCOUNTTITLE1.ns6:ACCOUNTTITLE1;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCOUNTTITLE2.g = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCOUNTTITLE2.g;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCOUNTTITLE2.ns6:ACCOUNTTITLE2 = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCOUNTTITLE2.ns6:ACCOUNTTITLE2;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.g = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.g;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.m = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.m;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.ns6:ACCRCHGAMOUNT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.ns6:ACCRCHGAMOUNT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.ns6:ACCRCHGCATEG = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.ns6:ACCRCHGCATEG;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.ns6:ACCRCHGSUSP = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.ns6:ACCRCHGSUSP;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.ns6:ACCRCHGTRANS = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.ns6:ACCRCHGTRANS;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.g = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.g;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.m = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.m;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.ns6:ACCRCR2AMOUNT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.ns6:ACCRCR2AMOUNT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.ns6:ACCRCR2CATEG = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.ns6:ACCRCR2CATEG;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.ns6:ACCRCR2SUSP = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.ns6:ACCRCR2SUSP;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.ns6:ACCRCR2TRANS = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.ns6:ACCRCR2TRANS;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.g = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.g;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.m = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.m;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.ns6:ACCRCRAMOUNT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.ns6:ACCRCRAMOUNT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.ns6:ACCRCRCATEG = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.ns6:ACCRCRCATEG;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.ns6:ACCRCRSUSP = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.ns6:ACCRCRSUSP;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.ns6:ACCRCRTRANS = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.ns6:ACCRCRTRANS;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.g = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.g;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.m = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.m;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.ns6:ACCRDR2AMOUNT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.ns6:ACCRDR2AMOUNT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.ns6:ACCRDR2CATEG = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.ns6:ACCRDR2CATEG;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.ns6:ACCRDR2SUSP = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.ns6:ACCRDR2SUSP;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.ns6:ACCRDR2TRANS =InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.ns6:ACCRDR2TRANS;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.g =InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.g;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.m = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.m;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.ns6:ACCRDRAMOUNT = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.ns6:ACCRDRAMOUNT;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.ns6:ACCRDRCATEG =InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.ns6:ACCRDRCATEG;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.ns6:ACCRDRSUSP = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.ns6:ACCRDRSUSP;
+		SET OutputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.ns6:ACCRDRTRANS = InputRoot.SOAP.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.ns6:ACCRDRTRANS;
 		
 			
 		CALL soapResFieldToFieldMapping(bindingOperatingName,inRefSoap,outRefSoap,serviseName);
@@ -185,13 +285,13 @@ CREATE COMPUTE MODULE IndigoFlow_BuildExceptionDetails
 
 	CREATE PROCEDURE BuildException() BEGIN
 		DECLARE rc BOOLEAN FALSE;
-		DECLARE mqrfRef REFERENCE TO InputRoot.MQRFH2;
+		DECLARE mqrfRef REFERENCE TO Environment.MQRFH2;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE excpRef CHARACTER  Environment.Variables.excpType;
 		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'SocketException') THEN
 
