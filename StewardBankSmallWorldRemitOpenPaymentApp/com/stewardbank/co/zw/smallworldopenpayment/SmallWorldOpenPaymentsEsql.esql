@@ -13,13 +13,13 @@ DECLARE ns NAMESPACE 'http://webservice.ie.smallworldfs.com/';
 DECLARE Protocal EXTERNAL CHARACTER'';
 DECLARE URL EXTERNAL CHARACTER'';  
 DECLARE soapenv EXTERNAL NAMESPACE '';
---DECLARE ns NAMESPACE 'http://webservice.ie.smallworldfs.com/';
+
 DECLARE ns1 EXTERNAL NAMESPACE '';
 CREATE COMPUTE MODULE SmallWorldGetMtnByFolio_GenReqToSmallWorld
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 CALL GenerateReqToSmallWorld();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 
@@ -72,7 +72,7 @@ CREATE COMPUTE MODULE SmallWorldGetMtnByFolio_GenReqToSmallWorld
 		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
 		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
 		SET outRefSoap.Context.Namespace.soapenv = soapenv;
-		SET outRefSoap.Context.Namespace.stew = ns;
+		SET outRefSoap.Context.Namespace.web = ns;
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
 		SET outRefSoap.Header[] = inRefSoap.Header[];
@@ -90,11 +90,11 @@ CREATE COMPUTE MODULE SmallWorldGetMtnByFolio_GenReqToSmallWorld
 		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','..............Start SmallWorldRemittance Request logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','SmallWorldRemittance Request::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','SmallWorldRemittance getMtnByFolio Request::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG',Environment.reqData) INTO rc;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorldRemittance  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorldRemittance getMtnByFolio Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF; 
@@ -113,7 +113,7 @@ CREATE COMPUTE MODULE SmallWorldGetMtnByFolio_GenResToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 CALL GenerateResToGetMtnByFolio();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE GenerateResToGetMtnByFolio() BEGIN
@@ -133,20 +133,30 @@ CREATE COMPUTE MODULE SmallWorldGetMtnByFolio_GenResToT24
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorldRemittance Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorldRemittance getMtnByFolio Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF; 
 			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','..............Start SmallWorld Remittance  Response  logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','SmallWorld Remittance Response::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','SmallWorld Remittance getMtnByFolio Response::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG',Environment.resMsg) INTO rc;
 		END IF;
-
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		DECLARE outRefSoap REFERENCE TO OutputRoot.XMLNSC;
+		SET outRefSoap=InputRoot.SOAP;
+		DECLARE OutRefer REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE envref REFERENCE TO Environment.XMLNSC;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'XMLNSC';
+		SET envref = OutRefer;
+		DECLARE reqMsgT24 CHARACTER'';
+		SET Environment.reqMsgT24 = getPayLoad(FIELDNAME(InputBody),inRef.SOAP,encodeRef,ccsid);
+		SET OutputRoot = NULL;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.SOAP = InputRoot.SOAP;
+		SET OutputRoot.MQRFH2.smallworld.operation='getMtnByFolio';
+		SET OutputRoot.XMLNSC.smallworld = envref;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SOAP_RES_Q;
 		PROPAGATE TO TERMINAL 'out';
 	
@@ -156,12 +166,9 @@ END MODULE;
 CREATE COMPUTE MODULE SmallWorldGetMtnByFolio_BuildExceptionDetails
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		-- CALL CopyMessageHeaders();
 		 CALL BuildException();
 		RETURN FALSE;
 	END;
-
-	
 
 	CREATE PROCEDURE BuildException() BEGIN
 		DECLARE rc BOOLEAN FALSE;
@@ -179,7 +186,6 @@ CREATE COMPUTE MODULE SmallWorldGetMtnByFolio_BuildExceptionDetails
 			CALL errorResponse(mqrfRef,'SmallWorldRemittance Server Down','ESB_001',ApplicationLabel);
 		END IF;
 		
-		
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -195,11 +201,7 @@ CREATE COMPUTE MODULE SmallWorldGetMtnByFolio_BuildExceptionDetails
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.XMLNSC = NULL;
---		
-		
-		
-		
-		
+
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
@@ -234,7 +236,7 @@ CREATE COMPUTE MODULE SmallWorldGetTransactionExportByMtn_GenReqToGetTrans
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 	CALL GenerateReqToSmallWorldGetTrans();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE GenerateReqToSmallWorldGetTrans() BEGIN
@@ -285,7 +287,7 @@ CREATE COMPUTE MODULE SmallWorldGetTransactionExportByMtn_GenReqToGetTrans
 		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
 		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
 		SET outRefSoap.Context.Namespace.soapenv = soapenv;
-		SET outRefSoap.Context.Namespace.stew = ns;
+		SET outRefSoap.Context.Namespace.web = ns;
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
 		SET outRefSoap.Header[] = inRefSoap.Header[];
@@ -302,12 +304,12 @@ CREATE COMPUTE MODULE SmallWorldGetTransactionExportByMtn_GenReqToGetTrans
 		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
 		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','..............Start SmallWorldRemittance Request logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','..............Start SmallWorldRemittance getTransactionExportByMtn Request logging...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','SmallWorldRemittance Request::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG',Environment.reqData) INTO rc;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorldRemittance  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorldRemittance getTransactionExportByMtn  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF; 
@@ -327,7 +329,7 @@ CREATE COMPUTE MODULE SmallWorldGetTransactionExportByMtn_GenResToGetTrans
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
 		 CALL GenerateResToT24GetTrans();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 
@@ -348,20 +350,30 @@ CREATE COMPUTE MODULE SmallWorldGetTransactionExportByMtn_GenResToGetTrans
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorldRemittance Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorldRemittance getTransactionExportByMtn Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF; 
 			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','..............Start SmallWorld Remittance  Response  logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','SmallWorld Remittance Response::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','SmallWorld Remittance getTransactionExportByMtn Response::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG',Environment.resMsg) INTO rc;
 		END IF;
---		CALL soapResFieldToFieldMapping(bindingOperatingName);
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		DECLARE outRefSoap REFERENCE TO OutputRoot.XMLNSC;
+		SET outRefSoap=InputRoot.SOAP;
+		DECLARE OutRefer REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE envref REFERENCE TO Environment.XMLNSC;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'XMLNSC';
+		SET envref = OutRefer;
+		DECLARE reqMsgT24 CHARACTER'';
+		SET Environment.reqMsgT24 = getPayLoad(FIELDNAME(InputBody),inRef.SOAP,encodeRef,ccsid);
+		SET OutputRoot = NULL;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.SOAP = InputRoot.SOAP;
+		SET OutputRoot.MQRFH2.smallworld.operation='getTransactionExportByMtn';
+		SET OutputRoot.XMLNSC.smallworld = envref;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SOAP_RES_Q;
 		PROPAGATE TO TERMINAL 'out';
 	END;
@@ -376,10 +388,8 @@ CREATE COMPUTE MODULE SmallWorldGetTransactionExportByMtn_BuildExceptionDetails
 	BEGIN
 		-- CALL CopyMessageHeaders();
 		CALL BuildException();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
-
-	
 
 	CREATE PROCEDURE BuildException() BEGIN
 			DECLARE rc BOOLEAN FALSE;
@@ -413,11 +423,7 @@ CREATE COMPUTE MODULE SmallWorldGetTransactionExportByMtn_BuildExceptionDetails
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.XMLNSC = NULL;
---		
-		
-		
-		
-		
+
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
@@ -452,7 +458,7 @@ END MODULE;
 	BEGIN
 		
 		CALL GenerateReqToSmallWorldPayoutPickup();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	
@@ -504,7 +510,7 @@ END MODULE;
 		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
 		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
 		SET outRefSoap.Context.Namespace.soapenv = soapenv;
-		SET outRefSoap.Context.Namespace.stew = ns;
+		SET outRefSoap.Context.Namespace.web = ns;
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
 		SET outRefSoap.Header[] = inRefSoap.Header[];
@@ -527,12 +533,12 @@ END MODULE;
 		/* =================== CALLING LOG4J LOGGING ENDING  ==============*/
 		/* =================== CALLING DB RAW AUDIT LOGGING  ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','..............Start SmallWorldRemittance Request logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','..............Start SmallWorldRemittance payoutPickupAnywhereTransaction Request logging...........') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','SmallWorldRemittance Request::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG',Environment.reqData) INTO rc;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorldRemittance  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorldRemittance payoutPickupAnywhereTransaction Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF; 
@@ -552,7 +558,7 @@ CREATE COMPUTE MODULE SmallWorldPayoutPickupAnywhere_GenResToT24PayoutPickup
 	BEGIN
 		
 		 CALL GenerateResToT24PayoutPickup();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE GenerateResToT24PayoutPickup() BEGIN
@@ -572,20 +578,30 @@ CREATE COMPUTE MODULE SmallWorldPayoutPickupAnywhere_GenResToT24PayoutPickup
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		IF IsLogRequired LIKE 'Y' THEN
-		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+		CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorld Remittance payoutPickupAnywhereTransaction Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 		PROPAGATE TO TERMINAL 'out1';
 		END IF; 
 			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','..............Start SmallWorld Remittance  Response  logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','SmallWorld Remittance Response::') INTO rc; 
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG','SmallWorld Remittance payoutPickupAnywhereTransaction Response::') INTO rc; 
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldOpenPayments', 'DEBUG',Environment.resMsg) INTO rc;
 		END IF;
---		CALL soapResFieldToFieldMapping(bindingOperatingName);
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		DECLARE outRefSoap REFERENCE TO OutputRoot.XMLNSC;
+		SET outRefSoap=InputRoot.SOAP;
+		DECLARE OutRefer REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE envref REFERENCE TO Environment.XMLNSC;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'XMLNSC';
+		SET envref = OutRefer;
+		DECLARE reqMsgT24 CHARACTER'';
+		SET Environment.reqMsgT24 = getPayLoad(FIELDNAME(InputBody),inRef.SOAP,encodeRef,ccsid);
+		SET OutputRoot = NULL;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.SOAP = InputRoot.SOAP;
+		SET OutputRoot.MQRFH2.smallworld.operation='payoutPickupAnywhereTransaction';
+		SET OutputRoot.XMLNSC.smallworld = envref;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
 		PROPAGATE TO TERMINAL 'out';
 		
@@ -596,7 +612,7 @@ CREATE COMPUTE MODULE SmallWorldPayoutPickupAnywhere_BuildExceptionDetails
 	BEGIN
 		
 		CALL BuildException();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE BuildException() BEGIN

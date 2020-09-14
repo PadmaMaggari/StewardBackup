@@ -27,7 +27,7 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenReqToSWAckn
 	BEGIN
 
 		CALL GenerateReqToSmallWorldAcknowledgeTransactionExport();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 	CREATE PROCEDURE GenerateReqToSmallWorldAcknowledgeTransactionExport() BEGIN
@@ -78,13 +78,13 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenReqToSWAckn
 		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
 		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
 		SET outRefSoap.Context.Namespace.soapenv = soapenv;
-		SET outRefSoap.Context.Namespace.stew = ns;     
+		SET outRefSoap.Context.Namespace.web = ns;     
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
 		SET outRefSoap.Header[] = inRefSoap.Header[];
 		SET outRefSoap.Body.ns:acknowledgeTransactionExport.arg0=inRefSoap.Body.ns:acknowledgeTransactionExport.arg0;
 		SET outRefSoap.Body.ns:acknowledgeTransactionExport.arg1=inRefSoap.Body.ns:acknowledgeTransactionExport.arg1;
-		SET outRefSoap.Body.ns:acknowledgeTransactionsExport.arg2=inRefSoap.Body.ns:acknowledgeTransactionExport.arg2;
+		SET outRefSoap.Body.ns:acknowledgeTransactionExport.arg2=inRefSoap.Body.ns:acknowledgeTransactionExport.arg2;
 		DECLARE OutRefer REFERENCE TO OutputRoot.SOAP;
 		DECLARE envref REFERENCE TO Environment.SOAP;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'SOAP';
@@ -96,11 +96,11 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenReqToSWAckn
 		/* =================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance Request logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance acknowledgeTransactionExport Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.reqData) INTO rc;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorld Remittance  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorld Remittance acknowledgeTransactionExport  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -120,7 +120,7 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenResToT24Ack
 	BEGIN
 		-- CALL CopyMessageHeaders();
 		CALL GenerateResToT24AcknowledgeTransactionExport();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 
@@ -142,20 +142,30 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenResToT24Ack
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorld Remittance Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorld RemittanceacknowledgeTransactionExport Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance  Response  logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance acknowledgeTransactionExport Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.resMsg) INTO rc;
 		END IF;
-		-- CALL soapResFieldToFieldMapping(bindingOperatingName);
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		DECLARE outRefSoap REFERENCE TO OutputRoot.XMLNSC;
+		SET outRefSoap=InputRoot.SOAP;
+		DECLARE OutRefer REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE envref REFERENCE TO Environment.XMLNSC;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'XMLNSC';
+		SET envref = OutRefer;
+		DECLARE reqMsgT24 CHARACTER'';
+		SET Environment.reqMsgT24 = getPayLoad(FIELDNAME(InputBody),inRef.SOAP,encodeRef,ccsid);
+		SET OutputRoot = NULL;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.SOAP = InputRoot.SOAP;
+		SET OutputRoot.MQRFH2.smallworld.operation='acknowledgeTransactionExport';
+		SET OutputRoot.XMLNSC.smallworld = envref;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SOAP_RES_Q;
 		PROPAGATE TO TERMINAL 'out';
 	END;
@@ -240,7 +250,7 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenReqToSWGetTransacti
 	BEGIN
 		-- CALL CopyMessageHeaders();
 		CALL GenReqToSmallWorldGetTransactionExport();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 	CREATE PROCEDURE GenReqToSmallWorldGetTransactionExport() BEGIN
 		SET Environment.MQRFH2= InputRoot.MQRFH2;
@@ -279,25 +289,8 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenReqToSWGetTransacti
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',reqMsg) INTO rc;
 		END IF;
 		/* ========================== FIELD TO FIELD MAPPING =============================================== */
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
+			CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
 		DECLARE outRefSoap REFERENCE TO OutputRoot.SOAP;
-		--SET outRefSoap=inRefSoap;
-		-- SET outRefSoap.Context.operation=inRefSoap.Context.operation;
-		-- SET outRefSoap.Context.operationType = inRefSoap.Context.operationType;
-		-- SET outRefSoap.Context.portType = inRefSoap.Context.portType;
-		-- SET outRefSoap.Context.portTypeNamespace = inRefSoap.Context.portTypeNamespace;
-		-- SET outRefSoap.Context.port = inRefSoap.Context.port;
-		-- SET outRefSoap.Context.service = inRefSoap.Context.service;
-		-- SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
-		-- SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
-		-- SET outRefSoap.Context.Namespace.soapenv = 'http://schemas.xmlsoap.org/soap/envelope/';
-		-- SET outRefSoap.Context.Namespace.web = 'http://webservice.ie.smallworldfs.com/';
-		-- SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
-		-- SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
-		-- SET outRefSoap.Header = '';
-		--
-		DECLARE web NAMESPACE 'http://webservice.ie.smallworldfs.com/';
-
 		SET outRefSoap.Context.operation=inRefSoap.Context.operation;
 		SET outRefSoap.Context.operationType = inRefSoap.Context.operationType;
 		SET outRefSoap.Context.portType = inRefSoap.Context.portType;
@@ -306,62 +299,42 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenReqToSWGetTransacti
 		SET outRefSoap.Context.service = inRefSoap.Context.service;
 		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
 		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
-
-
---		SET outRefSoap.Context.Namespace.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
---
---		SET outRefSoap.Context.Namespace.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:web = 'http://webservice.ie.smallworldfs.com/';
---		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
---		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
---		SET outRefSoap.soapenv:Header='';
-        SET outRefSoap.Context[] = inRefSoap.Context[];
-        SET outRefSoap.Header[] = inRefSoap.Header[];     
-		SET outRefSoap.soapenv:Body.web:getTransactionExportTransactions.arg0=inRefSoap.Body.ns:getTransactionExportTransactions.arg0;
-		SET outRefSoap.soapenv:Body.web:getTransactionExportTransactions.arg1=inRefSoap.Body.ns:getTransactionExportTransactions.arg1;
-		SET outRefSoap.soapenv:Body.web:getTransactionExportTransactions.arg2=inRefSoap.Body.ns:getTransactionExportTransactions.arg2;
-
+		SET outRefSoap.Context.Namespace.soapenv = soapenv;
+		SET outRefSoap.Context.Namespace.web = ns;     
+		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
+		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
+		SET outRefSoap.Header[] = inRefSoap.Header[];
+		SET outRefSoap.Body.ns:getTransactionExportTransactions.arg0=inRefSoap.Body.ns:getTransactionExportTransactions.arg0;
+		SET outRefSoap.Body.ns:getTransactionExportTransactions.arg1=inRefSoap.Body.ns:getTransactionExportTransactions.arg1;
+		SET outRefSoap.Body.ns:getTransactionExportTransactions.arg2=inRefSoap.Body.ns:getTransactionExportTransactions.arg2;
 		DECLARE OutRefer REFERENCE TO OutputRoot.SOAP;
-		--PROPAGATE TO TERMINAL 'out2';
-		DECLARE envref REFERENCE TO Environment;
+		DECLARE envref REFERENCE TO Environment.SOAP;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'SOAP';
-		SET envref = outRefer
-		;
-
+		SET envref = OutRefer;
 		DECLARE reqData CHARACTER'';
-		SET Environment.reqData = getPayLoad(FIELDNAME(OutputRoot.XMLNSC),OutRefer,encodeRef,ccsid);
-
+		SET Environment.reqData = getPayLoad(FIELDNAME(InputBody),OutputRoot.SOAP.Body,encodeRef,ccsid);
 		SET OutputRoot = NULL;
 		/* =================== CALLING LOG4J LOGGING ENDING ==============*/
 		/* =================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance Request  logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Request ::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance Request logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance getTransactionExportTransactions Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.reqData) INTO rc;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorld Remittance  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorld Remittance getTransactionExportTransactions Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
---		SET OutputRoot.Properties = InputRoot.Properties;
---		SET OutputRoot.MQMD = InputRoot.MQMD;
---		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		-- CREATE LASTCHILD OF OutputRoot DOMAIN 'SOAP';
-		-- SET OutputRoot.SOAP.Context[]=inRefSoap.Context[];
-		-- SET OutputRoot.SOAP.Header[] = inRefSoap.Context.Header[];
-
-
-		SET OutputRoot.SOAP = envref.SOAP;      
---		SET OutputRoot.SOAP.Body.ns:getTransactionExportTransactions.arg0 = InputRoot.SOAP.Body.ns:getTransactionExportTransactions.arg0;
---		SET OutputRoot.SOAP.Body.ns:getTransactionExportTransactions.arg1 = InputRoot.SOAP.Body.ns:getTransactionExportTransactions.arg1;
---		SET OutputRoot.SOAP.Body.ns:getTransactionExportTransactions.arg2 = InputRoot.SOAP.Body.ns:getTransactionExportTransactions.arg2;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.SOAP = envref;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Operation = bindingOperatingName;
-		SET OutputLocalEnvironment.Destination.SOAP.Request.TransportType = 'Application/xml';
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.Timeout = request_Time_Out;
-		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.SSLProtocol = 'SSL';
+		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.SSLProtocol = Protocal;
 		SET OutputLocalEnvironment.Destination.SOAP.Request.Transport.HTTP.WebServiceURL = URL;
 		PROPAGATE TO TERMINAL 'out';
+
 	END;
 END MODULE;
 CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenResToT24GetTransaction
@@ -369,7 +342,7 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenResToT24GetTransact
 	BEGIN
 		-- CALL CopyMessageHeaders();
 		CALL GenerateReSToT24GetTransaction();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 
@@ -391,20 +364,30 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenResToT24GetTransact
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorld Remittance Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorld Remittance getTransactionExportTransactions Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance  Response  logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance getTransactionExportTransactions Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.resMsg) INTO rc;
 		END IF;
-		-- CALL soapResFieldToFieldMapping(bindingOperatingName);
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		DECLARE outRefSoap REFERENCE TO OutputRoot.XMLNSC;
+		SET outRefSoap=InputRoot.SOAP;
+		DECLARE OutRefer REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE envref REFERENCE TO Environment.XMLNSC;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'XMLNSC';
+		SET envref = OutRefer;
+		DECLARE reqMsgT24 CHARACTER'';
+		SET Environment.reqMsgT24 = getPayLoad(FIELDNAME(InputBody),inRef.SOAP,encodeRef,ccsid);
+		SET OutputRoot = NULL;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.SOAP = InputRoot.SOAP;
+		SET OutputRoot.MQRFH2.smallworld.operation='getTransactionExportTransactions';
+		SET OutputRoot.XMLNSC.smallworld = envref;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SOAP_RES_Q;
 		PROPAGATE TO TERMINAL 'out';
 	END;
@@ -489,7 +472,7 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_GenReqToSWUpdateTra
 	BEGIN
 		-- CALL CopyMessageHeaders();
 		CALL GenerateReqToSmallWorldUpdateTransaction();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 
@@ -541,7 +524,7 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_GenReqToSWUpdateTra
 		SET outRefSoap.Context.fileName = inRefSoap.Context.fileName;
 		SET outRefSoap.Context.SOAP_Version = inRefSoap.Context.SOAP_Version;
 		SET outRefSoap.Context.Namespace.soapenv = soapenv;
-		SET outRefSoap.Context.Namespace.stew = ns;
+		SET outRefSoap.Context.Namespace.web = ns;
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
 		SET outRefSoap.Header[] = inRefSoap.Header[];
@@ -559,11 +542,11 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_GenReqToSWUpdateTra
 		/* =================== CALLING DB RAW AUDIT LOGGING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance Request logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Request::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance updateTransactionExport Request::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.reqData) INTO rc;
 		END IF;
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorld Remittance  Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqData,'SmallWorld Remittance updateTransactionExport Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -585,7 +568,7 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_GenResToT24UpdateTr
 	BEGIN
 		-- CALL CopyMessageHeaders();
 		CALL GenerateResToT24UpdateTransaction();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 
@@ -606,20 +589,30 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_GenResToT24UpdateTr
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorld Remittance Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorld Remittance updateTransactionExport Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
 		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','..............Start SmallWorld Remittance  Response  logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG','SmallWorld Remittance updateTransactionExport Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'SmallWorldRemittance', 'DEBUG',Environment.resMsg) INTO rc;
 		END IF;
-		-- CALL soapResFieldToFieldMapping(bindingOperatingName);
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+		DECLARE outRefSoap REFERENCE TO OutputRoot.XMLNSC;
+		SET outRefSoap=InputRoot.SOAP;
+		DECLARE OutRefer REFERENCE TO OutputRoot.XMLNSC;
+		DECLARE envref REFERENCE TO Environment.XMLNSC;
+		CREATE LASTCHILD OF Environment AS envref DOMAIN 'XMLNSC';
+		SET envref = OutRefer;
+		DECLARE reqMsgT24 CHARACTER'';
+		SET Environment.reqMsgT24 = getPayLoad(FIELDNAME(InputBody),inRef.SOAP,encodeRef,ccsid);
+		SET OutputRoot = NULL;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.SOAP = InputRoot.SOAP;
+		SET OutputRoot.MQRFH2.smallworld.operation='updateTransactionExport';
+		SET OutputRoot.XMLNSC.smallworld = envref;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SOAP_RES_Q;
 		PROPAGATE TO TERMINAL 'out';
 	END;
@@ -630,7 +623,7 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_BuildExceptionDetai
 	BEGIN
 		-- CALL CopyMessageHeaders();
 		CALL BuildException();
-		RETURN TRUE;
+		RETURN FALSE;
 	END;
 
 
@@ -649,8 +642,6 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_BuildExceptionDetai
 			SET errMsg = 'SmallWorld Remittance Server Down';
 			CALL errorResponse(mqrfRef,'SmallWorld Remittance Server Down','ESB_001',ApplicationLabel);
 		END IF;
-
-
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -666,10 +657,6 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_BuildExceptionDetai
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.XMLNSC = NULL;
-		--
-
-
-
 
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
@@ -695,6 +682,5 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_BuildExceptionDetai
 
 		PROPAGATE TO TERMINAL 'out';
 		-- END IF;
-
 	END;
 END MODULE;
