@@ -65,12 +65,9 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_GeneratingReqToZss
 			SET chrField4 = CAST(Field4 AS CHARACTER);
 			IF CONTAINS(chrField4,'.') THEN
 				SET chrField4 = SUBSTRING(chrField4 BEFORE '.');
-				--SET chrField4 = REPLACE(chrField4,'.','');
 				SET outRef.AmountTransaction_004 = CAST(chrField4 AS DECIMAL);
 			ELSE
 				SET outRef.AmountTransaction_004 = Field4 ;
-				--	SET chrField4 = chrField4 ||'00'; 
-				--SET outRef.AmountTransaction_004 = CAST(chrField4 AS DECIMAL);
 			END IF;
 			SET outRef.TransmissionDatetime_007 = Field7;
 			SET outRef.SystemsTraceAuditNumber_011 = '397520';
