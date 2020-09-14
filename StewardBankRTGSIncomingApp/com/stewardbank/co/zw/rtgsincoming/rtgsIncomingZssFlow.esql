@@ -61,14 +61,16 @@ CREATE COMPUTE MODULE rtgsIncomingZssFlow_GeneratingReqToZss
 			SET outRef.ProcessingCode_003 = '212000';
 			-- For ISO Field4 appending '00' for non cent farmat and removing '.' for cent farmat Amounts
 			SET Field4 = CAST(SUBSTRING(SUBSTRING(inDomainDataRef.MT103.body.MT32A  BEFORE ',') FROM 10) AS DECIMAL);
+			SET Field4 = Field4 * 100 ;
 			SET chrField4 = CAST(Field4 AS CHARACTER);
 			IF CONTAINS(chrField4,'.') THEN
-				SET chrField4 = SUBSTRING(chrField4 BEFORE '.')||SUBSTRING(SUBSTRING(chrField4 AFTER '.') FROM 1 FOR 2);
+				SET chrField4 = SUBSTRING(chrField4 BEFORE '.');
 				--SET chrField4 = REPLACE(chrField4,'.','');
 				SET outRef.AmountTransaction_004 = CAST(chrField4 AS DECIMAL);
 			ELSE
-				SET chrField4 = chrField4 ||'00'; 
-				SET outRef.AmountTransaction_004 = CAST(chrField4 AS DECIMAL);
+				SET outRef.AmountTransaction_004 = Field4 ;
+				--	SET chrField4 = chrField4 ||'00'; 
+				--SET outRef.AmountTransaction_004 = CAST(chrField4 AS DECIMAL);
 			END IF;
 			SET outRef.TransmissionDatetime_007 = Field7;
 			SET outRef.SystemsTraceAuditNumber_011 = '397520';
