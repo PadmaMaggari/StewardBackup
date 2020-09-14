@@ -22,7 +22,7 @@
       <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="20,20">
         <translation xmi:type="utility:TranslatableString" key="InTerminal.Input" bundleName="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow" pluginId="StewardBankZssCall"/>
       </nodes>
-      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="617,23">
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="618,26">
         <translation xmi:type="utility:TranslatableString" key="OutTerminal.Output" bundleName="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow" pluginId="StewardBankZssCall"/>
       </nodes>
       <nodes xmi:type="ComIbmTCPIPClientOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="236,25" connectionDetails="{ESBPolicies}:EsbZssClient" timeoutSendingData="90" modifyOutputStream="reserve">
@@ -40,10 +40,7 @@
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="486,101">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="423,181" computeExpression="esql://routine/com.stewardbank.co.zw.common.zsscall#StewardBankZssSubFlow.Main" computeMode="destinationAndMessage">
-        <translation xmi:type="utility:ConstantString" string="Retry"/>
-      </nodes>
-      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.out" location="600,183">
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.out" location="660,101">
         <translation xmi:type="utility:TranslatableString" key="OutTerminal.out1" bundleName="com/stewardbank/co/zw/common/zsscall/StewardBankZssCallSubFlow" pluginId="StewardBankZssCall"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
@@ -54,20 +51,7 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.timeout" targetTerminalName="InTerminal.Input"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="OutTerminal.out" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in">
-        <bendPoints>25,32,136,-48</bendPoints>
-        <bendPoints>-136,28,-25,-52</bendPoints>
-      </connections>
-      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in">
-        <bendPoints>84,9,261,165</bendPoints>
-        <bendPoints>82,40,259,196</bendPoints>
-        <bendPoints>24,39,201,195</bendPoints>
-        <bendPoints>-41,37,136,193</bendPoints>
-        <bendPoints>-168,36,9,192</bendPoints>
-        <bendPoints>-229,37,-52,193</bendPoints>
-        <bendPoints>-237,-170,-60,-14</bendPoints>
-      </connections>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="OutTerminal.out" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">
