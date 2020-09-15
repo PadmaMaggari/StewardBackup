@@ -46,10 +46,10 @@
       <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="79,40" queueName="SWGTM_SB_SOAP_REQ" messageDomainProperty="XMLNSC" transactionMode="no">
         <translation xmi:type="utility:ConstantString" string="SmallWorldGetTransMtn_Req"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="199,45" computeExpression="esql://routine/com.stewardbank.co.zw.smallworldopenpayment#SmallWorldGetTransactionExportByMtn_GenReqToGetTrans.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="199,45" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.smallworldopenpayment#SmallWorldGetTransactionExportByMtn_GenReqToGetTrans.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenReqToGetTrans"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="544,34" computeExpression="esql://routine/com.stewardbank.co.zw.smallworldopenpayment#SmallWorldGetTransactionExportByMtn_GenResToGetTrans.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="544,34" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.smallworldopenpayment#SmallWorldGetTransactionExportByMtn_GenResToGetTrans.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="GenResToGetTrans"/>
       </nodes>
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="645,190" destinationMode="list">
@@ -58,7 +58,7 @@
       <nodes xmi:type="com_stewardbank_co_zw_common_exceptionhandling_exceptionHandlingSubFlow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="176,166">
         <translation xmi:type="utility:ConstantString" string="exceptionHandlingSubFlow"/>
       </nodes>
-      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="417,174" computeExpression="esql://routine/com.stewardbank.co.zw.smallworldopenpayment#SmallWorldGetTransactionExportByMtn_BuildExceptionDetails.Main" computeMode="destinationAndMessage">
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="417,174" dataSource="ORADSN" computeExpression="esql://routine/com.stewardbank.co.zw.smallworldopenpayment#SmallWorldGetTransactionExportByMtn_BuildExceptionDetails.Main" computeMode="destinationAndMessage">
         <translation xmi:type="utility:ConstantString" string="BuildExceptionDetails"/>
       </nodes>
       <nodes xmi:type="ComIbmSOAPRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="399,52" wsdlOperationMode="gateway" useHTTPTransport="true" webServiceURL="https://s" sslProtocol="TLS" parserXmlnscBuildTreeUsingXMLSchema="false" validateMaster="none">
@@ -75,6 +75,7 @@
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.fault" targetTerminalName="InTerminal.in"/>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
     </composition>
     <propertyOrganizer>
       <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.LOG_CONFIG_PATH">

@@ -184,6 +184,9 @@ CREATE COMPUTE MODULE SmallWorldGetMtnByFolio_BuildExceptionDetails
 			
 			SET errMsg = 'SmallWorldRemittance Server Down';
 			CALL errorResponse(mqrfRef,'SmallWorldRemittance Server Down','ESB_001',ApplicationLabel);
+		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+		SET errMsg = 'WebService Request Exception errors have occurred';	
+				CALL errorResponse(mqrfRef,'WebService Request Exception','ESB_002',ApplicationLabel);	
 		END IF;
 		
 		SET OutputRoot.Properties = InputRoot.Properties;
@@ -291,9 +294,12 @@ CREATE COMPUTE MODULE SmallWorldGetTransactionExportByMtn_GenReqToGetTrans
 		SET outRefSoap.Context.XmlRoot.Envelope.Header = inRefSoap.Context.XmlRoot.Envelope.Header;
 		SET outRefSoap.Context.XmlRoot.Envelope.Body = inRefSoap.Context.XmlRoot.Envelope.Body;
 		SET outRefSoap.Header[] = inRefSoap.Header[];
-		SET outRefSoap.Body.ns:getTransactionExportTransactions.arg0=inRefSoap.Body.ns:getTransactionExportTransactions.arg0;
-		SET outRefSoap.Body.ns:getTransactionExportTransactions.arg1=inRefSoap.Body.ns:getTransactionExportTransactions.arg1;
-		SET outRefSoap.Body.ns:getTransactionExportTransactions.arg2=inRefSoap.Body.ns:getTransactionExportTransactions.arg2;
+		SET outRefSoap.Body.ns:getTransactionExportByMtn.arg0=inRefSoap.Body.ns:getTransactionExportByMtn.arg0;
+		SET outRefSoap.Body.ns:getTransactionExportByMtn.arg1=inRefSoap.Body.ns:getTransactionExportByMtn.arg1;
+		SET outRefSoap.Body.ns:getTransactionExportByMtn.arg2=inRefSoap.Body.ns:getTransactionExportByMtn.arg2;
+		SET outRefSoap.Body.ns:getTransactionExportByMtn.arg3=inRefSoap.Body.ns:getTransactionExportByMtn.arg3;
+		SET outRefSoap.Body.ns:getTransactionExportByMtn.arg4=inRefSoap.Body.ns:getTransactionExportByMtn.arg4;
+		SET outRefSoap.Body.ns:getTransactionExportByMtn.arg5=inRefSoap.Body.ns:getTransactionExportByMtn.arg5;
 		DECLARE OutRefer REFERENCE TO OutputRoot.SOAP;
 		DECLARE envref REFERENCE TO Environment.SOAP;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'SOAP';
@@ -405,6 +411,9 @@ CREATE COMPUTE MODULE SmallWorldGetTransactionExportByMtn_BuildExceptionDetails
 			
 			SET errMsg = 'SmallWorldRemittance Server Down';
 			CALL errorResponse(mqrfRef,'SmallWorldRemittance Server Down','ESB_001',ApplicationLabel);
+			ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+		SET errMsg = 'WebService Request Exception errors have occurred';	
+				CALL errorResponse(mqrfRef,'WebService Request Exception','ESB_002',ApplicationLabel);
 		END IF;
 		
 		
@@ -629,6 +638,9 @@ CREATE COMPUTE MODULE SmallWorldPayoutPickupAnywhere_BuildExceptionDetails
 			
 			SET errMsg = 'SmallWorldRemittance Server Down';
 			CALL errorResponse(mqrfRef,'SmallWorldRemittance Server Down','ESB_001',ApplicationLabel);
+			ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+		SET errMsg = 'WebService Request Exception errors have occurred';	
+				CALL errorResponse(mqrfRef,'WebService Request Exception','ESB_002',ApplicationLabel);
 		END IF;
 		
 		

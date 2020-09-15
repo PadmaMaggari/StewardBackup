@@ -138,11 +138,11 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_GenResToT24Ack
 		DECLARE inRef REFERENCE TO InputRoot;
 		DECLARE serviceName REFERENCE TO InputRoot.SOAP.Body.[1];
 		SET bindingOperatingName = FIELDNAME(serviceName);
-		SET Environment.resMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP.Body,encodeRef,ccsid);
+		SET Environment.resMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP,encodeRef,ccsid);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
 		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorld RemittanceacknowledgeTransactionExport Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.resMsg,'SmallWorld Remittance acknowledgeTransactionExport Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out1';
 		END IF;
@@ -194,6 +194,9 @@ CREATE COMPUTE MODULE SmallWorldRemitAcknowledgeTransactionExport_BuildException
 
 			SET errMsg = 'SmallWorld Remittance Server Down';
 			CALL errorResponse(mqrfRef,'SmallWorld Remittance Server Down','ESB_001',ApplicationLabel);
+		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+		SET errMsg = 'WebService Request Exception errors have occurred';	
+				CALL errorResponse(mqrfRef,'WebService Request Exception','ESB_002',ApplicationLabel);
 		END IF;
 
 
@@ -340,12 +343,9 @@ END MODULE;
 CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_GenResToT24GetTransaction
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
-		-- CALL CopyMessageHeaders();
 		CALL GenerateReSToT24GetTransaction();
 		RETURN FALSE;
 	END;
-
-
 
 	CREATE PROCEDURE GenerateReSToT24GetTransaction() BEGIN
 		DECLARE rc BOOLEAN FALSE;
@@ -401,9 +401,6 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_BuildExceptionDetails
 		CALL BuildException();
 		RETURN FALSE;
 	END;
-
-
-
 	CREATE PROCEDURE BuildException() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		DECLARE mqrfRef REFERENCE TO InputRoot.MQRFH2;
@@ -415,9 +412,12 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_BuildExceptionDetails
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'SocketException') THEN
-
-			SET errMsg = 'SmallWorld Remittance Server Down';
-			CALL errorResponse(mqrfRef,'SmallWorld Remittance Server Down','ESB_001',ApplicationLabel);
+		SET errMsg = 'SmallWorld Remittance Server Down';
+		CALL errorResponse(mqrfRef,'SmallWorld Remittance Server Down','ESB_001',ApplicationLabel);
+		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+		SET errMsg = 'WebService Request Exception errors have occurred';	
+				CALL errorResponse(mqrfRef,'WebService Request Exception','ESB_002',ApplicationLabel);
+				
 		END IF;
 
 
@@ -449,7 +449,7 @@ CREATE COMPUTE MODULE SmallWorldRemitGetTransactionExport_BuildExceptionDetails
 		PROPAGATE TO TERMINAL 'out';
 		----------------------------------
 	END;
-	CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
+	CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE,IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
 	BEGIN
 		SET OutputRoot.MQRFH2 = mqrfRef;
 		SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
@@ -641,6 +641,9 @@ CREATE COMPUTE MODULE SmallWorldRemitUpdateTransactionExport_BuildExceptionDetai
 
 			SET errMsg = 'SmallWorld Remittance Server Down';
 			CALL errorResponse(mqrfRef,'SmallWorld Remittance Server Down','ESB_001',ApplicationLabel);
+		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+		SET errMsg = 'WebService Request Exception errors have occurred';	
+				CALL errorResponse(mqrfRef,'WebService Request Exception','ESB_002',ApplicationLabel);	
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
