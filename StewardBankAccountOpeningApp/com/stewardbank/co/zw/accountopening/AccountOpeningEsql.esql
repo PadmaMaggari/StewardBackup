@@ -912,6 +912,31 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToT24
 	END;
 END MODULE;
 
+CREATE COMPUTE MODULE AccountOpeningFlow_ConvertBLOBToJSON
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
+		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+		DECLARE domainDataRef REFERENCE TO InputBody;
+		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(InputRoot.BLOB[]) THEN
+			IF STARTSWITH(Environment.Variables.reqMsg,'{') THEN
+				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.HTTPResponseHeader = InputRoot.HTTPResponseHeader;
+				CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON') PARSE(InputRoot.BLOB.BLOB);
+			ELSEIF STARTSWITH(Environment.Variables.reqMsg,'<') THEN
+				SET OutputRoot.Properties = InputRoot.Properties;
+				SET OutputRoot.HTTPResponseHeader = InputRoot.HTTPResponseHeader;
+				CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC') PARSE(InputRoot.BLOB.BLOB);
+			END IF;
+		ELSE
+			SET OutputRoot = InputRoot;
+		END IF;
+		RETURN TRUE;
+	END;
+END MODULE;
+
 CREATE COMPUTE MODULE AccountOpeningFlow_GenerateFCMResponse
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
