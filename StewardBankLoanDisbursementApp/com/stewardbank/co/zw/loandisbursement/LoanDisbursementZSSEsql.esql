@@ -269,6 +269,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_BuildException
 		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
 		SET headerRef.channel = '*236#';
 		SET headerRef.processingCode = '110000';
+		SET headerRef.ResponseFrom = 'ZSS';  
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '000';
 		SET errorRef.source = 'ESB';

@@ -311,6 +311,7 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 		--SET headerRef = Environment.MQRFH2.header;
 		SET headerRef.channel = '*236#';
 		SET headerRef.processingCode = '110000'; 
+		SET headerRef.ResponseFrom = 'T24';  
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '000';
 		SET bodyRef.source = 'ESB';  
