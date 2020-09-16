@@ -139,11 +139,14 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_ResponseToChannel
 			SET headRef = Inrefer.header;
 			SET headRef.channel = '*236#';
 			SET headRef.processingCode = '110000';
-			SET headRef.responseCode = responceCode;		
+			SET headRef.ResponseFrom = 'T24';
+			SET headRef.responseCode = responceCode;	
+			SET headRef.status = 'Success';	 
 			SET bodyRef = Inrefer.body; 
 		ELSE
 			SET headRef.channel = '*236#';
 			SET headRef.processingCode = '110000';
+			SET headRef.ResponseFrom = 'T24'; 
 			SET headRef.responseCode = responceCode;
 			SET headRef.status = 'Failure'; 
 			SET bodyRef = Environment.Variables.errMsg; 

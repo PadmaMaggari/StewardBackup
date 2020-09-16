@@ -4,6 +4,8 @@
 
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.loandisbursement
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -85,7 +87,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		--CALL JSONLogMessage(logRef,jsonRef);
 		SET jsonRef = logRef;
 		SET Environment.ZssJsonreqMsg = getPayLoad('JSON',jsonRef,encodeRef,ccsid);
-		SET OutputRoot.JSON = NULL;		
+		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','Generate Req to ZSS::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.Variables.resMsg) INTO rc;
@@ -138,11 +140,11 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_GenereateResponseToChannel
 		SET Environment.ZssJsonresMsg = getPayLoad('JSON',jsonRef,encodeRef,ccidRef);
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired LIKE 'Y' THEN
---			 --------------DBLogging-------------------
---			 CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'ZSS Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
---			 SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
---			 PROPAGATE TO TERMINAL 'out';
---			-- -----------------------------
+			-- --------------DBLogging-------------------
+			-- CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'ZSS Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+			-- PROPAGATE TO TERMINAL 'out';
+			-- -- -----------------------------
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG','ZSS Response::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'LoanDisbursmentLogging', 'DEBUG',Environment.ZssJsonresMsg) INTO rc;
@@ -166,11 +168,21 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_GenereateResponseToChannel
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
-		--SET headRef = Environment.header;
-		SET headRef.channel = '*236#';
-		SET headRef.processingCode = '110000';
-		SET headRef.status = 'SUCCESS';
-		SET headRef.responseCode = '200';
+		DECLARE responceCode CHARACTER InputRoot.DFDL.ISO8583_1987.ResponseCode_039;
+		IF responceCode LIKE '00' THEN
+			--SET headRef = Environment.header;
+			SET headRef.channel = '*236#';
+			SET headRef.processingCode = '110000'; 
+			SET headRef.ResponseFrom = 'ZSS';
+			SET headRef.status = 'SUCCESS';
+			SET headRef.responseCode = responceCode;
+		ELSE
+			SET headRef.channel = '*236#';
+			SET headRef.processingCode = '110000';
+			SET headRef.ResponseFrom = 'ZSS';
+			SET headRef.status = 'FAILURE';
+			SET headRef.responseCode = responceCode;
+		END IF;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
 		CALL ISOToJSONMapping(inRef,bodyRef);
@@ -186,7 +198,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_GenereateResponseToChannel
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired LIKE 'Y' THEN
 			--------------DBLogging-------------------
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application ZSS  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer); 
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application ZSS  Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
 			PROPAGATE TO TERMINAL 'out';
 			-----------------------------
@@ -228,7 +240,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_BuildException
 			SET errMsg = 'No Response from ZSS Server';
 		END IF;
 		IF CONTAINS(excpRef.excpText,'ParserException') THEN
-			SET errMsg = 'No Response from ZSS Server'; 
+			SET errMsg = 'No Response from ZSS Server';
 		END IF;
 		IF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
 			SET errMsg = 'WebService Request Exception errors have occurred';

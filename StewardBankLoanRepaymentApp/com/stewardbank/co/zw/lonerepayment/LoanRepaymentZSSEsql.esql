@@ -128,8 +128,6 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_GenereateResponseToChannel
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;		
-
-
 		DECLARE logRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		DECLARE jsonRef REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
@@ -163,11 +161,21 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_GenereateResponseToChannel
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
+			DECLARE responceCode CHARACTER InputRoot.DFDL.ISO8583_1987.ResponseCode_039; 
+		IF  responceCode LIKE '00' THEN 
 		--SET headRef = Environment.header;
 		SET headRef.channel = '*236#';
 		SET headRef.processingCode = '120000';
+		SET headRef.ResponseFrom = 'ZSS'; 
 		SET headRef.status = 'SUCCESS';
-		SET headRef.responseCode = '200';
+		SET headRef.responseCode = responceCode; 
+		ELSE
+			SET headRef.channel = '*236#';
+		SET headRef.processingCode = '120000';
+		SET headRef.ResponseFrom = 'ZSS'; 
+		SET headRef.status = 'FAILURE'; 
+		SET headRef.responseCode = responceCode; 
+		END IF; 	
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
 		CALL ISOToJSONMapping(inRef,bodyRef);

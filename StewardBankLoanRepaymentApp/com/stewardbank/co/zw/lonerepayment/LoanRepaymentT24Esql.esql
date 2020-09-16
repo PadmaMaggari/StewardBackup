@@ -1,3 +1,5 @@
+
+
 BROKER SCHEMA com.stewardbank.co.zw.lonerepayment
 PATH com.stewardbank.co.zw.common.esql;
 CREATE COMPUTE MODULE LoanRepaymentT24Flow_RequestToT24
@@ -23,7 +25,7 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_RequestToT24
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		DECLARE executionDate CHARACTER;
-		DECLARE domainName CHARACTER 'JSON'; 
+		DECLARE domainName CHARACTER 'JSON';
 		SET reqMsg = getPayLoad(domainName,OutputRoot.JSON.Data,encodeRef,ccsid);
 		SET executionDate = CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd');
 		-- SET DBLogging Properties ==============
@@ -109,9 +111,9 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 			DECLARE inRef REFERENCE TO InputRoot.BLOB.BLOB;
 			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON') PARSE(inRef,encodeRef,ccidRef);
 			SET domainName = 'JSON';
-			SET Environment.Variables.errMsg = OutputRoot.JSON.Data; 
-			SET Environment.Variables.resMsg = getPayLoad(domainName,OutputRoot.JSON,encodeRef,ccidRef);   
-		END IF; 
+			SET Environment.Variables.errMsg = OutputRoot.JSON.Data;
+			SET Environment.Variables.resMsg = getPayLoad(domainName,OutputRoot.JSON,encodeRef,ccidRef);
+		END IF;
 		SET OutputRoot = NULL;
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',' ----- Response from T24 ------') INTO rc;
@@ -125,7 +127,7 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoneRepayment');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body'); 
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 		DECLARE status CHARACTER InputRoot.JSON.Data.header.status;
@@ -133,14 +135,17 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 			SET headRef = Inrefer.header;
 			SET headRef.channel = '*236#';
 			SET headRef.processingCode = '120000';
+			SET headRef.ResponseFrom = 'T24';
 			SET headRef.responseCode = responceCode;
-			SET bodyRef = Inrefer.body; 
+			SET headRef.status = 'Success'; 
+			SET bodyRef = Inrefer.body;
 		ELSE
 			SET headRef.channel = '*236#';
 			SET headRef.processingCode = '120000';
+			SET headRef.ResponseFrom = 'T24';
 			SET headRef.responseCode = responceCode;
-			SET headRef.status = 'Failure'; 			
-			SET bodyRef = Environment.Variables.errMsg; 
+			SET headRef.status = 'Failure';
+			SET bodyRef = Environment.Variables.errMsg;
 		END IF;
 		DECLARE envref REFERENCE TO Environment.JSON.Data;
 		CREATE LASTCHILD OF Environment AS envref DOMAIN 'JSON';
@@ -192,7 +197,7 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_BuildException
 		ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN
 			SET errMsg = 'JSON parsing errors have occurred';
 		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
-			SET errMsg = 'WebService Request Exception errors have occurred'; 
+			SET errMsg = 'WebService Request Exception errors have occurred';
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
@@ -212,20 +217,20 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_BuildException
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('Loan_Repayment'); 
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('Loan_Repayment');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
-		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body; 
+		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
 		--SET headerRef = Environment.MQRFH2.header;
 		SET headerRef.channel = '*236#';
 		SET headerRef.processingCode = '120000';
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '000';
-		SET bodyRef.source = 'ESB';  
-		SET bodyRef.applicationName = ApplicationLabel;  
+		SET bodyRef.source = 'ESB';
+		SET bodyRef.applicationName = ApplicationLabel;
 		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.Loan_Repayment.ErrorCode;
-		SET bodyRef.message = errMsg;		
+		SET bodyRef.message = errMsg;
 		SET OutputRoot.XMLNSC = NULL;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
