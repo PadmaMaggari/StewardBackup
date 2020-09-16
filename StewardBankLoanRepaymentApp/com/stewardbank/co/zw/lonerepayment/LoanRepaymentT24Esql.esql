@@ -125,7 +125,7 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_ResponseToChannel
 		DECLARE Inrefer REFERENCE to InputRoot.JSON.Data;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoneRepayment');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanRepayment'); 
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
@@ -209,15 +209,15 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_BuildException
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'Loan_Repayment';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'LoanRepayment';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'Loan_Repayment');
+		CALL BuildExceptionDetails(excpRef,outRef,'LoanRepayment');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('Loan_Repayment');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanRepayment');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
@@ -230,10 +230,10 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_BuildException
 		SET headerRef.responseCode = '000';
 		SET bodyRef.source = 'ESB';
 		SET bodyRef.applicationName = ApplicationLabel;
-		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.Loan_Repayment.ErrorCode;
+		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LoanRepayment.ErrorCode;
 		SET bodyRef.message = errMsg;
 		SET OutputRoot.XMLNSC = NULL;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2; 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
@@ -243,7 +243,7 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_BuildException
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
 		--CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.Loan_Repayment.ErrorCode,outRefer);
-		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.Loan_Repayment.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LoanRepayment.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 	END;

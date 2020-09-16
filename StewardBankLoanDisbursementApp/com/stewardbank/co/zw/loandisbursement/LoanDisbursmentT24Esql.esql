@@ -295,15 +295,15 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'LOAN_DISBURSMENT';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'LoanDisbursment';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'LOAN_DISBURSMENT');
+		CALL BuildExceptionDetails(excpRef,outRef,'LoanDisbursment'); 
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LOAN_DISBURSMENT'); 
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanDisbursment');  
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
@@ -315,8 +315,8 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '000';
 		SET bodyRef.source = 'ESB';  
-		SET bodyRef.applicationName = ApplicationLabel;  
-		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.Loan_Repayment.ErrorCode;
+		SET bodyRef.applicationName = ApplicationLabel;   
+		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LoanDisbursment.ErrorCode; 
 		SET bodyRef.message = errMsg;
 		SET OutputRoot.XMLNSC = NULL;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
@@ -329,7 +329,7 @@ CREATE COMPUTE MODULE LoanDisbursmentT24Flow_BuildException
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
 		--CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSMENT.ErrorCode,outRefer);
-		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSMENT.ErrorCode,outRefer);
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LoanDisbursment.ErrorCode,outRefer); 
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
 		----------------------------------
