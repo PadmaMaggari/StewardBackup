@@ -1,5 +1,7 @@
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.lonerepayment
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -15,7 +17,7 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_RequestToZss
 	BEGIN
 		CALL RequestToZss();
 		RETURN FALSE;
-	END;	
+	END;
 
 
 	CREATE PROCEDURE RequestToZss() BEGIN
@@ -32,6 +34,10 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_RequestToZss
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
+		DECLARE Field7,timee,stri CHARACTER;
+		SET timee = dbLoggingTime;
+		SET stri = SUBSTRING(timee FROM 17 FOR 2)||SUBSTRING(timee FROM 20 FOR 2)||SUBSTRING(timee FROM 23 FOR 2)||SUBSTRING(timee FROM 26 FOR 2)||SUBSTRING(timee FROM 29 FOR 2);
+		SET Field7 = CAST(stri AS CHARACTER FORMAT 'MMDDhhmmss');
 		-- SET DBLogging Properties ==============
 		SET Environment.Variable.reqMsg = reqMsg;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -66,6 +72,7 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_RequestToZss
 		SET outRef.MTI_MessageOrigin = 0;
 		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
 		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.debitAmount AS CHARACTER);
+		SET outRef.TransmissionDatetime_007 = Field7; --  
 		SET outRef.AccountIdentification1_102 = inRef.JSON.Data.debitAccountNumber;
 		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.creditAccountNumber;
 		SET outRef.ReservedPrivate_127 = '000000';
@@ -127,7 +134,7 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_GenereateResponseToChannel
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,inRef,encodeRef,ccidRef);
-		DECLARE outRefer REFERENCE TO OutputRoot;		
+		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE logRef REFERENCE TO InputRoot.DFDL.ISO8583_1987;
 		DECLARE jsonRef REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
@@ -156,26 +163,26 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_GenereateResponseToChannel
 
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanRepayment'); 
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanRepayment');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('body');
 		DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE bodyRef REFERENCE TO OutputRoot.JSON.Data.*.body;
-			DECLARE responceCode CHARACTER InputRoot.DFDL.ISO8583_1987.ResponseCode_039; 
-		IF  responceCode LIKE '00' THEN 
-		--SET headRef = Environment.header;
-		SET headRef.channel = '*236#';
-		SET headRef.processingCode = '120000';
-		SET headRef.ResponseFrom = 'ZSS'; 
-		SET headRef.status = 'SUCCESS';
-		SET headRef.responseCode = responceCode; 
+		DECLARE responceCode CHARACTER InputRoot.DFDL.ISO8583_1987.ResponseCode_039;
+		IF responceCode LIKE '00' THEN
+			--SET headRef = Environment.header;
+			SET headRef.channel = '*236#';
+			SET headRef.processingCode = '120000';
+			SET headRef.ResponseFrom = 'ZSS';
+			SET headRef.status = 'SUCCESS';
+			SET headRef.responseCode = responceCode;
 		ELSE
 			SET headRef.channel = '*236#';
-		SET headRef.processingCode = '120000';
-		SET headRef.ResponseFrom = 'ZSS'; 
-		SET headRef.status = 'FAILURE'; 
-		SET headRef.responseCode = responceCode; 
-		END IF; 	
+			SET headRef.processingCode = '120000';
+			SET headRef.ResponseFrom = 'ZSS';
+			SET headRef.status = 'FAILURE';
+			SET headRef.responseCode = responceCode;
+		END IF;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.JSON;
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
 		CALL ISOToJSONMapping(inRef,bodyRef);
@@ -234,7 +241,7 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_BuildException
 			SET errMsg = 'No Response from ZSS Server';
 		END IF;
 		IF CONTAINS(excpRef.excpText,'ParserException') THEN
-			SET errMsg = 'No Response from ZSS Server'; 
+			SET errMsg = 'No Response from ZSS Server';
 		END IF;
 		IF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
 			SET errMsg = 'WebService Request Exception errors have occurred';
@@ -256,23 +263,23 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_BuildException
 		SET OutputRoot.XMLNSC = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanRepayment'); 
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanRepayment');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
 		SET headerRef.channel = '*236#';
-		SET headerRef.processingCode = '120000'; 
+		SET headerRef.processingCode = '120000';
 		SET headerRef.status = 'FAILED';
-		SET headerRef.ResponseFrom = 'ZSS';  
+		SET headerRef.ResponseFrom = 'ZSS';
 		SET headerRef.responseCode = '000';
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
-		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LoanRepayment.ErrorCode; 
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LoanRepayment.ErrorCode;
 		SET errorRef.message = errMsg;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES'; 
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;

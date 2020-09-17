@@ -6,6 +6,10 @@
 
 
 
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.loandisbursement
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -17,7 +21,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 	DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 	DECLARE IsLogRequired EXTERNAL CHARACTER'';
 	CREATE FUNCTION Main() RETURNS BOOLEAN
-	BEGIN     
+	BEGIN
 		CALL RequestToZss();
 		RETURN FALSE;
 	END;
@@ -35,6 +39,10 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		DECLARE destinationPhone CHARACTER 'DestinationPhone';
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
+		DECLARE Field7,timee,stri CHARACTER;
+		SET timee = dbLoggingTime;
+		SET stri = SUBSTRING(timee FROM 17 FOR 2)||SUBSTRING(timee FROM 20 FOR 2)||SUBSTRING(timee FROM 23 FOR 2)||SUBSTRING(timee FROM 26 FOR 2)||SUBSTRING(timee FROM 29 FOR 2);
+		SET Field7 = CAST(stri AS CHARACTER FORMAT 'MMDDhhmmss');
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.Variable.reqMsg = reqMsg;
@@ -70,6 +78,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		SET outRef.MTI_MessageOrigin = 0;
 		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
 		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.debitAmount AS CHARACTER);
+		SET outRef.TransmissionDatetime_007 = Field7; -- 
 		SET outRef.AccountIdentification1_102 = inRef.JSON.Data.debitAccountNumber;
 		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.creditAccountNumber;
 		SET outRef.ReservedPrivate_127 = '000000';
@@ -172,7 +181,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_GenereateResponseToChannel
 		IF responceCode LIKE '00' THEN
 			--SET headRef = Environment.header;
 			SET headRef.channel = '*236#';
-			SET headRef.processingCode = '110000'; 
+			SET headRef.processingCode = '110000';
 			SET headRef.ResponseFrom = 'ZSS';
 			SET headRef.status = 'SUCCESS';
 			SET headRef.responseCode = responceCode;
@@ -194,7 +203,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_GenereateResponseToChannel
 		SET envref = OutRefer;
 		-- SET OutputRoot = NULL;
 		SET domainName = FIELDNAME(outDomainDataRef);
-		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef); 
+		SET Environment.Variables.resMsg = getPayLoad(domainName,outDomainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired LIKE 'Y' THEN
 			--------------DBLogging-------------------
@@ -262,26 +271,26 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_BuildException
 		SET OutputRoot.XMLNSC = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanDisbursment'); 
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanDisbursment');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
 		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
 		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
 		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
 		SET headerRef.channel = '*236#';
 		SET headerRef.processingCode = '110000';
-		SET headerRef.ResponseFrom = 'ZSS';  
+		SET headerRef.ResponseFrom = 'ZSS';
 		SET headerRef.status = 'FAILED';
 		SET headerRef.responseCode = '000';
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
-		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LoanDisbursment.ErrorCode; 
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LoanDisbursment.ErrorCode;
 		SET errorRef.message = errMsg;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
-		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc; 
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
