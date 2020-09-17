@@ -2,6 +2,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.lonerepayment
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -34,10 +44,13 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_RequestToZss
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
 		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.JSON.Data,encodeRef,ccsid);
-		DECLARE Field7,timee,stri CHARACTER;
+		DECLARE Field7,timee,stri,Field13,Field12 CHARACTER;
 		SET timee = dbLoggingTime;
 		SET stri = SUBSTRING(timee FROM 17 FOR 2)||SUBSTRING(timee FROM 20 FOR 2)||SUBSTRING(timee FROM 23 FOR 2)||SUBSTRING(timee FROM 26 FOR 2)||SUBSTRING(timee FROM 29 FOR 2);
 		SET Field7 = CAST(stri AS CHARACTER FORMAT 'MMDDhhmmss');
+		SET Field13 = CAST(stri AS CHARACTER FORMAT 'MMDD');
+		DECLARE trnTime TIMESTAMP CURRENT_GMTTIMESTAMP;
+		SET Field12 = CAST(trnTime AS CHARACTER FORMAT 'HHmmss');
 		-- SET DBLogging Properties ==============
 		SET Environment.Variable.reqMsg = reqMsg;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -72,11 +85,35 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_RequestToZss
 		SET outRef.MTI_MessageOrigin = 0;
 		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
 		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.debitAmount AS CHARACTER);
-		SET outRef.TransmissionDatetime_007 = Field7; --  
+		SET outRef.TransmissionDatetime_007 = Field7; --
+		SET outRef.SystemsTraceAuditNumber_011 = '000542';
+		SET outRef.TimeLocalTransaction_012 = Field12;
+		SET outRef.DateLocalTransaction_013 = SUBSTRING(Field13 FROM 1 FOR 4);
+		SET outRef.DateSettlement_015 = SUBSTRING(Field13 FROM 1 FOR 4);
+		SET outRef.MerchantType_018 = '6011';
+		SET outRef.PointOfServiceEntryMode_022 = '001';
+		SET outRef.PointOfServiceConditionCode_025 = '27';
+		SET outRef.PointOfServiceCaptureCode_026 = '12';
+		SET outRef.AmountTransactionFee_028 = 'C00000000';
+		SET outRef.AmountTransactionProcessingFee_030 = 'C00000000';
+		SET outRef.AcquiringInstitutionIdentificationCode_032 = '502195';
+		SET outRef.ForwardingInstitutionIdentificationCode_033 = '502195';
+		SET outRef.RetrievalReferenceNumber_037 = '1028934641  ';
+		SET outRef.CardAcceptorTerminalIdentification_041 = 'ISAVE263';
+		SET outRef.CardAcceptorIdentificationCode_042 = '26377-SBZWISAVE';
+		SET outRef.CardAcceptorNameLocation_043 = 'salary                                  ';
+		SET outRef.CurrencyCodeTransaction_049 = '932';
+		SET outRef.ReservedNational_059 = '0116742676';
+		SET outRef.ReceivingInstitutionIdentificationCode_100 = '502195';
 		SET outRef.AccountIdentification1_102 = inRef.JSON.Data.debitAccountNumber;
 		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.creditAccountNumber;
-		SET outRef.ReservedPrivate_127 = '000000';
+		SET outRef.ReservedPrivate_123 = '100450100130021';
+		SET outRef.ReservedPrivate_127 = '000000';	
+		SET outRef.SwitchKeyPostilionPrivate_127_2 = '00000000000000000000000359448063'; -- 
+		SET outRef.AdditionalNodeDataPostilionPrivate_127_9 = '20200911'; -- 
+		SET outRef.OriginalKeyPostilionPrivate_127_12 = '1028934641'; -- 
 		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.mobileNumber;
+		SET outRef.ExtendedTransactionTypePostilionPrivate_127_33 = '9040'; --  
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);
