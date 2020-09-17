@@ -32,6 +32,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_VerifyRequest
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
+		CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- Account Opening 236 Start ------') INTO rc;
 		DECLARE inRef REFERENCE TO InputRoot;
 		IF EXISTS(InputRoot.JSON[]) THEN
 			MOVE inRef TO InputRoot.JSON.Data;
@@ -51,8 +52,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_VerifyRequest
 		SET Environment.Variables.reqMsg = Environment.MQRFH2.ChannelRequest;
 		------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Request------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' -----Application Request------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
@@ -112,8 +113,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateUnknownResponse
 		SET OutputRoot.JSON = NULL;
 		------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' -----Application Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
@@ -145,8 +146,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToKYC
 		ELSE
 			SET url = DWH_URL||national_ID;
 			IF IsLogRequired = 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Calling DWH Service ------') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- '||url||' ------') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- Calling DWH Service ------') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- '||url||' ------') INTO rc;
 			END IF;
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.Properties.ContentType = 'application/json';
@@ -183,8 +184,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToKYC
 		END IF;
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -250,8 +251,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_VerifyDWHResponse
 		END IF;
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- DWH Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- DWH Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'DWH Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
@@ -293,8 +294,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_VerifyDWHResponse
 		END IF;
 		SET OutputRoot.XMLNSC = NULL;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Econet Request------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' -----Econet Request------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Econet Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -343,8 +344,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYCResponse
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Econet Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- Econet Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Econet Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -364,8 +365,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYCResponse
 		END IF;
 		SET OutputRoot.XMLNSC = NULL;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -414,8 +415,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateKYC_FailureResponse
 		END IF;
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
 		--------------DBLogging-------------------
 		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
@@ -601,8 +602,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToZSS
 		END IF;
 		SET OutputRoot.DFDL = NULL;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----ZSS Request------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' -----ZSS Request------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -632,8 +633,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToPostilion
 		DECLARE domainDataRef REFERENCE TO InputBody;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----ZSS Response------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' -----ZSS Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'ZSS Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -801,8 +802,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToPostilion
 			END IF;
 			SET OutputRoot.DFDL = NULL;
 			IF IsLogRequired = 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Postilion Request------') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' -----Postilion Request------') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 				--------------DBLogging-------------------
 				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -839,8 +840,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToPostilion
 --			END IF;
 --			SET OutputRoot.JSON = NULL;
 --			IF IsLogRequired = 'Y' THEN
---				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
---				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+--				CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' -----Application Response------') INTO rc;
+--				CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 --				--------------DBLogging-------------------
 --				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 --				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -904,8 +905,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToT24
 		END IF;
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- T24 Request ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- T24 Request ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
@@ -965,8 +966,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateFCMResponse
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- T24 Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- T24 Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 		END IF;
 		--------------DBLogging-------------------
 		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
@@ -1004,8 +1005,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateFCMResponse
 		END IF;
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 		END IF;
 		--------------DBLogging-------------------
 		CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
@@ -1040,8 +1041,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateUpdateResponse
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Postilion Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- Postilion Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Postilion Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -1090,8 +1091,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateUpdateResponse
 		SET domainName = FIELDNAME(domainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'ACCOPNGLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
