@@ -1,4 +1,8 @@
 
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.indigo
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -120,51 +124,90 @@ CREATE COMPUTE MODULE IndigoFlow_ReqToFrondEnd
 		END IF;
 		DECLARE bindingOperatingName CHARACTER'';
 		-- DECLARE inDataResponse REFERENCE TO InputRoot.SOAP.Body.[<];
-
-
-
-		DECLARE inRefSoap REFERENCE TO InputRoot.SOAP;
-
+		/*============= Based on the response code will propagate to channel===============*/
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
-		DECLARE inRef REFERENCE TO InputRoot;
-		DECLARE serviseName REFERENCE TO InputRoot.SOAP.Body.[1];
-		SET bindingOperatingName = FIELDNAME(serviseName);
-		SET Environment.t24resMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP.Body,encodeRef,ccsid);
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.t24resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		DECLARE mqrfRef REFERENCE TO Environment.MQRFH2;
+		DECLARE responceCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		IF responceCode NOT LIKE '200' THEN
+			CALL errorResponse(mqrfRef,'No response from T24 Server','ESB_001',ApplicationLabel);
+			DECLARE t24ErrorResponseData REFERENCE TO OutputRoot.XMLNSC;
+			SET Environment.outData = t24ErrorResponseData;
+			SET OutputRoot.XMLNSC = NULL;
+			SET Environment.Variables.t24ErrorresMsg = getPayLoad(FIELDNAME(InputBody),t24ErrorResponseData,encodeRef,ccsid); 
+			
+			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','..............Start T24 Response  logging...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','T24 Response::') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG',Environment.Variables.t24ErrorresMsg) INTO rc;
+				
+				IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.Variables.t24ErrorresMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+				PROPAGATE TO TERMINAL 'out';
+			END IF;
+			
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputRoot.XMLNSC = Environment.outData;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
+			PROPAGATE TO TERMINAL 'out';
+			
+		ELSE
+
+
+
+
+			DECLARE inRefSoap REFERENCE TO InputRoot.SOAP;
+
+--			DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
+--			DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
+			DECLARE inRef REFERENCE TO InputRoot;
+			DECLARE serviseName REFERENCE TO InputRoot.SOAP.Body.[1];
+			SET bindingOperatingName = FIELDNAME(serviseName);
+			SET Environment.t24resMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP.Body,encodeRef,ccsid);
+--			DECLARE outRefer REFERENCE TO OutputRoot;
+			-- =================== CALLING DB RAW AUDIT LOGGING ==============
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.t24resMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
+				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+				PROPAGATE TO TERMINAL 'out';
+			END IF;
+			/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
+			IF IsLogRequired LIKE 'Y' THEN
+				CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','..............Start T24 Response  logging...........') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','T24 Response::') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG',Environment.t24resMsg) INTO rc;
+			END IF;
+			CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+			DECLARE outRefSoap REFERENCE TO OutputRoot.XMLNSC;
+
+			CALL soapResFieldToFieldMapping(bindingOperatingName,inRefSoap,outRefSoap,serviseName);
+
+			DECLARE OutRefer REFERENCE TO OutputRoot.XMLNSC;
+			DECLARE envref REFERENCE TO Environment.XMLNSC;
+			CREATE LASTCHILD OF Environment AS envref DOMAIN 'XMLNSC';
+			SET envref = OutRefer;
+			DECLARE reqMsgT24 CHARACTER'';
+			SET Environment.reqMsgT24 = getPayLoad(FIELDNAME(InputBody),OutputRoot.SOAP.Body,encodeRef,ccsid);
+			SET OutputRoot = NULL;
+
+			SET OutputRoot.Properties = InputRoot.Properties;
+			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+			SET OutputRoot.XMLNSC = envref;
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
 			PROPAGATE TO TERMINAL 'out';
 		END IF;
-		/* =================== CALLING DB RAW AUDIT LOGGING ENDING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','..............Start T24 Response  logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG','T24 Response::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'indigoLogging', 'DEBUG',Environment.t24resMsg) INTO rc;
-		END IF;
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		DECLARE outRefSoap REFERENCE TO OutputRoot.XMLNSC;
-		
-	
-			
-		CALL soapResFieldToFieldMapping(bindingOperatingName,inRefSoap,outRefSoap,serviseName);
-
-		DECLARE OutRefer REFERENCE TO OutputRoot.XMLNSC;
-		DECLARE envref REFERENCE TO Environment.XMLNSC;
-		CREATE LASTCHILD OF Environment AS envref DOMAIN 'XMLNSC';
-		SET envref = OutRefer;
-		DECLARE reqMsgT24 CHARACTER'';
-		SET Environment.reqMsgT24 = getPayLoad(FIELDNAME(InputBody),OutputRoot.SOAP.Body,encodeRef,ccsid);
-		SET OutputRoot = NULL;
-
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.XMLNSC = envref;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
-		PROPAGATE TO TERMINAL 'out';
 	END;
+	CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE, IN msg CHAR,IN errorCode CHAR,IN applicationLabel CHAR)
+	BEGIN
+		SET OutputRoot.MQRFH2 = mqrfRef;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
+		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
+	END;
+	
 END MODULE;
 
 
@@ -189,7 +232,7 @@ CREATE COMPUTE MODULE IndigoFlow_BuildExceptionDetails
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		DECLARE excpRef CHARACTER  Environment.Variables.excpType;
+		DECLARE excpRef CHARACTER Environment.Variables.excpType;
 		DECLARE errMsg CHARACTER;
 		IF CONTAINS(excpRef.excpText,'SocketException') THEN
 
@@ -271,42 +314,43 @@ BEGIN
 		SET outRefSoap.Body.ns:CardCharges.WebRequestCommon.company = COMPANY;
 		SET outRefSoap.Body.ns:CardCharges.WebRequestCommon.password = PASSWORD;
 		SET outRefSoap.Body.ns:CardCharges.WebRequestCommon.userName = UASRNAME;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.activityName = inRefSoap.Body.ns:CardCharges.OfsFunction.activityName;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.activityName = serviseName.OfsFunction.activityName;
 
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.assignReason = inRefSoap.Body.ns:CardCharges.OfsFunction.assignReason;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.dueDate = inRefSoap.Body.ns:CardCharges.OfsFunction.dueDate;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.extProcess = inRefSoap.Body.ns:CardCharges.OfsFunction.extProcess;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.extProcessID = inRefSoap.Body.ns:CardCharges.OfsFunction.extProcessID;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.gtsControl = inRefSoap.Body.ns:CardCharges.OfsFunction.gtsControl;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.messageId = inRefSoap.Body.ns:CardCharges.OfsFunction.messageId;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.noOfAuth = inRefSoap.Body.ns:CardCharges.OfsFunction.noOfAuth;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.owner = inRefSoap.Body.ns:CardCharges.OfsFunction.owner;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.replace = inRefSoap.Body.ns:CardCharges.OfsFunction.replace;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.startDate = inRefSoap.Body.ns:CardCharges.OfsFunction.startDate;
-		SET outRefSoap.Body.ns:CardCharges.OfsFunction.user = inRefSoap.Body.ns:CardCharges.OfsFunction.user;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.id = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.id;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.assignReason = serviseName.OfsFunction.assignReason;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.dueDate = serviseName.OfsFunction.dueDate;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.extProcess = serviseName.OfsFunction.extProcess;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.extProcessID = serviseName.OfsFunction.extProcessID;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.gtsControl = serviseName.OfsFunction.gtsControl;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.messageId = serviseName.OfsFunction.messageId;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.noOfAuth = serviseName.OfsFunction.noOfAuth;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.owner = serviseName.OfsFunction.owner;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.replace = serviseName.OfsFunction.replace;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.startDate = serviseName.OfsFunction.startDate;
+		SET outRefSoap.Body.ns:CardCharges.OfsFunction.user = serviseName.OfsFunction.user;
 
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountDebited = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountDebited;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY;
-		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType = inRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType;
-
-
+		SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.id = serviseName.FUNDSTRANSFERCARDCHARGEType.id; 
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:AmountCredited;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAccount;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:CreditAmount;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:CreditCurrency;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:CreditNarrative;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:CreditValueDate;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerRate;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:CustomerSpread;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAccount;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:DebitAmount;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:DebitCurrency;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:DebitNarrative;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:DebitValueDate;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF.g = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF.g;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF.ns16:DeliveryReference = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:gDELIVERYOUTREF.ns16:DeliveryReference;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST.g = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST.g;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST.ns16:OrderedBy = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:gORDERINGCUST.ns16:OrderedBy;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY.g = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY.g;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY.ns16:Signatory = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:gSIGNATORY.ns16:Signatory;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:RoundingType;
+SET outRefSoap.Body.ns:CardCharges.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate = serviseName.FUNDSTRANSFERCARDCHARGEType.ns16:TreasuryRate; 
+		
 
 	WHEN bindingOperatingName LIKE 'AccountDetails' THEN
 
@@ -645,8 +689,8 @@ BEGIN
 
 
 	WHEN bindingOperatingName LIKE 'AccountBalanceResponse' THEN
-		
-		
+
+
 		DECLARE S NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
 		DECLARE s NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
 		SET outRefSoap.S:Envelope.(XMLNSC.NamespaceDecl)xmlns:S = S;
@@ -661,17 +705,17 @@ BEGIN
 		SET OutBodyRef.Status.messages = serviseName.Status.messages;
 		SET OutBodyRef.Status.successIndicator = serviseName.Status.successIndicator;
 		SET OutBodyRef.Status.transactionId = serviseName.Status.transactionId;
-		
-		
+
+
 		SET OutBodyRef.GETACCTBALType.gGETACCTBALDetailType.mGETACCTBALDetailType.ID = inRefSoap.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:Account;
 		SET OutBodyRef.GETACCTBALType.gGETACCTBALDetailType.mGETACCTBALDetailType.ONLINEACTUALBAL = inRefSoap.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:Balance;
 		SET OutBodyRef.GETACCTBALType.gGETACCTBALDetailType.mGETACCTBALDetailType.CURRENCY = inRefSoap.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:CURRENCY;
 		SET OutBodyRef.GETACCTBALType.gGETACCTBALDetailType.mGETACCTBALDetailType.ACCOUNTTITLE1 = inRefSoap.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:AccountName;
 		SET OutBodyRef.GETACCTBALType.gGETACCTBALDetailType.mGETACCTBALDetailType.Category = inRefSoap.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:Category;
 		SET OutBodyRef.GETACCTBALType.gGETACCTBALDetailType.mGETACCTBALDetailType.SelAccount = inRefSoap.Body.ns:AccountBalanceResponse.GETACCTBALType.ns10:gGETACCTBALDetailType.ns10:mGETACCTBALDetailType.ns10:SelAccount;
-		 
 
-	WHEN bindingOperatingName LIKE 'CardChargesResponse' THEN		
+
+	WHEN bindingOperatingName LIKE 'CardChargesResponse' THEN
 
 
 
@@ -689,7 +733,7 @@ BEGIN
 		SET OutBodyRef.Status.messages = serviseName.Status.messages;
 		SET OutBodyRef.Status.successIndicator = serviseName.Status.successIndicator;
 		SET OutBodyRef.Status.transactionId = serviseName.Status.transactionId;
-		
+
 
 
 
@@ -1032,18 +1076,18 @@ BEGIN
 		SET OutBodyRef.Status.messages = serviseName.Status.messages;
 		SET OutBodyRef.Status.successIndicator = serviseName.Status.successIndicator;
 		SET OutBodyRef.Status.transactionId = serviseName.Status.transactionId;
-                           
+
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.g = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.g;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.ResponseCode = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:ResponseCode;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.CustomerID = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:CustomerID;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.CustomerName = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:CustomerName;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.AddrLine1 = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:Addrline1;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.AddrLine2 = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:AddressLine2;
-		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.City = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:City;	
+		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.City = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:City;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.StateCode = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:StateCode;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.PostalCode = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:PostalCode;
-		
-		                   																											
+
+
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.CustomerPhoneNo = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:CustomerPhoneNo;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.AccountType = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:AccountType;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.AccountCurrency= inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:AccountCurrency;
@@ -1051,9 +1095,356 @@ BEGIN
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.m = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.m;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.DOB = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:DOB;
 		SET OutBodyRef.JSLCARDACCTType.gJSLCARDACCTDetailType.mJSLCARDACCTDetailType.LEGALID = inRefSoap.Body.ns:AccountDetailsResponse.JSLCARDACCTType.ns26:gJSLCARDACCTDetailType.ns26:mJSLCARDACCTDetailType.ns26:LEGALID;
-		
-		
-		
+
+
+
+
+
+	WHEN bindingOperatingName LIKE 'AmendCardResponse' THEN
+
+		DECLARE S NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
+		DECLARE s NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
+		SET outRefSoap.S:Envelope.(XMLNSC.NamespaceDecl)xmlns:S = S;
+		SET outRefSoap.S:Envelope.s:Header.(XMLNSC.NamespaceDecl)xmlns:s = s;
+
+		DECLARE ns2 NAMESPACE 'T24WebServicesImpl';
+		SET outRefSoap.S:Envelope.S:Body.ns2:AmendCardResponse.(XMLNSC.NamespaceDecl)xmlns:ns2=ns2;
+		DECLARE OutBodyRef REFERENCE TO outRefSoap.S:Envelope.S:Body.ns2:AmendCardResponse;
+
+
+
+		SET OutBodyRef.Status.application = serviseName.Status.application;
+		SET OutBodyRef.Status.messageId = serviseName.Status.messageId;
+		SET OutBodyRef.Status.messages = serviseName.Status.messages;
+		SET OutBodyRef.Status.successIndicator = serviseName.Status.successIndicator;
+		SET OutBodyRef.Status.transactionId = serviseName.Status.transactionId;		
+
+
+
+
+		SET OutBodyRef.ACCOUNTType.id = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.id;
+		SET OutBodyRef.ACCOUNTType.ACCOUNTINGCOMPANY = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ACCOUNTINGCOMPANY;
+		SET OutBodyRef.ACCOUNTType.ACCOUNTOFFICER = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ACCOUNTOFFICER;
+		SET OutBodyRef.ACCOUNTType.ALLINONEPRODUCT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ALLINONEPRODUCT;
+		SET OutBodyRef.ACCOUNTType.ALLOWEDBVDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ALLOWEDBVDATE;
+		SET OutBodyRef.ACCOUNTType.ALLOWNETTING = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ALLOWNETTING;
+		SET OutBodyRef.ACCOUNTType.AMNTLASTCRAUTO = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTCRAUTO;
+		SET OutBodyRef.ACCOUNTType.AMNTLASTCRBANK = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTCRBANK;
+		SET OutBodyRef.ACCOUNTType.AMNTLASTCRCUST = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTCRCUST;
+		SET OutBodyRef.ACCOUNTType.AMNTLASTDRAUTO = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTDRAUTO;
+		SET OutBodyRef.ACCOUNTType.AMNTLASTDRBANK = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTDRBANK;
+		SET OutBodyRef.ACCOUNTType.AMNTLASTDRCUST = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AMNTLASTDRCUST;
+		SET OutBodyRef.ACCOUNTType.APR = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:APR;
+		SET OutBodyRef.ACCOUNTType.ARRANGEMENTID = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ARRANGEMENTID;
+		SET OutBodyRef.ACCOUNTType.AUDITDATETIME = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AUDITDATETIME;
+		SET OutBodyRef.ACCOUNTType.AUDITORCODE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AUDITORCODE;
+		SET OutBodyRef.ACCOUNTType.AUTHORISER = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AUTHORISER;
+		SET OutBodyRef.ACCOUNTType.AUTOPAYACCT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AUTOPAYACCT;
+		SET OutBodyRef.ACCOUNTType.AVAILABLEBALUPD = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:AVAILABLEBALUPD;
+		SET OutBodyRef.ACCOUNTType.BALANCECONVERSIONMKT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:BALANCECONVERSIONMKT;
+		SET OutBodyRef.ACCOUNTType.CAPBACKVALUE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CAPBACKVALUE;
+		SET OutBodyRef.ACCOUNTType.CATEGORY = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CATEGORY;
+		SET OutBodyRef.ACCOUNTType.CHARGEACCOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CHARGEACCOUNT;
+		SET OutBodyRef.ACCOUNTType.CHARGECCY = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CHARGECCY;
+		SET OutBodyRef.ACCOUNTType.CHARGEMKT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CHARGEMKT;
+		SET OutBodyRef.ACCOUNTType.CLOSEDONLINE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CLOSEDONLINE;
+		SET OutBodyRef.ACCOUNTType.CLOSUREDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CLOSUREDATE;
+		SET OutBodyRef.ACCOUNTType.CLOSUREREASON = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CLOSUREREASON;
+		SET OutBodyRef.ACCOUNTType.COCODE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:COCODE;
+		SET OutBodyRef.ACCOUNTType.CONCHARGEACCR = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONCHARGEACCR;
+		SET OutBodyRef.ACCOUNTType.CONDITIONGROUP = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONDITIONGROUP;
+		SET OutBodyRef.ACCOUNTType.CONINTERESTACCR = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONINTERESTACCR;
+		SET OutBodyRef.ACCOUNTType.CONSOLIDATEENT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONSOLIDATEENT;
+		SET OutBodyRef.ACCOUNTType.CONSOLKEY = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONSOLKEY;
+		SET OutBodyRef.ACCOUNTType.CONTINGENTBALCR = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONTINGENTBALCR;
+		SET OutBodyRef.ACCOUNTType.CONTINGENTBALDR = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONTINGENTBALDR;
+		SET OutBodyRef.ACCOUNTType.CONTINGENTINT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CONTINGENTINT;
+		SET OutBodyRef.ACCOUNTType.CR2ADJAMOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CR2ADJAMOUNT;
+		SET OutBodyRef.ACCOUNTType.CRADJAMOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CRADJAMOUNT;
+		SET OutBodyRef.ACCOUNTType.CREDITCHECK = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CREDITCHECK;
+		SET OutBodyRef.ACCOUNTType.CREDITCHKCONDITION = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CREDITCHKCONDITION;
+		SET OutBodyRef.ACCOUNTType.CREDITCHKTXNTYPE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CREDITCHKTXNTYPE;
+		SET OutBodyRef.ACCOUNTType.CURRENCY = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CURRENCY;
+		SET OutBodyRef.ACCOUNTType.CURRENCYMARKET = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CURRENCYMARKET;
+		SET OutBodyRef.ACCOUNTType.CURRNO = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CURRNO;
+		SET OutBodyRef.ACCOUNTType.CUSTOMER = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:CUSTOMER;
+		SET OutBodyRef.ACCOUNTType.DATELASTCRAUTO = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTCRAUTO;
+		SET OutBodyRef.ACCOUNTType.DATELASTCRBANK = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTCRBANK;
+		SET OutBodyRef.ACCOUNTType.DATELASTCRCUST = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTCRCUST;
+		SET OutBodyRef.ACCOUNTType.DATELASTDRAUTO = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTDRAUTO;
+		SET OutBodyRef.ACCOUNTType.DATELASTDRBANK = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTCRBANK;
+		SET OutBodyRef.ACCOUNTType.DATELASTDRCUST = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTDRCUST;
+		SET OutBodyRef.ACCOUNTType.DATELASTUPDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DATELASTUPDATE;
+		SET OutBodyRef.ACCOUNTType.DEBITCARD = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DEBITCARD;
+		SET OutBodyRef.ACCOUNTType.DEPTCODE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DEPTCODE;
+		SET OutBodyRef.ACCOUNTType.DISPOEXEMPT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DISPOEXEMPT;
+		SET OutBodyRef.ACCOUNTType.DISPOOFFICER = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DISPOOFFICER;
+		SET OutBodyRef.ACCOUNTType.DR2ADJAMOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DR2ADJAMOUNT;
+		SET OutBodyRef.ACCOUNTType.DRADJAMOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:DRADJAMOUNT;
+		SET OutBodyRef.ACCOUNTType.EXTERNALPOSTING = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:EXTERNALPOSTING;
+		SET OutBodyRef.ACCOUNTType.FIRSTAFDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:FIRSTAFDATE;
+		SET OutBodyRef.ACCOUNTType.gACCDEBLIMIT.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCDEBLIMIT.g;
+		SET OutBodyRef.ACCOUNTType.gACCDEBLIMIT.ACCDEBLIMIT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCDEBLIMIT.ns6:ACCDEBLIMIT;
+		SET OutBodyRef.ACCOUNTType.gACCOUNTTITLE1.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCOUNTTITLE1.g;
+		SET OutBodyRef.ACCOUNTType.gACCOUNTTITLE1.ACCOUNTTITLE1 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCOUNTTITLE1.ns6:ACCOUNTTITLE1;
+		SET OutBodyRef.ACCOUNTType.gACCOUNTTITLE2.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCOUNTTITLE2.g;
+		SET OutBodyRef.ACCOUNTType.gACCOUNTTITLE2.ACCOUNTTITLE2 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCOUNTTITLE2.ns6:ACCOUNTTITLE2;
+		SET OutBodyRef.ACCOUNTType.gACCRCHGCATEG.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.g;
+		SET OutBodyRef.ACCOUNTType.gACCRCHGCATEG.mACCRCHGCATEG.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.m;
+		SET OutBodyRef.ACCOUNTType.gACCRCHGCATEG.mACCRCHGCATEG.ACCRCHGAMOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.ns6:ACCRCHGAMOUNT;
+		SET OutBodyRef.ACCOUNTType.gACCRCHGCATEG.mACCRCHGCATEG.ACCRCHGCATEG = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.ns6:ACCRCHGCATEG;
+		SET OutBodyRef.ACCOUNTType.gACCRCHGCATEG.mACCRCHGCATEG.ACCRCHGSUSP = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.ns6:ACCRCHGSUSP;
+		SET OutBodyRef.ACCOUNTType.gACCRCHGCATEG.mACCRCHGCATEG.ACCRCHGTRANS = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCHGCATEG.ns6:mACCRCHGCATEG.ns6:ACCRCHGTRANS;
+		SET OutBodyRef.ACCOUNTType.gACCRCR2CATEG.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.g;
+		SET OutBodyRef.ACCOUNTType.gACCRCR2CATEG.mACCRCR2CATEG.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.m;
+		SET OutBodyRef.ACCOUNTType.gACCRCR2CATEG.mACCRCR2CATEG.ACCRCR2AMOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.ns6:ACCRCR2AMOUNT;
+		SET OutBodyRef.ACCOUNTType.gACCRCR2CATEG.mACCRCR2CATEG.ACCRCR2CATEG = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.ns6:ACCRCR2CATEG;
+		SET OutBodyRef.ACCOUNTType.gACCRCR2CATEG.mACCRCR2CATEG.ACCRCR2SUSP = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.ns6:ACCRCR2SUSP;
+		SET OutBodyRef.ACCOUNTType.gACCRCR2CATEG.mACCRCR2CATEG.ACCRCR2TRANS = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCR2CATEG.ns6:mACCRCR2CATEG.ns6:ACCRCR2TRANS;
+		SET OutBodyRef.ACCOUNTType.gACCRCRCATEG.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.g;
+		SET OutBodyRef.ACCOUNTType.gACCRCRCATEG.mACCRCRCATEG.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.m;
+		SET OutBodyRef.ACCOUNTType.gACCRCRCATEG.mACCRCRCATEG.ACCRCRAMOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.ns6:ACCRCRAMOUNT;
+		SET OutBodyRef.ACCOUNTType.gACCRCRCATEG.mACCRCRCATEG.ACCRCRCATEG = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.ns6:ACCRCRCATEG;
+		SET OutBodyRef.ACCOUNTType.gACCRCRCATEG.mACCRCRCATEG.ACCRCRSUSP = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.ns6:ACCRCRSUSP;
+		SET OutBodyRef.ACCOUNTType.gACCRCRCATEG.mACCRCRCATEG.ACCRCRTRANS = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRCRCATEG.ns6:mACCRCRCATEG.ns6:ACCRCRTRANS;
+		SET OutBodyRef.ACCOUNTType.gACCRDR2CATEG.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.g;
+		SET OutBodyRef.ACCOUNTType.gACCRDR2CATEG.mACCRDR2CATEG.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.m;
+		SET OutBodyRef.ACCOUNTType.gACCRDR2CATEG.mACCRDR2CATEG.ACCRDR2AMOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.ns6:ACCRDR2AMOUNT;
+		SET OutBodyRef.ACCOUNTType.gACCRDR2CATEG.mACCRDR2CATEG.ACCRDR2CATEG = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.ns6:ACCRDR2CATEG;
+		SET OutBodyRef.ACCOUNTType.gACCRDR2CATEG.mACCRDR2CATEG.ACCRDR2SUSP = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.ns6:ACCRDR2SUSP;
+		SET OutBodyRef.ACCOUNTType.gACCRDR2CATEG.mACCRDR2CATEG.ACCRDR2TRANS =inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDR2CATEG.ns6:mACCRDR2CATEG.ns6:ACCRDR2TRANS;
+		SET OutBodyRef.ACCOUNTType.gACCRDRCATEG.g =inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.g;
+		SET OutBodyRef.ACCOUNTType.gACCRDRCATEG.mACCRDRCATEG.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.m;
+		SET OutBodyRef.ACCOUNTType.gACCRDRCATEG.mACCRDRCATEG.ACCRDRAMOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.ns6:ACCRDRAMOUNT;
+		SET OutBodyRef.ACCOUNTType.gACCRDRCATEG.mACCRDRCATEG.ACCRDRCATEG =inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.ns6:ACCRDRCATEG;
+		SET OutBodyRef.ACCOUNTType.gACCRDRCATEG.mACCRDRCATEG.ACCRDRSUSP = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.ns6:ACCRDRSUSP;
+		SET OutBodyRef.ACCOUNTType.gACCRDRCATEG.mACCRDRCATEG.ACCRDRTRANS = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCRDRCATEG.ns6:mACCRDRCATEG.ns6:ACCRDRTRANS;
+		SET OutBodyRef.ACCOUNTType.gACCTCREDITINT.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gACCTCREDITINT.g;
+		SET OutBodyRef.ACCOUNTType.gACCTCREDITINT.ACCTCREDITINT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gACCTCREDITINT.ACCTCREDITINT;
+		SET OutBodyRef.ACCOUNTType.gACCTDEBITINT.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gACCTDEBITINT.g;
+		SET OutBodyRef.ACCOUNTType.gACCTDEBITINT.ACCTDEBITINT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gACCTDEBITINT.ACCTDEBITINT;
+		SET OutBodyRef.ACCOUNTType.gALTACCTTYPE.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gALTACCTTYPE.g;
+		SET OutBodyRef.ACCOUNTType.gALTACCTTYPE.mALTACCTTYPE.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gALTACCTTYPE.mALTACCTTYPE.m;
+		SET OutBodyRef.ACCOUNTType.gALTACCTTYPE.mALTACCTTYPE.ALTACCTID = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gALTACCTTYPE.mALTACCTTYPE.ALTACCTID;
+		SET OutBodyRef.ACCOUNTType.gALTACCTTYPE.mALTACCTTYPE.ALTACCTTYPE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gALTACCTTYPE.mALTACCTTYPE.ALTACCTTYPE;
+		SET OutBodyRef.ACCOUNTType.gAUTORECCCY.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gAUTORECCCY.g;
+		SET OutBodyRef.ACCOUNTType.gAUTORECCCY.AUTORECCCY = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gAUTORECCCY.AUTORECCCY;
+		SET OutBodyRef.ACCOUNTType.gAVAILABLEDATE.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gAVAILABLEDATE.g;
+		SET OutBodyRef.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.m;
+		SET OutBodyRef.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.AVAILABLEBAL = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.AVAILABLEBAL;
+		SET OutBodyRef.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.AVAILABLEDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.AVAILABLEDATE;
+		SET OutBodyRef.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.AVAUTHCRMVMT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.AVAUTHCRMVMT;
+		SET OutBodyRef.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.AVAUTHDBMVMT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.AVAUTHDBMVMT;
+		SET OutBodyRef.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.AVNAUCRMVMT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.AVNAUCRMVMT;
+		SET OutBodyRef.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.AVNAUDBMVMT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.AVNAUDBMVMT;
+		SET OutBodyRef.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.FORWARDMVMTS = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gAVAILABLEDATE.mAVAILABLEDATE.FORWARDMVMTS;
+		SET OutBodyRef.ACCOUNTType.gCAPDATEC2INT.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gCAPDATEC2INT.g;
+		SET OutBodyRef.ACCOUNTType.gCAPDATEC2INT.CAPDATEC2INT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gCAPDATEC2INT.CAPDATEC2INT;
+		SET OutBodyRef.ACCOUNTType.gCAPDATECHARGE.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gCAPDATECHARGE.g;
+		SET OutBodyRef.ACCOUNTType.gCAPDATECHARGE.CAPDATECHARGE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gCAPDATECHARGE.CAPDATECHARGE;
+		SET OutBodyRef.ACCOUNTType.gCAPDATECRINT.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gCAPDATECRINT.g;
+		SET OutBodyRef.ACCOUNTType.gCAPDATECRINT.CAPDATECRINT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gCAPDATECRINT.CAPDATECRINT;
+		SET OutBodyRef.ACCOUNTType.gCAPDATED2INT.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gCAPDATED2INT.g;
+		SET OutBodyRef.ACCOUNTType.gCAPDATED2INT.CAPDATED2INT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gCAPDATED2INT.ns6:CAPDATED2INT;
+		SET OutBodyRef.ACCOUNTType.gCAPDATEDRINT.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gCAPDATEDRINT.g;
+		SET OutBodyRef.ACCOUNTType.gCAPDATEDRINT.CAPDATEDRINT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gCAPDATEDRINT.CAPDATEDRINT;
+		SET OutBodyRef.ACCOUNTType.gCASHPOOLGROUP.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.gCASHPOOLGROUP.g;
+		SET OutBodyRef.ACCOUNTType.gCASHPOOLGROUP.CASHPOOLGROUP = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gCASHPOOLGROUP.ns6:CASHPOOLGROUP;
+		SET OutBodyRef.ACCOUNTType.gDATETIME.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gDATETIME.g;
+		SET OutBodyRef.ACCOUNTType.gDATETIME.DATETIME = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gDATETIME.ns6:DATETIME;
+		SET OutBodyRef.ACCOUNTType.gERVALUEDATE.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gERVALUEDATE.g;
+		SET OutBodyRef.ACCOUNTType.gERVALUEDATE.mERVALUEDATE.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gERVALUEDATE.ns6:mERVALUEDATE.m;
+		SET OutBodyRef.ACCOUNTType.gERVALUEDATE.mERVALUEDATE.EPBALANCE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gERVALUEDATE.ns6:mERVALUEDATE.ns6:EPBALANCE;
+		SET OutBodyRef.ACCOUNTType.gERVALUEDATE.mERVALUEDATE.ERBALANCE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gERVALUEDATE.ns6:mERVALUEDATE.ns6:ERBALANCE;
+		SET OutBodyRef.ACCOUNTType.gERVALUEDATE.mERVALUEDATE.ERVALUEDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gERVALUEDATE.ns6:mERVALUEDATE.ns6:ERVALUEDATE;
+		SET OutBodyRef.ACCOUNTType.gEVENT.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEVENT.g;
+		SET OutBodyRef.ACCOUNTType.gEVENT.mEVENT.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEVENT.ns6:mEVENT.m;
+		SET OutBodyRef.ACCOUNTType.gEVENT.mEVENT.EVENT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEVENT.ns6:mEVENT.ns6:EVENT;
+		SET OutBodyRef.ACCOUNTType.gEVENT.mEVENT.MVALERTRES1 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEVENT.ns6:mEVENT.ns6:MVALERTRES1;
+		SET OutBodyRef.ACCOUNTType.gEVENT.mEVENT.MVALERTRES2 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEVENT.ns6:mEVENT.ns6:MVALERTRES2;
+		SET OutBodyRef.ACCOUNTType.gEVENT.mEVENT.MVALERTRES3 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEVENT.ns6:mEVENT.ns6:MVALERTRES3;
+		SET OutBodyRef.ACCOUNTType.gEVENT.mEVENT.MVALERTRES4 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEVENT.ns6:mEVENT.ns6:MVALERTRES4;
+		SET OutBodyRef.ACCOUNTType.gEVENT.mEVENT.MVALERTRES5 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEVENT.ns6:mEVENT.ns6:MVALERTRES5;
+		SET OutBodyRef.ACCOUNTType.gEVENT.mEVENT.MVALERTRES6 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEVENT.ns6:mEVENT.ns6:MVALERTRES6;
+		SET OutBodyRef.ACCOUNTType.gEVENT.mEVENT.REQUESTID = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEVENT.ns6:mEVENT.ns6:REQUESTID;
+		SET OutBodyRef.ACCOUNTType.gEVENT.mEVENT.sgFIELD = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEVENT.ns6:mEVENT.ns6:sgFIELD;
+		SET OutBodyRef.ACCOUNTType.gEXPOSUREDATES.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEXPOSUREDATES.g;
+		SET OutBodyRef.ACCOUNTType.gEXPOSUREDATES.EXPOSUREDATES = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gEXPOSUREDATES.ns6:EXPOSUREDATES;
+		SET OutBodyRef.ACCOUNTType.gFROMDATE.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gFROMDATE.g;
+		SET OutBodyRef.ACCOUNTType.gFROMDATE.mFROMDATE.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gFROMDATE.ns6:mFROMDATE.m;
+		SET OutBodyRef.ACCOUNTType.gFROMDATE.mFROMDATE.FROMDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gFROMDATE.ns6:mFROMDATE.ns6:FROMDATE;
+		SET OutBodyRef.ACCOUNTType.gFROMDATE.mFROMDATE.LOCKEDAMOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gFROMDATE.ns6:mFROMDATE.ns6:LOCKEDAMOUNT;
+		SET OutBodyRef.ACCOUNTType.gFWDENTRYHOLD.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gFWDENTRYHOLD.g;
+		SET OutBodyRef.ACCOUNTType.gFWDENTRYHOLD.FWDENTRYHOLD = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gFWDENTRYHOLD.ns6:FWDENTRYHOLD;
+		SET OutBodyRef.ACCOUNTType.gICAMAINACCT.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gICAMAINACCT.g;
+		SET OutBodyRef.ACCOUNTType.gICAMAINACCT.mICAMAINACCT.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gICAMAINACCT.ns6:mICAMAINACCT.m;
+		SET OutBodyRef.ACCOUNTType.gICAMAINACCT.mICAMAINACCT.ICAMAINACCT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gICAMAINACCT.ns6:mICAMAINACCT.ns6:ICAMAINACCT;
+		SET OutBodyRef.ACCOUNTType.gICAMAINACCT.mICAMAINACCT.ICAMAINDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gICAMAINACCT.ns6:mICAMAINACCT.ns6:ICAMAINDATE;
+		SET OutBodyRef.ACCOUNTType.gICPRODUCT.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gICPRODUCT.g;
+		SET OutBodyRef.ACCOUNTType.gICPRODUCT.mICPRODUCT.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gICPRODUCT.ns6:mICPRODUCT.m;
+		SET OutBodyRef.ACCOUNTType.gICPRODUCT.mICPRODUCT.ICLSTPRODCAP = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gICPRODUCT.ns6:mICPRODUCT.ns6:ICLSTPRODCAP;
+		SET OutBodyRef.ACCOUNTType.gICPRODUCT.mICPRODUCT.ICPRODUCT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gICPRODUCT.ns6:mICPRODUCT.ns6:ICPRODUCT;
+		SET OutBodyRef.ACCOUNTType.gINPUTTER.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gINPUTTER.g;
+		SET OutBodyRef.ACCOUNTType.gINPUTTER.INPUTTER = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gINPUTTER.ns6:INPUTTER;
+		SET OutBodyRef.ACCOUNTType.gINTLIQUTYPE.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gINTLIQUTYPE.g;
+		SET OutBodyRef.ACCOUNTType.gINTLIQUTYPE.mINTLIQUTYPE.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gINTLIQUTYPE.ns6:mINTLIQUTYPE.m;
+		SET OutBodyRef.ACCOUNTType.gINTLIQUTYPE.mINTLIQUTYPE.INTLIQCCY = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gINTLIQUTYPE.ns6:mINTLIQUTYPE.ns6:INTLIQCCY;
+		SET OutBodyRef.ACCOUNTType.gINTLIQUTYPE.mINTLIQUTYPE.INTLIQUACCT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gINTLIQUTYPE.ns6:mINTLIQUTYPE.ns6:INTLIQUACCT;
+		SET OutBodyRef.ACCOUNTType.gINTLIQUTYPE.mINTLIQUTYPE.INTLIQUTYPE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gINTLIQUTYPE.ns6:mINTLIQUTYPE.ns6:INTLIQUTYPE;
+		SET OutBodyRef.ACCOUNTType.gJOINTHOLDER.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gJOINTHOLDER.g;
+		SET OutBodyRef.ACCOUNTType.gJOINTHOLDER.mJOINTHOLDER.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gJOINTHOLDER.ns6:mJOINTHOLDER.m;
+		SET OutBodyRef.ACCOUNTType.gJOINTHOLDER.mJOINTHOLDER.JOINTHOLDER = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gJOINTHOLDER.ns6:mJOINTHOLDER.ns6:JOINTHOLDER;
+		SET OutBodyRef.ACCOUNTType.gJOINTHOLDER.mJOINTHOLDER.RELATIONCODE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gJOINTHOLDER.ns6:mJOINTHOLDER.ns6:RELATIONCODE;
+		SET OutBodyRef.ACCOUNTType.gJOINTHOLDER.mJOINTHOLDER.sgJOINTNOTES = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gJOINTHOLDER.ns6:mJOINTHOLDER.ns6:sgJOINTNOTES;
+		SET OutBodyRef.ACCOUNTType.gLEDGRECOWITH.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gLEDGRECOWITH.g;
+		SET OutBodyRef.ACCOUNTType.gLEDGRECOWITH.LEDGRECOWITH = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gLEDGRECOWITH.ns6:LEDGRECOWITH;
+		SET OutBodyRef.ACCOUNTType.gLLCLOSURENOTES.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gLLCLOSURENOTES.g;
+		SET OutBodyRef.ACCOUNTType.gLLCLOSURENOTES.mLLCLOSURENOTES.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gLLCLOSURENOTES.ns6:mLLCLOSURENOTES.m;
+		SET OutBodyRef.ACCOUNTType.gLLCLOSURENOTES.mLLCLOSURENOTES.sgLLCLOSURENOTES.CLOSURENOTES = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gLLCLOSURENOTES.ns6:mLLCLOSURENOTES.ns6:sgLLCLOSURENOTES.ns6:CLOSURENOTES;
+		SET OutBodyRef.ACCOUNTType.gMANDATEAPPL.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gMANDATEAPPL.g;
+		SET OutBodyRef.ACCOUNTType.gMANDATEAPPL.mMANDATEAPPL.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gMANDATEAPPL.ns6:mMANDATEAPPL.m;
+		SET OutBodyRef.ACCOUNTType.gMANDATEAPPL.mMANDATEAPPL.MANDATEAPPL = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gMANDATEAPPL.ns6:mMANDATEAPPL.ns6:MANDATEAPPL;
+		SET OutBodyRef.ACCOUNTType.gMANDATEAPPL.mMANDATEAPPL.MANDATERECORD = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gMANDATEAPPL.ns6:mMANDATEAPPL.ns6:MANDATERECORD;
+		SET OutBodyRef.ACCOUNTType.gMANDATEAPPL.mMANDATEAPPL.MANDATEREG = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gMANDATEAPPL.ns6:mMANDATEAPPL.ns6:MANDATEREG;
+		SET OutBodyRef.ACCOUNTType.gNEXTSTMTDATE.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gNEXTSTMTDATE.g;
+		SET OutBodyRef.ACCOUNTType.gNEXTSTMTDATE.NEXTSTMTDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gNEXTSTMTDATE.ns6:NEXTSTMTDATE;
+		SET OutBodyRef.ACCOUNTType.gORIGINALACCT.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gORIGINALACCT.g;
+		SET OutBodyRef.ACCOUNTType.gORIGINALACCT.ORIGINALACCT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gORIGINALACCT.ns6:ORIGINALACCT;
+		SET OutBodyRef.ACCOUNTType.gOTHEROFFICER.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gOTHEROFFICER.g;
+		SET OutBodyRef.ACCOUNTType.gOTHEROFFICER.OTHEROFFICER = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gOTHEROFFICER.ns6:OTHEROFFICER;
+		SET OutBodyRef.ACCOUNTType.gOVERRIDE.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gOVERRIDE.g;
+		SET OutBodyRef.ACCOUNTType.gOVERRIDE.OVERRIDE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gOVERRIDE.ns6:OVERRIDE;
+		SET OutBodyRef.ACCOUNTType.gPENDINGID.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPENDINGID.g;
+		SET OutBodyRef.ACCOUNTType.gPENDINGID.mPENDINGID.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPENDINGID.ns6:mPENDINGID.m;
+		SET OutBodyRef.ACCOUNTType.gPENDINGID.mPENDINGID.PENDINGID = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPENDINGID.ns6:mPENDINGID.ns6:PENDINGID;
+		SET OutBodyRef.ACCOUNTType.gPENDINGID.mPENDINGID.TOTALPENDING = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPENDINGID.ns6:mPENDINGID.ns6:TOTALPENDING;
+		SET OutBodyRef.ACCOUNTType.gPORTFOLIONO.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPORTFOLIONO.g;
+		SET OutBodyRef.ACCOUNTType.gPORTFOLIONO.PORTFOLIONO = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPORTFOLIONO.ns6:PORTFOLIONO;
+		SET OutBodyRef.ACCOUNTType.gPOSTINGRESTRICT.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPOSTINGRESTRICT.g;
+		SET OutBodyRef.ACCOUNTType.gPOSTINGRESTRICT.POSTINGRESTRICT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPOSTINGRESTRICT.ns6:POSTINGRESTRICT;
+		SET OutBodyRef.ACCOUNTType.gPREMIUMTYPE.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPREMIUMTYPE.g;
+		SET OutBodyRef.ACCOUNTType.gPREMIUMTYPE.mPREMIUMTYPE.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPREMIUMTYPE.ns6:mPREMIUMTYPE.m;
+		SET OutBodyRef.ACCOUNTType.gPREMIUMTYPE.mPREMIUMTYPE.PREMIUMFREQ = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPREMIUMTYPE.ns6:mPREMIUMTYPE.ns6:PREMIUMFREQ;
+		SET OutBodyRef.ACCOUNTType.gPREMIUMTYPE.mPREMIUMTYPE.PREMIUMTYPE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPREMIUMTYPE.ns6:mPREMIUMTYPE.ns6:PREMIUMTYPE;
+		SET OutBodyRef.ACCOUNTType.gPREMIUMTYPE.mPREMIUMTYPE.sgCAPDATEPRM.CAPDATEPRM = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gPREMIUMTYPE.ns6:mPREMIUMTYPE.ns6:sgCAPDATEPRM;
+		SET OutBodyRef.ACCOUNTType.gREFDATAITEM.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gREFDATAITEM.g;
+		SET OutBodyRef.ACCOUNTType.gREFDATAITEM.mREFDATAITEM.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gREFDATAITEM.ns6:mREFDATAITEM.m;
+		SET OutBodyRef.ACCOUNTType.gREFDATAITEM.mREFDATAITEM.REFDATAITEM = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gREFDATAITEM.ns6:mREFDATAITEM.ns6:REFDATAITEM;
+		SET OutBodyRef.ACCOUNTType.gREFDATAITEM.mREFDATAITEM.REFDATAVALUE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gREFDATAITEM.ns6:mREFDATAITEM.ns6:REFDATAVALUE;
+		SET OutBodyRef.ACCOUNTType.gREFERALCODE.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gREFERALCODE.g;
+		SET OutBodyRef.ACCOUNTType.gREFERALCODE.REFERALCODE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gREFERALCODE.ns6:REFERALCODE;
+		SET OutBodyRef.ACCOUNTType.gSHORTTITLE.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gSHORTTITLE.g;
+		SET OutBodyRef.ACCOUNTType.gSHORTTITLE.SHORTTITLE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gSHORTTITLE.ns6:SHORTTITLE;
+		SET OutBodyRef.ACCOUNTType.gSTMTRECOWITH.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gSTMTRECOWITH.g;
+		SET OutBodyRef.ACCOUNTType.gSTMTRECOWITH.STMTRECOWITH = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gSTMTRECOWITH.ns6:STMTRECOWITH;
+		SET OutBodyRef.ACCOUNTType.gVALUEDATE.g = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gVALUEDATE.g;
+		SET OutBodyRef.ACCOUNTType.gVALUEDATE.mVALUEDATE.m = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gVALUEDATE.ns6:mVALUEDATE.m;
+		SET OutBodyRef.ACCOUNTType.gVALUEDATE.mVALUEDATE.CREDITMOVEMENT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gVALUEDATE.ns6:mVALUEDATE.ns6:CREDITMOVEMENT;
+		SET OutBodyRef.ACCOUNTType.gVALUEDATE.mVALUEDATE.DEBITMOVEMENT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gVALUEDATE.ns6:mVALUEDATE.ns6:DEBITMOVEMENT;
+		SET OutBodyRef.ACCOUNTType.gVALUEDATE.mVALUEDATE.VALUEDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gVALUEDATE.ns6:mVALUEDATE.ns6:VALUEDATE;
+		SET OutBodyRef.ACCOUNTType.gVALUEDATE.mVALUEDATE.VALUEDATEDBAL = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:gVALUEDATE.ns6:mVALUEDATE.ns6:VALUEDATEDBAL;
+		SET OutBodyRef.ACCOUNTType.HVTFLAG = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:HVTFLAG;
+		SET OutBodyRef.ACCOUNTType.ICAADDREMOVE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ICAADDREMOVE;
+		SET OutBodyRef.ACCOUNTType.ICABACKVALUE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ICABACKVALUE;
+		SET OutBodyRef.ACCOUNTType.ICADISTRIBRATIO = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ICADISTRIBRATIO;
+		SET OutBodyRef.ACCOUNTType.ICADISTRIBTYPE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ICADISTRIBTYPE;
+		SET OutBodyRef.ACCOUNTType.ICAMAINACCOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ICAMAINACCOUNT;
+		SET OutBodyRef.ACCOUNTType.ICAMAINACCTIND = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ICAMAINACCTIND;
+		SET OutBodyRef.ACCOUNTType.ICAMAINRATIO = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ICAMAINRATIO;
+		SET OutBodyRef.ACCOUNTType.ICANEWMAINACC = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ICANEWMAINACC;
+		SET OutBodyRef.ACCOUNTType.ICAPOSTINTEREST = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ICAPOSTINTEREST;
+		SET OutBodyRef.ACCOUNTType.ICASTARTDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ICASTARTDATE;
+		SET OutBodyRef.ACCOUNTType.ICCHARGEID = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ICCHARGEID;
+		SET OutBodyRef.ACCOUNTType.ICNEXTCAPDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ICNEXTCAPDATE;
+		SET OutBodyRef.ACCOUNTType.INACTIVMARKER = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:INACTIVMARKER;
+		SET OutBodyRef.ACCOUNTType.INTERESTCCY = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:INTERESTCCY;
+		SET OutBodyRef.ACCOUNTType.INTERESTCOMPACCT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:INTERESTCOMPACCT;
+		SET OutBodyRef.ACCOUNTType.INTERESTLIQUACCT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:INTERESTLIQUACCT;
+		SET OutBodyRef.ACCOUNTType.INTERESTMKT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:INTERESTMKT;
+		SET OutBodyRef.ACCOUNTType.INTNOBOOKING = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:INTNOBOOKING;
+		SET OutBodyRef.ACCOUNTType.LASTCOMCHGDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:LASTCOMCHGDATE;
+		SET OutBodyRef.ACCOUNTType.LIMITKEY = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:LIMITKEY;
+		SET OutBodyRef.ACCOUNTType.LIMITREF = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:LIMITREF;
+		SET OutBodyRef.ACCOUNTType.LINKTOLIMIT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:LINKTOLIMIT;
+		SET OutBodyRef.ACCOUNTType.LIQUIDATIONMODE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:LIQUIDATIONMODE;
+		SET OutBodyRef.ACCOUNTType.LOCKEDWITHLIMIT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:LOCKEDWITHLIMIT;
+		SET OutBodyRef.ACCOUNTType.LOCKINCTHISMVMT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:LOCKINCTHISMVMT;
+		SET OutBodyRef.ACCOUNTType.MASTERACCOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:MASTERACCOUNT;
+		SET OutBodyRef.ACCOUNTType.MAXSUBACCOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:MAXSUBACCOUNT;
+		SET OutBodyRef.ACCOUNTType.MNEMONIC = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:MNEMONIC;
+		SET OutBodyRef.ACCOUNTType.MULTICURRENCY = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:MULTICURRENCY;
+		SET OutBodyRef.ACCOUNTType.NEXTACCTCAP = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:NEXTACCTCAP;
+		SET OutBodyRef.ACCOUNTType.NEXTAFDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:NEXTAFDATE;
+		SET OutBodyRef.ACCOUNTType.NEXTEXPDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:NEXTEXPDATE;
+		SET OutBodyRef.ACCOUNTType.ONLINEACTUALBAL = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ONLINEACTUALBAL;
+		SET OutBodyRef.ACCOUNTType.ONLINECLEAREDBAL = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ONLINECLEAREDBAL;
+		SET OutBodyRef.ACCOUNTType.OPENACTUALBAL = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:OPENACTUALBAL;
+		SET OutBodyRef.ACCOUNTType.OPENASSETTYPE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:OPENASSETTYPE;
+		SET OutBodyRef.ACCOUNTType.OPENAVAILABLEBAL = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:OPENAVAILABLEBAL;
+		SET OutBodyRef.ACCOUNTType.OPENCATEGORY = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:OPENCATEGORY;
+		SET OutBodyRef.ACCOUNTType.OPENCLEAREDBAL = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:OPENCLEAREDBAL;
+		SET OutBodyRef.ACCOUNTType.OPENINGDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:OPENINGDATE;
+		SET OutBodyRef.ACCOUNTType.OPENVALDATEDBAL = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:OPENVALDATEDBAL;
+		SET OutBodyRef.ACCOUNTType.ORIGCCYPAYMENT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:ORIGCCYPAYMENT;
+		SET OutBodyRef.ACCOUNTType.OUREXTACCTNO = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:OUREXTACCTNO;
+		SET OutBodyRef.ACCOUNTType.OVERDUESTATUS = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:OVERDUESTATUS;
+		SET OutBodyRef.ACCOUNTType.PARENTACCOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:PARENTACCOUNT;
+		SET OutBodyRef.ACCOUNTType.PARENTBVDATE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:PARENTBVDATE;
+		SET OutBodyRef.ACCOUNTType.PASSBOOK = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:PASSBOOK;
+		SET OutBodyRef.ACCOUNTType.POSITIONTYPE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:POSITIONTYPE;
+		SET OutBodyRef.ACCOUNTType.RECONCILEACCT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RECONCILEACCT;
+		SET OutBodyRef.ACCOUNTType.RECORDSTATUS = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RECORDSTATUS;
+		SET OutBodyRef.ACCOUNTType.RECOTOLERANCE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RECOTOLERANCE;
+		SET OutBodyRef.ACCOUNTType.RESERVED1 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED1;
+		SET OutBodyRef.ACCOUNTType.RESERVED10 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED10;
+		SET OutBodyRef.ACCOUNTType.RESERVED11 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED11;
+		SET OutBodyRef.ACCOUNTType.RESERVED12 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED12;
+		SET OutBodyRef.ACCOUNTType.RESERVED13 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED13;
+		SET OutBodyRef.ACCOUNTType.RESERVED14 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED14;
+		SET OutBodyRef.ACCOUNTType.RESERVED15 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED15;
+		SET OutBodyRef.ACCOUNTType.RESERVED16 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED16;
+		SET OutBodyRef.ACCOUNTType.RESERVED17 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED17;
+		SET OutBodyRef.ACCOUNTType.RESERVED18 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED18;
+		SET OutBodyRef.ACCOUNTType.RESERVED19 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED19;
+		SET OutBodyRef.ACCOUNTType.RESERVED2 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED2;
+		SET OutBodyRef.ACCOUNTType.RESERVED20 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED20;
+		SET OutBodyRef.ACCOUNTType.RESERVED21 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED21;
+		SET OutBodyRef.ACCOUNTType.RESERVED22 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED22;
+		SET OutBodyRef.ACCOUNTType.RESERVED23 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED23;
+		SET OutBodyRef.ACCOUNTType.RESERVED24 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED24;
+		SET OutBodyRef.ACCOUNTType.RESERVED25 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED25;
+		SET OutBodyRef.ACCOUNTType.RESERVED26 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED26;
+		SET OutBodyRef.ACCOUNTType.RESERVED27 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED27;
+		SET OutBodyRef.ACCOUNTType.RESERVED28 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED28;
+		SET OutBodyRef.ACCOUNTType.RESERVED29 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED29;
+		SET OutBodyRef.ACCOUNTType.RESERVED3 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED3;
+		SET OutBodyRef.ACCOUNTType.RESERVED4 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED4;
+		SET OutBodyRef.ACCOUNTType.RESERVED5 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED5;
+		SET OutBodyRef.ACCOUNTType.RESERVED6 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED6;
+		SET OutBodyRef.ACCOUNTType.RESERVED7 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED7;
+		SET OutBodyRef.ACCOUNTType.RESERVED8 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED8;
+		SET OutBodyRef.ACCOUNTType.RESERVED9 = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:RESERVED9;
+		SET OutBodyRef.ACCOUNTType.SAMIDHIST = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:SAMIDHIST;
+		SET OutBodyRef.ACCOUNTType.SBGROUPID = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:SBGROUPID;
+		SET OutBodyRef.ACCOUNTType.SECONDARYLIMITAMT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:SECONDARYLIMITAMT;
+		SET OutBodyRef.ACCOUNTType.SERIALNOFORMAT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:SERIALNOFORMAT;
+		SET OutBodyRef.ACCOUNTType.SHADOWACCOUNT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:SHADOWACCOUNT;
+		SET OutBodyRef.ACCOUNTType.SINGLELIMIT = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:SINGLELIMIT;
+		SET OutBodyRef.ACCOUNTType.STARTYEARBAL = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:STARTYEARBAL;
+		SET OutBodyRef.ACCOUNTType.STOCKCONTROLTYPE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:STOCKCONTROLTYPE;
+		SET OutBodyRef.ACCOUNTType.TAXATSETTLE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:TAXATSETTLE;
+		SET OutBodyRef.ACCOUNTType.TAXSUSPEND = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:TAXSUSPEND;
+		SET OutBodyRef.ACCOUNTType.TRANLASTCRAUTO = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:TRANLASTCRAUTO;
+		SET OutBodyRef.ACCOUNTType.TRANLASTCRBANK =inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:TRANLASTCRBANK;
+		SET OutBodyRef.ACCOUNTType.TRANLASTCRCUST = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:TRANLASTCRCUST;
+		SET OutBodyRef.ACCOUNTType.TRANLASTDRAUTO = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:TRANLASTDRAUTO;
+		SET OutBodyRef.ACCOUNTType.TRANLASTDRBANK = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:TRANLASTDRBANK;
+		SET OutBodyRef.ACCOUNTType.TRANLASTDRCUST = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:TRANLASTDRCUST;
+		SET OutBodyRef.ACCOUNTType.WAIVELEDGERFEE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:WAIVELEDGERFEE;
+		SET OutBodyRef.ACCOUNTType.WELCOMEPACK = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:WELCOMEPACK;
+		SET OutBodyRef.ACCOUNTType.WORKINGBALANCE = inRefSoap.Body.ns:AmendCardResponse.ACCOUNTType.ns6:WORKINGBALANCE;
+
+
 
 	END CASE;
 END;
