@@ -602,9 +602,9 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToZSS
 		SET OutputRoot.DFDL = NULL;
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----ZSS Request------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
 			--------------DBLogging-------------------
-			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
 			-----------------------------
