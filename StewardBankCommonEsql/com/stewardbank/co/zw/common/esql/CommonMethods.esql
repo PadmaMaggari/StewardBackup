@@ -1652,3 +1652,14 @@ BEGIN
 	SET  result = inpurDataCharlenghtChar||inpurDataChar||inputRef;
 	RETURN result;
 END;
+
+/*  these procedurea are for generating numaric random numbers and alpha numaric random numbers generation */
+CREATE PROCEDURE GenerateRandomIntegerNumber (IN randomLengthData CHARACTER)     
+	RETURNS CHARACTER
+	LANGUAGE JAVA
+	EXTERNAL NAME "com.stewardbank.co.zw.randomnumbergenerater.RandomNumber.generateRandomInteger";
+	
+	CREATE PROCEDURE GenerateAlphaNumaricRandomNumber (IN randomLengthData CHARACTER)     
+	RETURNS CHARACTER
+	LANGUAGE JAVA
+	EXTERNAL NAME "com.stewardbank.co.zw.randomnumbergenerater.RandomNumber.generateAlphaNumaricNumber";
