@@ -1,3 +1,4 @@
+
 /*
 Application Name : Account Opening.
 Description :
@@ -51,6 +52,9 @@ CREATE COMPUTE MODULE AccountOpeningFlow_VerifyRequest
 		DECLARE accountOpeningCheck CHAR COALESCE(inRef.accountOpeningCheck,inRef.header.accountOpeningCheck,inRef.*.header.accountOpeningCheck,'');
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		SET Environment.MQRFH2.ChannelRequest = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		SET Environment.Variables.header.channel = COALESCE(inRef.header.channel,inRef.channel,'');
+		SET Environment.Variables.header.processingCode = COALESCE(inRef.header.processingCode,inRef.processingCode,'');
+		SET Environment.Variables.header.accountOpeningCheck = accountOpeningCheck;
 		SET Environment.Variables.reqMsg = Environment.MQRFH2.ChannelRequest;
 		------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
@@ -159,7 +163,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToKYC
 		END IF;
 		RETURN FALSE;
 	END;
-	
+
 	CREATE PROCEDURE GenerateKYCFailure() BEGIN
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
@@ -265,7 +269,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_VerifyDWHResponse
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 		PROPAGATE TO TERMINAL 'out1';
 	END;
-	
+
 	CREATE PROCEDURE GenerateReqToEconet() BEGIN
 		DECLARE inRef REFERENCE TO Environment.Variables.InputRequest;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
@@ -441,6 +445,10 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToZSS
 	END;
 
 	CREATE PROCEDURE GenerateReqToZSS() BEGIN
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+		IF ( rc = FALSE ) THEN
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+		END IF;
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
@@ -448,24 +456,45 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToZSS
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		CREATE LASTCHILD OF OutputRoot.DFDL NAME ('ISO8583_1987');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		---------------------------------------------
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
-		DECLARE Field7,timee,stri CHARACTER;
+		DECLARE timee,stri,Field7,Field12,Field13 CHARACTER;
 		SET timee = dbLoggingTime;
 		SET stri = SUBSTRING(timee FROM 17 FOR 2)||SUBSTRING(timee FROM 20 FOR 2)||SUBSTRING(timee FROM 23 FOR 2)||SUBSTRING(timee FROM 26 FOR 2)||SUBSTRING(timee FROM 29 FOR 2);
 		SET Field7 = CAST(stri AS CHARACTER FORMAT 'MMDDhhmmss');
+		SET Field13 = CAST(SUBSTRING(stri FROM 1 FOR 4) AS CHARACTER FORMAT 'MMdd');
+		DECLARE trnTime TIMESTAMP CURRENT_GMTTIMESTAMP;
+		SET Field12 = CAST(trnTime AS CHARACTER FORMAT 'HHmmss');
+		---------------------------------------
 		SET outRef.MTI_Version = '0';
 		SET outRef.MTI_MessageClass = '2';
 		SET outRef.MTI_MessageFunction = '0';
 		SET outRef.MTI_MessageOrigin = '0';
 		SET outRef.PrimaryAccountNumber_002 = inRef.cardNumber;
 		SET outRef.ProcessingCode_003 = inRef.processingCode;
-		SET outRef.TransmissionDatetime_007 = Field7; 
+		SET outRef.TransmissionDatetime_007 = Field7;--
+		SET outRef.SystemsTraceAuditNumber_011 = '397520';--
+		SET outRef.TimeLocalTransaction_012 = Field12 ;--
+		SET outRef.DateLocalTransaction_013 = Field13;--
 		SET outRef.DateExpiration_014 = inRef.expiryDate;
+		SET outRef.DateSettlement_015 = Field13;
+		SET outRef.MerchantType_018 = '6011';--
+		SET outRef.PointOfServiceEntryMode_022 = '001';--
+		SET outRef.PointOfServiceConditionCode_025 = '27';--
+		SET outRef.PointOfServiceCaptureCode_026 = '12';--
+		SET outRef.AmountTransactionFee_028 = 'C00000000';--
+		SET outRef.AmountTransactionProcessingFee_030 = 'C00000000';--
+		SET outRef.AcquiringInstitutionIdentificationCode_032 = '502195';--
+		SET outRef.ForwardingInstitutionIdentificationCode_033 = '502195';--
+		SET outRef.CardAcceptorTerminalIdentification_041 = 'ISAVE263';--
+		SET outRef.CardAcceptorIdentificationCode_042 = '26377-SBZWISAVE';--
 		SET outRef.CurrencyCodeTransaction_049 = inRef.currency;
+		SET outRef.ReceivingInstitutionIdentificationCode_100 = '502195';--
 		SET outRef.AccountIdentification1_102 = inRef.accountNumber;
 		SET outRef.AccountIdentification2_103 = inRef.accountNumber;
-		SET outRef.ReservedPrivate_127 = '000000';
+		SET outRef.ReservedPrivate_123 = '100450100130021';--
+		SET outRef.ReservedPrivate_127 = '000000';--
 
 		DECLARE isoKey,isoValue CHARACTER '';
 		IF FIELDNAME(inRef.mobileNumber) IS NOT NULL THEN
@@ -599,6 +628,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToZSS
 			CALL keyValueGenerator('address1') INTO isoKey;
 			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
+		SET outRef.ExtendedTransactionTypePostilionPrivate_127_33 = '9040'; --
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE domainDataRef REFERENCE TO OutputRoot.DFDL;
 		DECLARE domainName CHARACTER FIELDNAME(domainDataRef);
@@ -658,219 +688,219 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToPostilion
 		END IF;
 		SET Environment.MQRFH2.ZssResponseCode = InputRoot.DFDL.ISO8583_1987.ResponseCode_039;
 		--IF InputRoot.DFDL.ISO8583_1987.ResponseCode_039 = '00' THEN
-			CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
-			CREATE LASTCHILD OF OutputRoot.DFDL NAME ('ISO8583_1987');
-			DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
-			SET outRef.MTI_Version = '0';
-			SET outRef.MTI_MessageClass = '2';
-			SET outRef.MTI_MessageFunction = '0';
-			SET outRef.MTI_MessageOrigin = '0';
-			SET outRef.PrimaryAccountNumber_002 = envRef.cardNumber;
-			SET outRef.ProcessingCode_003 = envRef.processingCode;
-			SET outRef.TransmissionDatetime_007 = Field7; 
-			SET outRef.DateExpiration_014 = envRef.expiryDate;
-			SET outRef.CurrencyCodeTransaction_049 = envRef.currency;
-			SET outRef.AccountIdentification1_102 = envRef.accountNumber;
-			SET outRef.AccountIdentification2_103 = envRef.accountNumber;
-			SET outRef.ReservedPrivate_127 = '000000';
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		CREATE LASTCHILD OF OutputRoot.DFDL NAME ('ISO8583_1987');
+		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
+		SET outRef.MTI_Version = '0';
+		SET outRef.MTI_MessageClass = '2';
+		SET outRef.MTI_MessageFunction = '0';
+		SET outRef.MTI_MessageOrigin = '0';
+		SET outRef.PrimaryAccountNumber_002 = envRef.cardNumber;
+		SET outRef.ProcessingCode_003 = envRef.processingCode;
+		SET outRef.TransmissionDatetime_007 = Field7;
+		SET outRef.DateExpiration_014 = envRef.expiryDate;
+		SET outRef.CurrencyCodeTransaction_049 = envRef.currency;
+		SET outRef.AccountIdentification1_102 = envRef.accountNumber;
+		SET outRef.AccountIdentification2_103 = envRef.accountNumber;
+		SET outRef.ReservedPrivate_127 = '000000';
 
-			DECLARE isoKey,isoValue CHARACTER '';
-			IF FIELDNAME(envRef.mobileNumber) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.mobileNumber) INTO isoValue;
-				CALL keyValueGenerator('mobileNumber') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = isoKey || isoValue;
-			END IF;
+		DECLARE isoKey,isoValue CHARACTER '';
+		IF FIELDNAME(envRef.mobileNumber) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.mobileNumber) INTO isoValue;
+			CALL keyValueGenerator('mobileNumber') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = isoKey || isoValue;
+		END IF;
 
-			IF FIELDNAME(envRef.idNumber) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.idNumber) INTO isoValue;
-				CALL keyValueGenerator('idNumber') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.otp) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.otp) INTO isoValue;
-				CALL keyValueGenerator('otp') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.tittle) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.tittle) INTO isoValue;
-				CALL keyValueGenerator('tittle') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.firstName) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.firstName) INTO isoValue;
-				CALL keyValueGenerator('firstName') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.lastName) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.lastName) INTO isoValue;
-				CALL keyValueGenerator('lastName') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.middlename) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.middlename) INTO isoValue;
-				CALL keyValueGenerator('middlename') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.birthDate) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.birthDate) INTO isoValue;
-				CALL keyValueGenerator('birthDate') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.emailAddress) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.emailAddress) INTO isoValue;
-				CALL keyValueGenerator('emailAddress') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.maritalStatus) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.maritalStatus) INTO isoValue;
-				CALL keyValueGenerator('maritalStatus') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.gender) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.gender) INTO isoValue;
-				CALL keyValueGenerator('gender') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.identificationType) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.identificationType) INTO isoValue;
-				CALL keyValueGenerator('identificationType') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.nationality) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.nationality) INTO isoValue;
-				CALL keyValueGenerator('nationality') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.residence) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.residence) INTO isoValue;
-				CALL keyValueGenerator('residence') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.city) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.city) INTO isoValue;
-				CALL keyValueGenerator('city') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.address1) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.address1) INTO isoValue;
-				CALL keyValueGenerator('address1') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.address2) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.address2) INTO isoValue;
-				CALL keyValueGenerator('address2') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.country) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.country) INTO isoValue;
-				CALL keyValueGenerator('country') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.branch) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.branch) INTO isoValue;
-				CALL keyValueGenerator('branch') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.bankingServiceStatus) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.bankingServiceStatus) INTO isoValue;
-				CALL keyValueGenerator('bankingServiceStatus') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.squareRegStatus) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.squareRegStatus) INTO isoValue;
-				CALL keyValueGenerator('squareRegStatus') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.t24CustomerId) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.t24CustomerId) INTO isoValue;
-				CALL keyValueGenerator('t24CustomerId') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.detailsAmended) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.detailsAmended) INTO isoValue;
-				CALL keyValueGenerator('detailsAmended') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.sbPostilionStatus) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.sbPostilionStatus) INTO isoValue;
-				CALL keyValueGenerator('sbPostilionStatus') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.zssPostilionStatus) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.zssPostilionStatus) INTO isoValue;
-				CALL keyValueGenerator('zssPostilionStatus') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			IF FIELDNAME(envRef.idNumber) IS NOT NULL THEN
-				CALL keyValueGenerator(envRef.address1) INTO isoValue;
-				CALL keyValueGenerator('address1') INTO isoKey;
-				SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-			END IF;
-			CALL UpdateMsgWithAsciiBitMap(outRef);
-			MOVE domainDataRef TO OutputRoot.DFDL;
-			SET domainName = FIELDNAME(domainDataRef);
-			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-			IF EXISTS(Environment.DFDL[]) OR FIELDNAME(Environment.DFDL) IS NOT NULL THEN
-				SET Environment.DFDL = OutputRoot.DFDL;
-			ELSE
-				CREATE LASTCHILD OF Environment DOMAIN ('DFDL');
-				SET Environment.DFDL = OutputRoot.DFDL;
-			END IF;
-			SET OutputRoot.DFDL = NULL;
-			IF IsLogRequired = 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----Postilion Request------') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.resMsg) INTO rc;
-				--------------DBLogging-------------------
-				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-				PROPAGATE TO TERMINAL 'out1';
-				-----------------------------
-			END IF;
-			SET OutputRoot.Properties = InputRoot.Properties;
-			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-			CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
-			SET OutputRoot.DFDL = Environment.DFDL;
-			PROPAGATE TO TERMINAL 'out';
---		ELSE
---			CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
---			CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
---			CREATE LASTCHILD OF OutputRoot.JSON.Data NAME('AccountOpeningResponse');
---			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('header');
---			CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('error');
---			DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
---			DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
---			SET headRef.status = 'FAILURE';
---			SET headRef.responseCode = '000';
---			SET errorRef.source = 'ESB';
---			SET errorRef.applicationName = ApplicationLabel;
---			SET errorRef.applicationErrorCode = 'AccountOpening_020';
---			SET errorRef.message = 'ZSS update Failed';
---			MOVE domainDataRef TO OutputRoot.JSON;
---			SET domainName = FIELDNAME(domainDataRef);
---			SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
---			IF EXISTS(Environment.JSON[]) OR FIELDNAME(Environment.JSON) IS NOT NULL THEN
---				SET Environment.JSON = OutputRoot.JSON;
---			ELSE
---				CREATE LASTCHILD OF Environment DOMAIN ('JSON');
---				SET Environment.JSON = OutputRoot.JSON;
---			END IF;
---			SET OutputRoot.JSON = NULL;
---			IF IsLogRequired = 'Y' THEN
---				CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----Application Response------') INTO rc;
---				CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.resMsg) INTO rc;
---				--------------DBLogging-------------------
---				CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
---				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
---				PROPAGATE TO TERMINAL 'out1';
---				-----------------------------
---			END IF;
---			SET OutputRoot.Properties = InputRoot.Properties;
---			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
---			CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
---			SET OutputRoot.JSON = Environment.JSON;
---			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
---			PROPAGATE TO TERMINAL 'out1';
---		END IF;
+		IF FIELDNAME(envRef.idNumber) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.idNumber) INTO isoValue;
+			CALL keyValueGenerator('idNumber') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.otp) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.otp) INTO isoValue;
+			CALL keyValueGenerator('otp') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.tittle) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.tittle) INTO isoValue;
+			CALL keyValueGenerator('tittle') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.firstName) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.firstName) INTO isoValue;
+			CALL keyValueGenerator('firstName') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.lastName) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.lastName) INTO isoValue;
+			CALL keyValueGenerator('lastName') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.middlename) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.middlename) INTO isoValue;
+			CALL keyValueGenerator('middlename') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.birthDate) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.birthDate) INTO isoValue;
+			CALL keyValueGenerator('birthDate') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.emailAddress) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.emailAddress) INTO isoValue;
+			CALL keyValueGenerator('emailAddress') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.maritalStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.maritalStatus) INTO isoValue;
+			CALL keyValueGenerator('maritalStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.gender) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.gender) INTO isoValue;
+			CALL keyValueGenerator('gender') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.identificationType) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.identificationType) INTO isoValue;
+			CALL keyValueGenerator('identificationType') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.nationality) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.nationality) INTO isoValue;
+			CALL keyValueGenerator('nationality') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.residence) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.residence) INTO isoValue;
+			CALL keyValueGenerator('residence') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.city) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.city) INTO isoValue;
+			CALL keyValueGenerator('city') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.address1) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.address1) INTO isoValue;
+			CALL keyValueGenerator('address1') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.address2) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.address2) INTO isoValue;
+			CALL keyValueGenerator('address2') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.country) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.country) INTO isoValue;
+			CALL keyValueGenerator('country') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.branch) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.branch) INTO isoValue;
+			CALL keyValueGenerator('branch') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.bankingServiceStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.bankingServiceStatus) INTO isoValue;
+			CALL keyValueGenerator('bankingServiceStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.squareRegStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.squareRegStatus) INTO isoValue;
+			CALL keyValueGenerator('squareRegStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.t24CustomerId) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.t24CustomerId) INTO isoValue;
+			CALL keyValueGenerator('t24CustomerId') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.detailsAmended) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.detailsAmended) INTO isoValue;
+			CALL keyValueGenerator('detailsAmended') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.sbPostilionStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.sbPostilionStatus) INTO isoValue;
+			CALL keyValueGenerator('sbPostilionStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.zssPostilionStatus) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.zssPostilionStatus) INTO isoValue;
+			CALL keyValueGenerator('zssPostilionStatus') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		IF FIELDNAME(envRef.idNumber) IS NOT NULL THEN
+			CALL keyValueGenerator(envRef.address1) INTO isoValue;
+			CALL keyValueGenerator('address1') INTO isoKey;
+			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;
+		CALL UpdateMsgWithAsciiBitMap(outRef);
+		MOVE domainDataRef TO OutputRoot.DFDL;
+		SET domainName = FIELDNAME(domainDataRef);
+		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		IF EXISTS(Environment.DFDL[]) OR FIELDNAME(Environment.DFDL) IS NOT NULL THEN
+			SET Environment.DFDL = OutputRoot.DFDL;
+		ELSE
+			CREATE LASTCHILD OF Environment DOMAIN ('DFDL');
+			SET Environment.DFDL = OutputRoot.DFDL;
+		END IF;
+		SET OutputRoot.DFDL = NULL;
+		IF IsLogRequired = 'Y' THEN
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----Postilion Request------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.resMsg) INTO rc;
+			--------------DBLogging-------------------
+			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+			PROPAGATE TO TERMINAL 'out1';
+			-----------------------------
+		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
+		SET OutputRoot.DFDL = Environment.DFDL;
+		PROPAGATE TO TERMINAL 'out';
+		-- ELSE
+		-- CREATE LASTCHILD OF OutputRoot DOMAIN('JSON');
+		-- CREATE LASTCHILD OF OutputRoot.JSON NAME('Data');
+		-- CREATE LASTCHILD OF OutputRoot.JSON.Data NAME('AccountOpeningResponse');
+		-- CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('header');
+		-- CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME('error');
+		-- DECLARE headRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		-- DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		-- SET headRef.status = 'FAILURE';
+		-- SET headRef.responseCode = '000';
+		-- SET errorRef.source = 'ESB';
+		-- SET errorRef.applicationName = ApplicationLabel;
+		-- SET errorRef.applicationErrorCode = 'AccountOpening_020';
+		-- SET errorRef.message = 'ZSS update Failed';
+		-- MOVE domainDataRef TO OutputRoot.JSON;
+		-- SET domainName = FIELDNAME(domainDataRef);
+		-- SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		-- IF EXISTS(Environment.JSON[]) OR FIELDNAME(Environment.JSON) IS NOT NULL THEN
+		-- SET Environment.JSON = OutputRoot.JSON;
+		-- ELSE
+		-- CREATE LASTCHILD OF Environment DOMAIN ('JSON');
+		-- SET Environment.JSON = OutputRoot.JSON;
+		-- END IF;
+		-- SET OutputRoot.JSON = NULL;
+		-- IF IsLogRequired = 'Y' THEN
+		-- CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----Application Response------') INTO rc;
+		-- CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.resMsg) INTO rc;
+		-- --------------DBLogging-------------------
+		-- CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
+		-- PROPAGATE TO TERMINAL 'out1';
+		-- -----------------------------
+		-- END IF;
+		-- SET OutputRoot.Properties = InputRoot.Properties;
+		-- SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+		-- CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		-- SET OutputRoot.JSON = Environment.JSON;
+		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
+		-- PROPAGATE TO TERMINAL 'out1';
+		-- END IF;
 	END;
 END MODULE;
 -----FCM Compute Module
@@ -1134,34 +1164,40 @@ CREATE COMPUTE MODULE AccountOpeningFlow_CaptureException
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
-		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'T24ServiceCall') THEN
-			SET errMsg = 'T24 Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'FCBServiceCall') THEN
-			SET errMsg = 'FCB Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'ZSS_ServiceCall') THEN
-			SET errMsg = 'ZSS Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'Postilion_ServiceCall') THEN
-			SET errMsg = 'Postilion Server Down';			
-		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from T24 Server';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from Postilion Server';
-		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+		CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- Account Opening Capture Exception ------') INTO rc;
+		DECLARE domainDataRef REFERENCE TO InputRoot.XMLNSC;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- '||Environment.Variables.reqMsg||' ------') INTO rc;
+		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE errMsg CHARACTER 'errorMessage';
+		CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- '||excpRef.excpText||' ------') INTO rc;
+		IF CONTAINS(excpRef.excpText,'T24ServiceCall') THEN
+			SET errMsg = 'T24 Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'DWHServiceCall') THEN
+			SET errMsg = 'DWH Server Down';
+		ELSEIF CONTAINS(excpRef.excpText,'no data on connection') AND CONTAINS(excpRef.excpText,'ZssClientReveiceData') THEN
+			SET errMsg = 'No Response from ZSS Server';
+		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReveiceData') AND CONTAINS(excpRef.excpText,'no data on connection') THEN
+			SET errMsg = 'No Response from Postilion Server';
+		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
+			SET errMsg = 'No Response from T24 Server';
+		ELSEIF CONTAINS(excpRef.excpText,'connection refused') THEN
+			SET errMsg = 'A remote host did not respond within the timeout period';
+		END IF;
+		SET domainName = FIELDNAME(InputBody);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
 		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'AccountOpening';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
 		CALL BuildExceptionDetails(excpRef,outRef,'AccountOpening');
 		SET Environment.UserDefinedErrorCodes = OutputRoot.XMLNSC;
-		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+		MOVE domainDataRef TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		SET OutputRoot.XMLNSC = NULL;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
