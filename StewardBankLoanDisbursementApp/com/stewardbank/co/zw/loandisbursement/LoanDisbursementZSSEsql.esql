@@ -32,9 +32,14 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		DECLARE destinationPhone CHARACTER 'DestinationPhone';
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
-		DECLARE Field7,timee,stri,Field12,Field13 CHARACTER;
+		DECLARE Field11,Field37,Field7,timee,stri,Field12,Field13,randomNumber CHARACTER;
+		DECLARE Field11Length CHARACTER '6';
+		DECLARE Field37Length CHARACTER '12';
 		SET timee = dbLoggingTime;
 		SET stri = SUBSTRING(timee FROM 17 FOR 2)||SUBSTRING(timee FROM 20 FOR 2)||SUBSTRING(timee FROM 23 FOR 2)||SUBSTRING(timee FROM 26 FOR 2)||SUBSTRING(timee FROM 29 FOR 2);
+		SET Field11 = GenerateRandomIntegerNumber(Field11Length); 
+		SET Field37 = GenerateRandomIntegerNumber(Field37Length);
+		
 		SET Field7 = CAST(stri AS CHARACTER FORMAT 'MMDDhhmmss');
 		SET Field13 = CAST(stri AS CHARACTER FORMAT 'MMDD');
 		DECLARE trnTime TIMESTAMP CURRENT_GMTTIMESTAMP;
@@ -75,7 +80,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
 		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.debitAmount AS CHARACTER);
 		SET outRef.TransmissionDatetime_007 = Field7; --
-		SET outRef.SystemsTraceAuditNumber_011 = '000542';
+		SET outRef.SystemsTraceAuditNumber_011 = Field11;
 		SET outRef.TimeLocalTransaction_012 = Field12;
 		SET outRef.DateLocalTransaction_013 = SUBSTRING(Field13 FROM 1 FOR 4);
 		SET outRef.DateSettlement_015 = SUBSTRING(Field13 FROM 1 FOR 4);
@@ -87,7 +92,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		SET outRef.AmountTransactionProcessingFee_030 = 'C00000000';
 		SET outRef.AcquiringInstitutionIdentificationCode_032 = '502195';
 		SET outRef.ForwardingInstitutionIdentificationCode_033 = '502195';
-		SET outRef.RetrievalReferenceNumber_037 = '1028934641  ';
+		SET outRef.RetrievalReferenceNumber_037 = Field37;
 		SET outRef.CardAcceptorTerminalIdentification_041 = 'ISAVE263';
 		SET outRef.CardAcceptorIdentificationCode_042 = '26377-SBZWISAVE';
 		SET outRef.CardAcceptorNameLocation_043 = 'salary                                  '; 
