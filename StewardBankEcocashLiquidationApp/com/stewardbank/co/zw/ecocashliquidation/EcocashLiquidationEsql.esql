@@ -43,8 +43,10 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 			DECLARE reqMsg,CSV_Fields CHARACTER;
 			SET reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 			SET Environment.Variables.reqMsg = reqMsg;
-			SET CSV_Fields = 'MERCHANT_NAME,MSISDN,CODE,BANK_ACC_NAME,BRANCH_CODE,BANK_ACC_NUMBER,BANK,BRANCH_NAME,BALANCE_USD,TRANSFER_CHARGE_USD,BANK_CHARGE_USD,BATCH_DENTIFIER';
+			DECLARE FTXIDField CHARACTER;      
 			DECLARE inRef REFERENCE TO InputRoot.DFDL.StewardBank_EcoCSV.record;
+			DECLARE FTXIDFieldLength CHARACTER 24; 
+			SET FTXIDField = GenerateRandomIntegerNumber(FTXIDFieldLength);  
 			-- SET Environment.Variables.CSVData = InputRoot.DFDL;
 			SET Environment.Variables.csvData = inRef;
 			IF IsLogRequired LIKE 'Y' THEN
@@ -58,21 +60,21 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID:: '||Environment.Variables.UID) INTO rc;
 			END IF;
 			DECLARE Bank CHARACTER inRef.BANK;
-			DECLARE fxtid ROW;
-			DECLARE value INTEGER;
-			DECLARE value1 CHARACTER;
-			SET fxtid.values[] = PASSTHRU('SELECT NEXT VALUE FOR ECHOCASH_SEQ AS SEQ');
-			--SET fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL');
-			SET value = fxtid.values.SEQ;
-			SET value1 = CAST(value as CHARACTER);
-			DECLARE value2 CHARACTER;
-			DECLARE value3 CHARACTER;
-			SET value3 = LENGTH(value1);
-			IF (value3 = 1 or value3 = 2 or value3 = 3 or value3 = 4 or value3 = 5 or value3 = 6 or value3 = 7 or value3 = 8 or value3 = 9 or value3 = 10 or value3 = 11 or value3 = 12 or value3 = 13 or value3 = 14 or value3 = 15 or value3 = 16 or value3 = 17) THEN
-				SET value2 = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(value3,'1','00000000000000000'),'2','0000000000000000'),'3','000000000000000'),'4','00000000000000'),'5','0000000000000'),'6','000000000000'),'7','00000000000'),'8','0000000000'),'9','000000000'),'10','00000000'),'11','0000000'),'12','000000'),'13','00000'),'14','0000'),'15','000'),'16','00'),'17','0')||value1;
-			ELSE
-				SET value2 = value1;
-			END IF;
+--			DECLARE fxtid ROW;
+--			DECLARE value INTEGER;
+--			DECLARE value1 CHARACTER;
+--			--SET fxtid.values[] = PASSTHRU('SELECT NEXT VALUE FOR ECHOCASH_SEQ AS SEQ');
+--			SET fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL');
+--			SET value = fxtid.values.SEQ;
+--			SET value1 = CAST(value as CHARACTER);
+--			DECLARE value2 CHARACTER;
+--			DECLARE value3 CHARACTER;
+--			SET value3 = LENGTH(value1);
+--			IF (value3 = 1 or value3 = 2 or value3 = 3 or value3 = 4 or value3 = 5 or value3 = 6 or value3 = 7 or value3 = 8 or value3 = 9 or value3 = 10 or value3 = 11 or value3 = 12 or value3 = 13 or value3 = 14 or value3 = 15 or value3 = 16 or value3 = 17) THEN
+--				SET value2 = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(value3,'1','00000000000000000'),'2','0000000000000000'),'3','000000000000000'),'4','00000000000000'),'5','0000000000000'),'6','000000000000'),'7','00000000000'),'8','0000000000'),'9','000000000'),'10','00000000'),'11','0000000'),'12','000000'),'13','00000'),'14','0000'),'15','000'),'16','00'),'17','0')||value1;
+--			ELSE
+--				SET value2 = value1;
+--			END IF;
 			DECLARE Amount REFERENCE TO inRef.BALANCE_USD;
 			IF CONTAINS(Amount,'-') THEN
 				SET OutputRoot.JSON = NULL;
@@ -104,7 +106,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 				SET outRef.COMMAND.BANKID= 'IND0410171';
 				SET outRef.COMMAND.AMOUNT=InputRoot.DFDL.StewardBank_EcoCSV.record.BALANCE_USD;
 				SET outRef.COMMAND.LANGUAGE1= '1';
-				SET outRef.COMMAND.FTXNID= 'FTxnId'||value2;
+				SET outRef.COMMAND.FTXNID= 'FTxnId'||FTXIDField; 
 				SET outRef.COMMAND.USERTYPE= 'CHANNEL';
 				set outRef.COMMAND.REMARKS='Remarks';
 				SET outRef.COMMAND.BLOCKSMS='BOTH';
@@ -141,6 +143,7 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 		END CASE;
 	END;
 END MODULE;
+ 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
