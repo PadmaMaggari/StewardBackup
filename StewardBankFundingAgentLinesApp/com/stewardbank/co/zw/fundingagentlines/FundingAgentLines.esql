@@ -1,3 +1,11 @@
+/*
+Author:Swathi
+Version:0.0.1
+Date of Creation:16-Aug-2020
+Date of Modification:30-Aug-2020,21-SEP-2020
+Description: Based on Channel and Processing code from HTTP Router it comes to the Business Flow 
+--do not delete this file at any cost,modification can be done--
+*/
 BROKER SCHEMA com.stewardbank.co.zw.fundingagentlines
 path com.stewardbank.co.zw.common.esql;
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
@@ -46,11 +54,10 @@ CREATE COMPUTE MODULE FundingAgentLines_GeneratingReqToMobiquity
 		/*===========Framing request to Mobiquity============*/
 		DECLARE reqData CHARACTER '';	
 		DECLARE env REFERENCE TO Environment.Variables;
-		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQMD = InputRoot.MQMD;
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data.FundingAgentLines.body.COMMAND ;
 			-- Generating unique(9 digit) Ftxnid  by calling Java class 
-			 DECLARE ftxnidLength CHARACTER;
+			 DECLARE ftxnidLength CHARACTER 9 ;
 			 DECLARE ftxnId CHARACTER ;
 			 SET ftxnId = GenerateRandomIntegerNumber(ftxnidLength);
 			 --set ftxnid.values[] = PASSTHRU('select FTXNIDSEQ.NEXTVAL AS SEQ from DUAL'); --Retriving Sequence from Oracle
@@ -97,7 +104,7 @@ CREATE COMPUTE MODULE FundingAgentLines_GeneratingReqToMobiquity
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 		PROPAGATE TO TERMINAL 'out1';
 		/* ==================== Database Logging End ==================== */
-		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties = InputRoot.Properties ;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data.COMMAND = Environment.Variables.jsonData;
 			/* =================== CALLING  LOG4J LOGGING   ==============*/
