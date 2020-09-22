@@ -1,8 +1,3 @@
-
-
-
-
-
 BROKER SCHEMA com.stewardbank.co.zw.ecocashliquidation
 PATH com.stewardbank.co.zw.common.esql;
 DECLARE RAW_AUDIT_Q EXTERNAL CHARACTER '';
@@ -40,14 +35,13 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 			DECLARE FileName CHARACTER InputLocalEnvironment.File.Name;
 			SET Environment.Variables.CreationDate = CAST(CURRENT_TIMESTAMP AS TIMESTAMP);
 			SET Environment.Variables.FileName = SUBSTRING(FileName BEFORE '.csv');
-			DECLARE reqMsg,CSV_Fields CHARACTER;
+			DECLARE reqMsg CHARACTER; 
 			SET reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 			SET Environment.Variables.reqMsg = reqMsg;
 			DECLARE FTXIDField CHARACTER;      
 			DECLARE inRef REFERENCE TO InputRoot.DFDL.StewardBank_EcoCSV.record;
 			DECLARE FTXIDFieldLength CHARACTER 24; 
 			SET FTXIDField = GenerateRandomIntegerNumber(FTXIDFieldLength);  
-			-- SET Environment.Variables.CSVData = InputRoot.DFDL;
 			SET Environment.Variables.csvData = inRef;
 			IF IsLogRequired LIKE 'Y' THEN
 				CALL DBLogging(Environment.Variables.UID,reqMsg,'Incomming Message',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
@@ -60,21 +54,6 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 				CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID:: '||Environment.Variables.UID) INTO rc;
 			END IF;
 			DECLARE Bank CHARACTER inRef.BANK;
---			DECLARE fxtid ROW;
---			DECLARE value INTEGER;
---			DECLARE value1 CHARACTER;
---			--SET fxtid.values[] = PASSTHRU('SELECT NEXT VALUE FOR ECHOCASH_SEQ AS SEQ');
---			SET fxtid.values[] = PASSTHRU('select ECHOCASH_SEQ.NEXTVAL AS SEQ from DUAL');
---			SET value = fxtid.values.SEQ;
---			SET value1 = CAST(value as CHARACTER);
---			DECLARE value2 CHARACTER;
---			DECLARE value3 CHARACTER;
---			SET value3 = LENGTH(value1);
---			IF (value3 = 1 or value3 = 2 or value3 = 3 or value3 = 4 or value3 = 5 or value3 = 6 or value3 = 7 or value3 = 8 or value3 = 9 or value3 = 10 or value3 = 11 or value3 = 12 or value3 = 13 or value3 = 14 or value3 = 15 or value3 = 16 or value3 = 17) THEN
---				SET value2 = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(value3,'1','00000000000000000'),'2','0000000000000000'),'3','000000000000000'),'4','00000000000000'),'5','0000000000000'),'6','000000000000'),'7','00000000000'),'8','0000000000'),'9','000000000'),'10','00000000'),'11','0000000'),'12','000000'),'13','00000'),'14','0000'),'15','000'),'16','00'),'17','0')||value1;
---			ELSE
---				SET value2 = value1;
---			END IF;
 			DECLARE Amount REFERENCE TO inRef.BALANCE_USD;
 			IF CONTAINS(Amount,'-') THEN
 				SET OutputRoot.JSON = NULL;
@@ -99,12 +78,12 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_GenerateRequesttoMobiquity
 				CREATE LASTCHILD OF OutputRoot.JSON AS outRef NAME 'Data';
 				---Field to Field Mapping of CSV to JSON---
 				SET outRef.COMMAND.TYPE = 'DRSVA';
-				SET outRef.COMMAND.MSISDN = InputRoot.DFDL.StewardBank_EcoCSV.record.MSISDN;
+				SET outRef.COMMAND.MSISDN = inRef.MSISDN; 
 				SET outRef.COMMAND.IS_P2P_TRANSFER = 'Y';
 				SET outRef.COMMAND.PROVIDER= '101';
 				SET outRef.COMMAND.PAYID='12';
 				SET outRef.COMMAND.BANKID= 'IND0410171';
-				SET outRef.COMMAND.AMOUNT=InputRoot.DFDL.StewardBank_EcoCSV.record.BALANCE_USD;
+				SET outRef.COMMAND.AMOUNT=Amount; 
 				SET outRef.COMMAND.LANGUAGE1= '1';
 				SET outRef.COMMAND.FTXNID= 'FTxnId'||FTXIDField; 
 				SET outRef.COMMAND.USERTYPE= 'CHANNEL';
@@ -287,18 +266,6 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_MobiquityStatus_GenerateToT24
 			END IF;
 			/* =================== END OF AUDIT LOGGING ==============*/
 			CALL DbUpdateMobiquityStatus(Environment.Variables.UID,InRef.TXNSTATUS,'FAILURE',Env.resMsg,InRef.DATE||' '||InRef.TIME,'PENDING',CAST(CURRENT_TIMESTAMP AS TIMESTAMP));
-			/* ===================T24 AUDIT LOGGING ==============*/
-			-- IF IsLogRequired LIKE 'Y' THEN
-			-- CALL DBLogging(Env.UID,Env.resMsg,'Mobiquity Failure Response',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'ddMM'),'',outRefer);
-			-- END IF;
-			-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
-			-- PROPAGATE TO TERMINAL 'out1';
-			---- IF IsLogRequired LIKE 'Y' THEN
-			---- CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','T24 Failure Response') INTO rc;
-			---- CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','Failure Message::'||Env.resMsg) INTO rc;
-			---- CALL writeToLogFile(MessageFlowLabel, 'EcocashLiquidationLogger', 'DEBUG','ID::'||Environment.Variables.UID) INTO rc;
-			---- END IF;
-			-- /* =================== END OF AUDIT LOGGING ==============*/
 		END CASE;
 	END;
 END MODULE;
@@ -309,7 +276,6 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_T24StatusUpdate
 		CALL CopyEntireMessage();
 		RETURN FALSE;
 	END;
-
 	CREATE PROCEDURE CopyEntireMessage() BEGIN
 		DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
@@ -323,7 +289,6 @@ CREATE COMPUTE MODULE EcocashLiquidationFlow_T24StatusUpdate
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE outRef REFERENCE TO OutputRoot.JSON.Data;
 		DECLARE Env REFERENCE TO Environment.Variables;
-		--SET Env.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;

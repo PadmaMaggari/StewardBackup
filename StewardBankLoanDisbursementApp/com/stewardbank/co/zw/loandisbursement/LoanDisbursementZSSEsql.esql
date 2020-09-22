@@ -3,6 +3,8 @@
 
 
 
+
+
 BROKER SCHEMA com.stewardbank.co.zw.loandisbursement
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -37,9 +39,9 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		DECLARE Field37Length CHARACTER '12';
 		SET timee = dbLoggingTime;
 		SET stri = SUBSTRING(timee FROM 17 FOR 2)||SUBSTRING(timee FROM 20 FOR 2)||SUBSTRING(timee FROM 23 FOR 2)||SUBSTRING(timee FROM 26 FOR 2)||SUBSTRING(timee FROM 29 FOR 2);
-		SET Field11 = GenerateRandomIntegerNumber(Field11Length); 
+		SET Field11 = GenerateRandomIntegerNumber(Field11Length);
 		SET Field37 = GenerateRandomIntegerNumber(Field37Length);
-		
+
 		SET Field7 = CAST(stri AS CHARACTER FORMAT 'MMDDhhmmss');
 		SET Field13 = CAST(stri AS CHARACTER FORMAT 'MMDD');
 		DECLARE trnTime TIMESTAMP CURRENT_GMTTIMESTAMP;
@@ -77,7 +79,8 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		SET outRef.MTI_MessageClass = 2;
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
-		SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
+		--SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
+		SET outRef.ProcessingCode_003 = '400000';  
 		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.debitAmount AS CHARACTER);
 		SET outRef.TransmissionDatetime_007 = Field7; --
 		SET outRef.SystemsTraceAuditNumber_011 = Field11;
@@ -95,7 +98,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		SET outRef.RetrievalReferenceNumber_037 = Field37;
 		SET outRef.CardAcceptorTerminalIdentification_041 = 'ISAVE263';
 		SET outRef.CardAcceptorIdentificationCode_042 = '26377-SBZWISAVE';
-		SET outRef.CardAcceptorNameLocation_043 = 'salary                                  '; 
+		SET outRef.CardAcceptorNameLocation_043 = 'salary                                  ';
 		SET outRef.CurrencyCodeTransaction_049 = '932';
 		SET outRef.ReservedNational_059 = '0116742676';
 		SET outRef.ReceivingInstitutionIdentificationCode_100 = '502195';
@@ -107,7 +110,7 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_RequestToZss
 		SET outRef.AdditionalNodeDataPostilionPrivate_127_9 = '20200911'; --
 		SET outRef.OriginalKeyPostilionPrivate_127_12 = '1028934641'; --
 		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.mobileNumber;
-		SET outRef.ExtendedTransactionTypePostilionPrivate_127_33 = '9040'; --  
+		SET outRef.ExtendedTransactionTypePostilionPrivate_127_33 = '9040'; --
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
 		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);
