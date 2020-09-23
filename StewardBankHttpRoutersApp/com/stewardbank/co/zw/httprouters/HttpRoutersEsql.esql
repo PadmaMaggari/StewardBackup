@@ -493,7 +493,8 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_BuildExceptionDetails
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
 		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.HTTP_REQROUTER.ErrorCode;
-		SET errorRef.message = Environment.Variables.UserDefinedErrorCodes.HTTP_REQROUTER.ErrorType;
+		SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.HTTP_REQROUTER.ErrorType;
+		SET errorRef.message = Environment.Variables.UserDefinedErrorCodes.HTTP_REQROUTER.ActualDesc;
 		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 		
 		IF IsLogRequired LIKE 'Y' THEN

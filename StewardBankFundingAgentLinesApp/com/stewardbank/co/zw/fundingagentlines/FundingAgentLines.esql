@@ -105,6 +105,7 @@ CREATE COMPUTE MODULE FundingAgentLines_GeneratingReqToMobiquity
 		PROPAGATE TO TERMINAL 'out1';
 		/* ==================== Database Logging End ==================== */
 		SET OutputRoot.Properties = InputRoot.Properties ;
+		SET OutputRoot.MQMD = InputRoot.MQMD;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.JSON.Data.COMMAND = Environment.Variables.jsonData;
 			/* =================== CALLING  LOG4J LOGGING   ==============*/
@@ -227,7 +228,7 @@ CREATE COMPUTE MODULE FundingAgentLines_BuildException
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'connection refused') OR CONTAINS(excpRef.excpText,'SOCKET error') THEN
+		IF CONTAINS(excpRef.excpText,'connection refused') OR CONTAINS(excpRef.excpText,'SOCKET error') OR CONTAINS(excpRef.excpText,'connectTimeout') THEN
 			SET errMsg = 'Mobiquity Server Down';
 
 		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
@@ -257,7 +258,7 @@ CREATE COMPUTE MODULE FundingAgentLines_BuildException
 		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
 		SET headerRef.channel = 'Branch';
 		SET headerRef.processingCode = '050000';
-		SET headerRef.status = 'FAILED';
+		SET headerRef.status = 'FAILED'; 
 		SET headerRef.responseCode = '000';
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;

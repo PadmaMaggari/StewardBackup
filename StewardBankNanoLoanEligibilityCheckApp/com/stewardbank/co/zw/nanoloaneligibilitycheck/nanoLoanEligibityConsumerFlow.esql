@@ -129,9 +129,9 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_BuildExceptionDetails
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') OR CONTAINS(excpRef.excpText,'A connection attempt failed') THEN
-		SET errMsg = 'T24 Server Down or No connection to T24';
-		END IF;
+--		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') OR CONTAINS(excpRef.excpText,'SocketException') OR CONTAINS(excpRef.excpText,'A connection attempt failed') THEN
+--		SET errMsg = 'Mobiquity Server Down or No connection to Mobiquity';
+--		END IF;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
@@ -148,7 +148,20 @@ CREATE COMPUTE MODULE nanoLoanEligibityConsumerFlow_BuildExceptionDetails
 		
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
 		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
-		SET OutputRoot.JSON.Data.error = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.NanoLoanCheck.ErrorType,'');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('NanoLoanEligibilityCheck');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef.channel = 'Branch';
+		SET headerRef.processingCode = '800010';
+		SET headerRef.status = 'FAILED'; 
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.NanoLoanCheck.ErrorCode;
+		SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.NanoLoanCheck.ErrorType; 
+		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.NanoLoanCheck.ActualDesc,'');
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES ;
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
