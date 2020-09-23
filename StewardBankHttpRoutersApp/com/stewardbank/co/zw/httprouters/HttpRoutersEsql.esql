@@ -264,12 +264,11 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		ELSEIF domainName = 'SOAP' THEN
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Header.ns1:status='FAILURE';
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Header.ns1:responseCode='000';
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:source='ESB';
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:applicationName=ApplicationLabel;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:errorCode=errorCode;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:message=msg;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:errorCode=errorCode;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:applicationName=ApplicationLabel;
+		
+			
 		IF EXISTS(Environment.XMLNSC[]) THEN
 				SET Environment.XMLNSC = OutputRoot.XMLNSC;
 			ELSE
@@ -332,10 +331,10 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 	BEGIN
 		/*get esb processing codes from cache if available else call database to retrive values */
 		IF EXISTS(esbPcode.val[]) THEN
-			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','===esb pcode values available in shared cache===')INTO rc;
+			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','===esb pcode values available in shared cache===')INTO rc;
 			CALL filterPcode(pcode,channel);
 		ELSE
-			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','===esb pcode values not available in shared cache calling db===')INTO rc;
+			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','===esb pcode values not available in shared cache calling db===')INTO rc;
 			CALL getEsbPcode(pcode,channel);
 			CALL filterPcode(pcode,channel);
 		END IF;
@@ -348,9 +347,9 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			IF (CONTAINS(channel,pcodeRef.CHANNEL) OR CONTAINS(channel,pcodeRef.CHANNEL2)
 				OR CONTAINS(channel,pcodeRef.CHANNEL3) OR CONTAINS(channel,pcodeRef.CHANNEL4)) AND pcodeRef.POSTILION_PCODE = pcode THEN
 				SET Environment.MQRFH2.usr.esbPcode = pcodeRef.ESB_PCODE;
-				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','====filtering done successfully====')INTO rc;
-				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','====ESB processing code===')INTO rc;
-				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG',CAST(Environment.MQRFH2.usr.esbPcode AS CHARACTER))INTO rc;
+				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','====filtering done successfully====')INTO rc;
+				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','====ESB processing code===')INTO rc;
+				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG',CAST(Environment.MQRFH2.usr.esbPcode AS CHARACTER))INTO rc;
 			END IF;
 		END FOR;
 	END;
@@ -361,15 +360,15 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			IF channel <> '' AND channel IS NOT NULL THEN
 				SET esbPcode.val[] = SELECT A.* FROM Database.SB_ESB_PCODE AS A;
 				IF EXISTS(esbPcode.val[]) THEN
-					CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','Retrieved pcode values from Database')INTO rc;
+					CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','Retrieved pcode values from Database')INTO rc;
 				ELSE
-					CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','No pcode retrieved from Database')INTO rc;
+					CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','No pcode retrieved from Database')INTO rc;
 				END IF;
 			ELSE
-				CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','channel is null or empty')INTO rc;
+				CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','channel is null or empty')INTO rc;
 			END IF;
 		ELSE
-			CALL writeToLogFile(MessageFlowLabel,'TCPRouterLog','DEBUG','processing code is null or empty')INTO rc;
+			CALL writeToLogFile(MessageFlowLabel,'HTTPLogger','DEBUG','processing code is null or empty')INTO rc;
 		END IF;
 	END;
 
@@ -516,7 +515,7 @@ CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE,IN exe_Desc CHARACTER,IN Err
 			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:exe_Desc=exe_Desc;
 			
 			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
-			SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.ReplyIdentifier AS BLOB);
+			SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 			PROPAGATE TO TERMINAL 'out1';
 			END;
 END MODULE;
@@ -567,7 +566,7 @@ CREATE COMPUTE MODULE HttpResponseRouterFlow_BuildExceptionDetails
 		----------------------------------
 		IF Environment.MQRFH2.RequestDomian ='SOAP' THEN
 			call errorResponse(Environment.MQRFH2.RequestDomian,exe_Desc,ErrorCode,ApplicationLabel);	
-			SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.ReplyIdentifier AS BLOB);
+			--SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.ReplyIdentifier AS BLOB);
 			PROPAGATE TO TERMINAL 'out';
 			
 			IF IsLogRequired LIKE 'Y' THEN
@@ -613,7 +612,7 @@ CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE,IN exe_Desc CHARACTER,IN Err
 			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:exe_Desc=exe_Desc;
 			
 			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
-		
+			SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 			END;
 END MODULE;
 	
