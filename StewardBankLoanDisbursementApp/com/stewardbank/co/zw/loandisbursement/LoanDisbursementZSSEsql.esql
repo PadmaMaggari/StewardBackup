@@ -263,25 +263,25 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_BuildException
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'SocketException') THEN
-			SET errMsg = 'No Response from ZSS Server';
-		END IF;
-
-		IF CONTAINS(excpRef.excpText,'RecoverableException') THEN
-			SET errMsg = 'No Response from ZSS Server';
-		END IF;
-		IF CONTAINS(excpRef.excpText,'connection refused') THEN
-			SET errMsg = 'No Response from ZSS Server';
-		END IF;
-		IF CONTAINS(excpRef.excpText,'Exception whilst parsing') THEN
-			SET errMsg = 'No Response from ZSS Server';
-		END IF;
-		IF CONTAINS(excpRef.excpText,'ParserException') THEN
-			SET errMsg = 'No Response from ZSS Server';
-		END IF;
-		IF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
-			SET errMsg = 'WebService Request Exception errors have occurred';
-		END IF;
+--		IF CONTAINS(excpRef.excpText,'SocketException') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--
+--		IF CONTAINS(excpRef.excpText,'RecoverableException') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'connection refused') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'Exception whilst parsing') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'ParserException') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+--			SET errMsg = 'WebService Request Exception errors have occurred';
+--		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -312,7 +312,9 @@ CREATE COMPUTE MODULE LoanDisbursementZSSFlow_BuildException
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
 		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LoanDisbursment.ErrorCode;
-		SET errorRef.message = errMsg;
+		SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.LoanDisbursment.ErrorType;
+		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.LoanDisbursment.ActualDesc,'');
+--		SET errorRef.message = errMsg;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';

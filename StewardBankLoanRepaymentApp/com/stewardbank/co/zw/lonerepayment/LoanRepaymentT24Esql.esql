@@ -186,19 +186,19 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_BuildException
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') THEN
-			SET errMsg = 'T24 Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
-			SET errMsg = 'Postilion Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from T24 Server';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
-			SET errMsg = 'No Response from Postilion Server';
-		ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN
-			SET errMsg = 'JSON parsing errors have occurred';
-		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
-			SET errMsg = 'WebService Request Exception errors have occurred';
-		END IF;
+--		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') THEN
+--			SET errMsg = 'T24 Server Down';
+--		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
+--			SET errMsg = 'Postilion Server Down';
+--		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN
+--			SET errMsg = 'No Response from T24 Server';
+--		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN
+--			SET errMsg = 'No Response from Postilion Server';
+--		ELSEIF CONTAINS(excpRef.excpText,'ParserException') THEN
+--			SET errMsg = 'JSON parsing errors have occurred';
+--		ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+--			SET errMsg = 'WebService Request Exception errors have occurred';
+--		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -231,7 +231,9 @@ CREATE COMPUTE MODULE LoanRepaymentT24Flow_BuildException
 		SET bodyRef.source = 'ESB';
 		SET bodyRef.applicationName = ApplicationLabel;
 		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LoanRepayment.ErrorCode;
-		SET bodyRef.message = errMsg;
+		SET bodyRef.errorType = Environment.Variables.UserDefinedErrorCodes.LoanRepayment.ErrorType;
+		SET bodyRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.LoanRepayment.ActualDesc,'');
+--		SET bodyRef.message = errMsg;
 		SET OutputRoot.XMLNSC = NULL;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2; 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = Environment.MQRFH2.usr.resQueueName;

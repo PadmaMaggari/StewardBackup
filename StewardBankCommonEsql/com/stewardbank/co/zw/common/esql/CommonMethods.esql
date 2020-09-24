@@ -751,92 +751,125 @@ BEGIN
 END;
 CREATE PROCEDURE BuildExceptionDetails(IN excpRef REFERENCE,INOUT outRef REFERENCE,IN serviceName CHARACTER) BEGIN
 	SET outRef.Title = FIELDNAME(excpRef);
+	DECLARE CRLF CHARACTER CAST(X'0D0A' AS CHARACTER CCSID 1208);
+	IF CONTAINS(excpRef.actualExcpText,CRLF) THEN
+		SET excpRef.actualExcpText = SUBSTRING(excpRef.actualExcpText BEFORE CRLF );
+	END IF;
 	CASE
 	WHEN excpRef.excpType = 'FatalException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_001';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText;
 
 	WHEN excpRef.excpType = 'RecoverableException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_002';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText;
+		
 	WHEN excpRef.excpType = 'ConfigurationException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_003';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText;
+		
 	WHEN excpRef.excpType = 'SecurityException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_004';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText;
+		
 	WHEN excpRef.excpType = 'ParserException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_005';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = 'A Parsing error has occurred whilst parsing the given message structure';
+		
 
 	WHEN excpRef.excpType = 'ConversionException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_006';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText;
+		
 
 	WHEN excpRef.excpType = 'DatabaseException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_007';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText ;
+		
 
 	WHEN excpRef.excpType = 'UserException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_008';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText ;
+		
 
 	WHEN excpRef.excpType = 'CastException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_009';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText ;
+		
 
 	WHEN excpRef.excpType = 'MessageException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_010';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText ;
+		
 
 	WHEN excpRef.excpType = 'SqlException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_011';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText ;
+		
 
 	WHEN excpRef.excpType = 'SocketException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_012';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText;
+		
 
 	WHEN excpRef.excpType = 'SocketTimeoutException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_013';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText ;
+		
 	WHEN excpRef.excpType = 'UnknownException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_014';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText ;
+		
 
 	ELSE
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_015';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
+		SET outRef.ActualDesc = excpRef.actualExcpText ;
+		
 	END CASE;
 END;
 
