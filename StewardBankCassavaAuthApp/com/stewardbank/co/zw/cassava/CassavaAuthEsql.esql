@@ -218,7 +218,7 @@ CREATE COMPUTE MODULE CassavaAuthFlow_BuildExceptionDetails
 		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CassavaAuth.ErrorCode;
 		SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.CassavaAuth.ErrorType;
 		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.CassavaAuth.ActualDesc,'');
---		SET errorRef.message = errMsg;
+--		SET errorRef.message = errMsg;  
 		
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef); 
