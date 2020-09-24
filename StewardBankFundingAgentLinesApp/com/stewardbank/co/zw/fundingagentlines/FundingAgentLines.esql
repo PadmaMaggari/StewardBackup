@@ -228,12 +228,12 @@ CREATE COMPUTE MODULE FundingAgentLines_BuildException
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'connection refused') OR CONTAINS(excpRef.excpText,'SOCKET error') OR CONTAINS(excpRef.excpText,'connectTimeout') THEN
-			SET errMsg = 'Mobiquity Server Down';
-
-		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
-			SET errMsg = 'No Response from Mobiquity Server';
-		END IF;
+--		IF CONTAINS(excpRef.excpText,'connection refused') OR CONTAINS(excpRef.excpText,'SOCKET error') OR CONTAINS(excpRef.excpText,'connectTimeout') THEN
+--			SET errMsg = 'Mobiquity Server Down';
+--
+--		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
+--			SET errMsg = 'No Response from Mobiquity Server';
+--		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -263,7 +263,8 @@ CREATE COMPUTE MODULE FundingAgentLines_BuildException
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
 		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.FundingAgent.ErrorCode;
-		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.FundingAgent.ErrorType,'');
+		SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.FundingAgent.ErrorType ;
+		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.FundingAgent.ActualDesc,'');
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;  
