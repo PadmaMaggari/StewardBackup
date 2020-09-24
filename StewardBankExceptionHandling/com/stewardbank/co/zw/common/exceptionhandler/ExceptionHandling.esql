@@ -72,6 +72,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 		SET Environment.Variables.actualExcpText = OutputRoot.XMLNSC.ExceptionDetails.actualExcpText;
 		SET Environment.Variables.excpType = OutputRoot.XMLNSC.ExceptionDetails.excpType;
 		DECLARE exceptionTxt CHARACTER Environment.Variables.ExceptionData.excpText;
+
 		IF CONTAINS(exceptionTxt,'ParserException') THEN
 			SET inputChar = 'unable to parse the data';
 			SET systemsTraceAuditNumber = CAST(CURRENT_TIME AS CHAR FORMAT 'hhmmss');
@@ -131,15 +132,15 @@ CREATE COMPUTE MODULE ExceptionHandling
 				CONTAINS(exceptionTxt,'your session has been killed') OR
 				CONTAINS(exceptionTxt,'SocketException') OR CONTAINS(exceptionTxt,'Unexpected Network Error')) AND CONTAINS(flowName,'OutgoingRouterFlow')= FALSE THEN
 				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Connection refused or Connection Dead or your session has been killed or Socket Expection or Unexpected Network Error') INTO rc;
---				IF Environment.Variables.RequestIdentifier IS NULL OR FIELDVALUE( Environment.Variables.RequestIdentifier) IS NULL THEN
---					IF Environment.Variables.Counter IS NULL THEN
---						SET Environment.Variables.Counter = 1;
---					END IF;
---				ELSE
---					IF Environment.Variables.Counter IS NULL THEN
---						SET Environment.Variables.Counter = 1;
---					END IF;
---				END IF;
+				--IF Environment.Variables.RequestIdentifier IS NULL OR FIELDVALUE( Environment.Variables.RequestIdentifier) IS NULL THEN
+					--IF Environment.Variables.Counter IS NULL THEN
+						--SET Environment.Variables.Counter = 1;
+					--END IF;
+				--ELSE
+					--IF Environment.Variables.Counter IS NULL THEN
+						--SET Environment.Variables.Counter = 1;
+					--END IF;
+				--END IF;
 
 				--IF Environment.Variables.Counter <= MAX_RETRY_COUNT THEN
 					--SET OutputRoot = NULL;
@@ -148,13 +149,13 @@ CREATE COMPUTE MODULE ExceptionHandling
 					--SET Environment.Variables.Counter = Environment.Variables.Counter + 1;
 					--CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','connection exception retry count:'||CAST(Environment.Variables.Counter AS CHARACTER)) INTO rc;
 					--RETURN TRUE;
-			--	ELSE
+				--ELSE
 					CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','connection exception retry count reached send response') INTO rc;
 					SET OutputRoot = NULL;
 					CALL CopyMessageHeaders();
 					IF FIELDNAME(Environment.Variables.RequestIdentifier) IS NULL OR FIELDVALUE(Environment.Variables.RequestIdentifier) = '' THEN
 						IF domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) THEN
-							CALL revertBackToSystem(ccidRef,encodeRef);
+							--CALL revertBackToSystem(ccidRef,encodeRef);
 						END IF;
 					END IF;
 					CALL LogException(encodeRef,ccidRef);
@@ -170,7 +171,7 @@ CREATE COMPUTE MODULE ExceptionHandling
 				SET OutputRoot = NULL;
 				CALL CopyMessageHeaders();
 				IF domainFldName='DFDL' AND EXISTS(InputRoot.DFDL.*[]) AND CONTAINS(flowName,'OutgoingRouterFlow') = FALSE  AND FIELDVALUE(Environment.Variables.RequestIdentifier) IS NULL THEN
-					CALL revertBackToSystem(ccidRef,encodeRef);
+					--CALL revertBackToSystem(ccidRef,encodeRef);
 				END IF;
 				CALL LogException(encodeRef,ccidRef);
 				CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','..............end of logging Exception...........') INTO rc;

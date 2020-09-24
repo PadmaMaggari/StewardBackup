@@ -111,22 +111,89 @@ CREATE COMPUTE MODULE LoanDisbursementFlow_BuildException
 	
 
 	CREATE PROCEDURE BuildException() BEGIN
-		DECLARE rc BOOLEAN FALSE;
-CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+--		DECLARE rc BOOLEAN FALSE;
+--CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+--		IF ( rc = FALSE ) THEN
+--			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
+--		END IF;
+--		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+--		DECLARE errMsg CHARACTER;
+--		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') THEN
+--			SET errMsg = 'T24 Server Down';
+--		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
+--			SET errMsg = 'Postilion Server Down';
+--		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN 
+--			SET errMsg = 'No Response from T24 Server';
+--		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN 
+--			SET errMsg = 'No Response from Postilion Server';	
+--		END IF;
+--		SET OutputRoot.Properties = InputRoot.Properties;
+--		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
+--		DECLARE outRefer REFERENCE TO OutputRoot;
+--		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+--		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+--		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+--		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
+--		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+--		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'LOAN_DISBURSEMENT';
+--		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+--		CALL BuildExceptionDetails(excpRef,outRef,'LOAN_DISBURSEMENT');
+--		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+--		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+--		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+--		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+--		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+--		MOVE outRef TO OutputRoot.JSON.Data;
+--		SET outRef.statusCode = '000';
+--		SET outRef.status = 'FAILED';
+--		SET outRef.message = errMsg;
+--		SET outRef.responseBody.source = 'ESB';
+--		SET outRef.responseBody.applicationName = ApplicationLabel;
+--		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSEMENT.ErrorCode;
+-- 		SET OutputRoot.XMLNSC = NULL;
+--		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';   
+--		PROPAGATE TO TERMINAL 'out';
+--		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
+--		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+--		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
+--		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+--		PROPAGATE TO TERMINAL 'out';
+--		------------Error Logging in DB----------
+--		--CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSEMENT.ErrorCode,outRefer);
+--		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSEMENT.ErrorCode,outRefer);
+--		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
+--		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
+--		----------------------------------
+--		END;
+
+
+
+DECLARE rc BOOLEAN FALSE;
+		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'T24ClientOut,connection refused') THEN
-			SET errMsg = 'T24 Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientCall,connection refused') THEN
-			SET errMsg = 'Postilion Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'T24ClientReceiveData,Exception whilst parsing') THEN 
-			SET errMsg = 'No Response from T24 Server';
-		ELSEIF CONTAINS(excpRef.excpText,'PostilionClientReceiveData,Exception whilst parsing') THEN 
-			SET errMsg = 'No Response from Postilion Server';	
-		END IF;
+--		IF CONTAINS(excpRef.excpText,'SocketException') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--
+--		IF CONTAINS(excpRef.excpText,'RecoverableException') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'connection refused') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'Exception whilst parsing') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'ParserException') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+--			SET errMsg = 'WebService Request Exception errors have occurred';
+--		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -135,23 +202,34 @@ CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'LOAN_DISBURSEMENT';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'LoanDisbursment';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'LOAN_DISBURSEMENT');
+		CALL BuildExceptionDetails(excpRef,outRef,'LoanDisbursment');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
-		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
-		MOVE outRef TO OutputRoot.JSON.Data;
-		SET outRef.statusCode = '000';
-		SET outRef.status = 'FAILED';
-		SET outRef.message = errMsg;
-		SET outRef.responseBody.source = 'ESB';
-		SET outRef.responseBody.applicationName = ApplicationLabel;
-		SET outRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSEMENT.ErrorCode;
- 		SET OutputRoot.XMLNSC = NULL;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';   
+		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanDisbursment');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef.channel = '*236#';
+		SET headerRef.processingCode = '110000';
+		SET headerRef.ResponseFrom = 'LoanDisbursment';
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LoanDisbursment.ErrorCode;
+		SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.LoanDisbursment.ErrorType;
+		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.LoanDisbursment.ActualDesc,'');
+--		SET errorRef.message = errMsg;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
 		PROPAGATE TO TERMINAL 'out';
 		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
@@ -159,10 +237,8 @@ CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
 		------------Error Logging in DB----------
-		--CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSEMENT.ErrorCode,outRefer);
 		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSEMENT.ErrorCode,outRefer);
 		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
-		----------------------------------
-		END;
+END;
 END MODULE;
