@@ -199,12 +199,12 @@ CREATE COMPUTE MODULE CassavaPickupFlow_BuildExceptionDetails
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
 		DECLARE statusCode CHARACTER InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
-		IF statusCode NOT LIKE '200' THEN
-			SET errMsg = 'Error Response from T24 Server';
-		END IF;
-		IF CONTAINS(excpRef.excpText,'SocketException') OR CONTAINS(excpRef.excpText,'Connection refused') THEN
-			SET errMsg = ' T24 Server is Down';
-		END IF;
+--		IF statusCode NOT LIKE '200' THEN
+--			SET errMsg = 'Error Response from T24 Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'SocketException') OR CONTAINS(excpRef.excpText,'Connection refused') THEN
+--			SET errMsg = ' T24 Server is Down';
+--		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		SET OutputRoot.MQRFH2.statusCode = statusCode;
@@ -237,7 +237,9 @@ CREATE COMPUTE MODULE CassavaPickupFlow_BuildExceptionDetails
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
 		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CassavaPickup.ErrorCode;
-		SET errorRef.message = errMsg;
+		SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.CassavaPickup.ErrorType;
+		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.CassavaPickup.ActualDesc,'');
+--		SET errorRef.message = errMsg;
 		
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef); 
