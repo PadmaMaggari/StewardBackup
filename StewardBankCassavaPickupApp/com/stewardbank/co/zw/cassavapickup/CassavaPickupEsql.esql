@@ -239,7 +239,7 @@ CREATE COMPUTE MODULE CassavaPickupFlow_BuildExceptionDetails
 		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CassavaPickup.ErrorCode;
 		SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.CassavaPickup.ErrorType;
 		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.CassavaPickup.ActualDesc,'');
---		SET errorRef.message = errMsg;
+--		SET errorRef.message = errMsg;  
 		
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef); 
