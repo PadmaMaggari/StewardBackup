@@ -274,7 +274,7 @@ CREATE COMPUTE MODULE CassavaLookupFlow_BuildExceptionDetails
 		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CassavaLookup.ErrorCode;
 		SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.CassavaLookup.ErrorType;
 		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.CassavaLookup.ActualDesc,'');
---		SET errorRef.message = errMsg;
+--		SET errorRef.message = errMsg;  
 
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
