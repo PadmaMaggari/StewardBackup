@@ -106,62 +106,136 @@ CREATE COMPUTE MODULE LoneRepaymentFlow_BuildException
 	END;
 
 	CREATE PROCEDURE BuildException() BEGIN
-		DECLARE rc BOOLEAN FALSE;
+--		DECLARE rc BOOLEAN FALSE;
+--		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
+--		IF ( rc = FALSE ) THEN
+--			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+--		END IF;
+--		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+--		DECLARE outRefer REFERENCE TO OutputRoot;
+--		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
+--		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
+--		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+--		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
+--		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
+--		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
+--		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;     
+--		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
+--		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'LOAN_REPAYMENT';
+--		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
+--		CALL BuildExceptionDetails(excpRef,outRef,'LOAN_REPAYMENT');
+--		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
+--		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
+--		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+--		/*=================== CALLING DB LOG4J LOGGING  ==============*/  
+--		IF IsLogRequired LIKE 'Y' THEN
+--			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
+--			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+--		END IF;
+--		/*=================== CALLING LOG4J LOGGING END  ==============*/
+--		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
+--		PROPAGATE TO TERMINAL 'out';
+--/*=================== CALLING ERROR DB RAW AUDIT LOGGING  ==============*/
+--		IF IsLogRequired LIKE 'Y' THEN
+--			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'MMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT.ErrorCode,outRefer);
+--			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
+--		END IF;
+--		/*=================== CALLING ERROR DB RAW AUDIT LOGGING END  ==============*/
+--		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
+--		PROPAGATE TO TERMINAL 'out';
+--		----------------------------------
+--		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+--		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+--		DECLARE outJsonRef REFERENCE TO OutputRoot.JSON.Data;
+--		SET outJsonRef.statusCode = '000';
+--		SET outJsonRef.message = 'FAILURE';
+--		SET outJsonRef.responseBody.source = 'ESB';
+--		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT);
+--		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT.ErrorCode;
+--		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT.ErrorType;
+--		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
+--		/*=================== CALLING LOG4J LOGGING  ==============*/
+--		IF IsLogRequired LIKE 'Y' THEN
+--			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
+--			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','End of Logging Application Related Exception') INTO rc;
+--		END IF;
+--		/*=================== CALLING LOG4J LOGGING END  ==============*/
+--		PROPAGATE TO TERMINAL 'out1';
+--		----------------------------------
+--		END;
+DECLARE rc BOOLEAN FALSE;
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
-			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;		
+			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
+		DECLARE errMsg CHARACTER;
+--		IF CONTAINS(excpRef.excpText,'SocketException') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--
+--		IF CONTAINS(excpRef.excpText,'RecoverableException') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'connection refused') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'Exception whilst parsing') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'ParserException') THEN
+--			SET errMsg = 'No Response from ZSS Server';
+--		END IF;
+--		IF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+--			SET errMsg = 'WebService Request Exception errors have occurred';
+--		END IF;
+		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		DECLARE encodeRef REFERENCE TO InputRoot.Properties.Encoding;
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
-		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
-		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
-		--DECLARE Id CHARACTER CAST(Environment.MQRFH2.usr.Id AS CHARACTER);
-		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;     
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC;
 		CREATE LASTCHILD OF OutputRoot DOMAIN 'XMLNSC';
-		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'LOAN_REPAYMENT';
+		CREATE LASTCHILD OF OutputRoot.XMLNSC NAME 'LoanRepayment';
 		DECLARE outRef REFERENCE TO OutputRoot.XMLNSC.*;
-		CALL BuildExceptionDetails(excpRef,outRef,'LOAN_REPAYMENT');
+		CALL BuildExceptionDetails(excpRef,outRef,'LoanRepayment');
 		SET Environment.Variables.UserDefinedErrorCodes = OutputRoot.XMLNSC;
 		DECLARE domainDataRef REFERENCE TO OutputRoot.XMLNSC;
 		DECLARE exe_Desc CHARACTER getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
-		/*=================== CALLING DB LOG4J LOGGING  ==============*/  
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Start Logging Application Related Exception ...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
-		END IF;
-		/*=================== CALLING LOG4J LOGGING END  ==============*/
+		SET OutputRoot.XMLNSC = NULL;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data NAME ('LoanRepayment');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('header');
+		CREATE LASTCHILD OF OutputRoot.JSON.Data.* NAME ('error');
+		DECLARE headerRef REFERENCE TO OutputRoot.JSON.Data.*.header;
+		DECLARE errorRef REFERENCE TO OutputRoot.JSON.Data.*.error;
+		SET headerRef.channel = '*236#';
+		SET headerRef.processingCode = '110000';
+		SET headerRef.ResponseFrom = 'LoanRepayment';
+		SET headerRef.status = 'FAILED';
+		SET headerRef.responseCode = '000';
+		SET errorRef.source = 'ESB';
+		SET errorRef.applicationName = ApplicationLabel;
+		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LoanRepayment.ErrorCode;
+		SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.LoanRepayment.ErrorType;
+		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.LoanRepayment.ActualDesc,'');
+--		SET errorRef.message = errMsg;
+		MOVE domainDataRef TO OutputRoot.JSON;
+		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'ALL_SB_HTTP_RES';
+		PROPAGATE TO TERMINAL 'out';
+		SET OutputRoot.XMLNSC = Environment.Variables.UserDefinedErrorCodes;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','..............Logging Exception ...........') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Application Built Exception:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = EXCEPTION_Q;
 		PROPAGATE TO TERMINAL 'out';
-/*=================== CALLING ERROR DB RAW AUDIT LOGGING  ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'MMdd'),'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT.ErrorCode,outRefer);
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||getPayLoad(domainName,domainDataRef,encodeRef,ccidRef)) INTO rc;
-		END IF;
-		/*=================== CALLING ERROR DB RAW AUDIT LOGGING END  ==============*/
+		------------Error Logging in DB----------
+		CALL Error_DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'Application Error',ApplicationLabel,BrokerName,exe_Desc,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',CAST(excpRef.excpNumber AS CHARACTER),Environment.Variables.UserDefinedErrorCodes.LOAN_DISBURSEMENT.ErrorCode,outRefer);
+		CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Exception Created:'||exe_Desc) INTO rc;
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ERROR_AUDIT_QNAME;
-		PROPAGATE TO TERMINAL 'out';
-		----------------------------------
-		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
-		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
-		DECLARE outJsonRef REFERENCE TO OutputRoot.JSON.Data;
-		SET outJsonRef.statusCode = '000';
-		SET outJsonRef.message = 'FAILURE';
-		SET outJsonRef.responseBody.source = 'ESB';
-		SET outJsonRef.responseBody.applicationName = FIELDNAME(Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT);
-		SET outJsonRef.responseBody.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT.ErrorCode;
-		SET outJsonRef.responseBody.applicationErrorType = Environment.Variables.UserDefinedErrorCodes.LOAN_REPAYMENT.ErrorType;
-		SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
-		/*=================== CALLING LOG4J LOGGING  ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'ERROR','Response To Frond End System in case of Failure:'||getPayLoad(FIELDNAME(OutputRoot.JSON),outJsonRef,encodeRef,ccidRef)) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'ErrorLogger', 'DEBUG','End of Logging Application Related Exception') INTO rc;
-		END IF;
-		/*=================== CALLING LOG4J LOGGING END  ==============*/
-		PROPAGATE TO TERMINAL 'out1';
-		----------------------------------
-		END;
+END;
+
 END MODULE;
 
