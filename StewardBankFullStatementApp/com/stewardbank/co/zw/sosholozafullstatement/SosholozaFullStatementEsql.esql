@@ -223,9 +223,9 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_BuildExceptionDetails
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'SocketException') THEN
-			SET errMsg = 'No Response from T24 Server';
-		END IF;
+--		IF CONTAINS(excpRef.excpText,'SocketException') THEN
+--			SET errMsg = 'No Response from T24 Server';
+--		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
@@ -255,7 +255,9 @@ CREATE COMPUTE MODULE SosholozaFullStatementFlow_BuildExceptionDetails
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
 		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.FullStatement.ErrorCode;
-		SET errorRef.message = errMsg;
+		SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.FullStatement.ErrorType;
+		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.FullStatement.ActualDesc,'');
+--		SET errorRef.message = errMsg;
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef); 
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;  
