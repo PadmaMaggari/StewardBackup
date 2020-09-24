@@ -76,8 +76,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_VerifyRequest
 			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'KYC';
 		ELSEIF accountOpeningCheck = 'FCM_CHECK' THEN
 			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'FCM';
-		ELSEIF accountOpeningCheck = 'Zss/Postilion Update' THEN
-			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'UPDATE';
+		--ELSEIF accountOpeningCheck = 'Zss/Postilion Update' THEN
+			--SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'UPDATE';
 		ELSE
 			SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'Unknown';
 		END IF;
@@ -459,180 +459,141 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToZSS
 		---------------------------------------------
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
-		DECLARE timee,stri,Field7,Field12,Field13 CHARACTER;
+		DECLARE timee,stri,Field7,Field11,Field12,Field13,Field37 CHARACTER;
+		DECLARE Field11Length CHARACTER '6';
+		DECLARE Field37Length CHARACTER '12';
 		SET timee = dbLoggingTime;
 		SET stri = SUBSTRING(timee FROM 17 FOR 2)||SUBSTRING(timee FROM 20 FOR 2)||SUBSTRING(timee FROM 23 FOR 2)||SUBSTRING(timee FROM 26 FOR 2)||SUBSTRING(timee FROM 29 FOR 2);
 		SET Field7 = CAST(stri AS CHARACTER FORMAT 'MMDDhhmmss');
 		SET Field13 = CAST(SUBSTRING(stri FROM 1 FOR 4) AS CHARACTER FORMAT 'MMdd');
 		DECLARE trnTime TIMESTAMP CURRENT_GMTTIMESTAMP;
+		SET Field11 = GenerateRandomIntegerNumber(Field11Length);
 		SET Field12 = CAST(trnTime AS CHARACTER FORMAT 'HHmmss');
+		SET Field37 = GenerateRandomIntegerNumber(Field37Length);
 		---------------------------------------
-		SET outRef.MTI_Version = '0';
-		SET outRef.MTI_MessageClass = '2';
-		SET outRef.MTI_MessageFunction = '0';
-		SET outRef.MTI_MessageOrigin = '0';
-		SET outRef.PrimaryAccountNumber_002 = inRef.cardNumber;
-		SET outRef.ProcessingCode_003 = inRef.processingCode;
-		SET outRef.TransmissionDatetime_007 = Field7;--
-		SET outRef.SystemsTraceAuditNumber_011 = '397520';--
-		SET outRef.TimeLocalTransaction_012 = Field12 ;--
-		SET outRef.DateLocalTransaction_013 = Field13;--
+		SET outRef.MTI_Version = 0;
+		SET outRef.MTI_MessageClass = 3;
+		SET outRef.MTI_MessageFunction = 2;
+		SET outRef.MTI_MessageOrigin = 0;
+		--SET outRef.PrimaryAccountNumber_002 = inRef.cardNumber;
+		--SET outRef.AmountTransaction_004 = CAST(inRef.amount AS CHARACTER);
+		SET outRef.TransmissionDatetime_007 = Field7; --
+		SET outRef.SystemsTraceAuditNumber_011 = Field11; --
+		SET outRef.TimeLocalTransaction_012 = Field12; --
+		SET outRef.DateLocalTransaction_013 = Field13; --
 		SET outRef.DateExpiration_014 = inRef.expiryDate;
-		SET outRef.DateSettlement_015 = Field13;
-		SET outRef.MerchantType_018 = '6011';--
-		SET outRef.PointOfServiceEntryMode_022 = '001';--
-		SET outRef.PointOfServiceConditionCode_025 = '27';--
-		SET outRef.PointOfServiceCaptureCode_026 = '12';--
-		SET outRef.AmountTransactionFee_028 = 'C00000000';--
-		SET outRef.AmountTransactionProcessingFee_030 = 'C00000000';--
-		SET outRef.AcquiringInstitutionIdentificationCode_032 = '502195';--
-		SET outRef.ForwardingInstitutionIdentificationCode_033 = '502195';--
-		SET outRef.CardAcceptorTerminalIdentification_041 = 'ISAVE263';--
-		SET outRef.CardAcceptorIdentificationCode_042 = '26377-SBZWISAVE';--
-		SET outRef.CurrencyCodeTransaction_049 = inRef.currency;
-		SET outRef.ReceivingInstitutionIdentificationCode_100 = '502195';--
-		SET outRef.AccountIdentification1_102 = inRef.accountNumber;
-		SET outRef.AccountIdentification2_103 = inRef.accountNumber;
-		SET outRef.ReservedPrivate_123 = '100450100130021';--
-		SET outRef.ReservedPrivate_127 = '000000';--
-
+		--SET outRef.DateSettlement_015 = Field13;
+		--SET outRef.CardSequenceNumber_023 = '001';
+		SET outRef.AcquiringInstitutionIdentificationCode_032 = '333777'; --
+		--SET outRef.ForwardingInstitutionIdentificationCode_033 = '502195';--
+		SET outRef.RetrievalReferenceNumber_037 = Field37;
+		--SET outRef.ResponseCode_039 = '00';
+		SET outRef.CardAcceptorTerminalIdentification_041 = 'ISAVE263'; --
+		SET outRef.CardAcceptorIdentificationCode_042 = '26377-SBZWISAVE'; --
+		--SET outRef.CardAcceptorNameLocation_043 = '12486425402013EYE TRACK SATELL          ';
+		--SET outRef.CurrencyCodeTransaction_049 = inRef.currency;
+		--SET outRef.ReservedISO_056 = '';
+		--SET outRef.ReservedNational_059 = '';
+		SET outRef.FileUpdateCode_091 = '2';
+		SET outRef.ReceivingInstitutionIdentificationCode_100 = '502195'; --
+		SET outRef.FileName_101 = 'CARD_MANAGEMENT';
+		--SET outRef.AccountIdentification1_102 = inRef.accountNumber;
+		--SET outRef.AccountIdentification2_103 = inRef.accountNumber;
+		--SET outRef.ReservedPrivate_123 = '100450100130021';--
+		SET outRef.ReservedPrivate_127 = '000000'; --
+		SET outRef.SwitchKeyPostilionPrivate_127_2 = '4aa8443d6eea4dd18dd8819d68ce191b';
+		--SET outRef.RetentionDataPostilionPrivate_127_8 = '';
+		--SET outRef.AdditionalNodeDataPostilionPrivate_127_9 = '';
 		DECLARE isoKey,isoValue CHARACTER '';
-		IF FIELDNAME(inRef.mobileNumber) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.mobileNumber) INTO isoValue;
-			CALL keyValueGenerator('mobileNumber') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = isoKey || isoValue;
-		END IF;
+		
+		--SET outRef.ExtendedTransactionTypePostilionPrivate_127_33 = '9040'; --
+		--CALL keyValueGenerator('Postilion:MetaData') INTO isoKey;--218Postilion:MetaData
+		--SET outRef.StructuredDataPostilionPrivate_127_22 = isoKey;--'260';
+		--SET outRef.StructuredDataPostilionPrivate_127_22 = '218Postilion';
+		
+		--CALL keyValueGenerator('214VasApplication111234Postilion:CardManagementUpdateLoad113') INTO isoKey;--214VasApplication
+		--SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey;
+		
+		--CALL keyValueGenerator('Postilion:CardManagementUpdateLoad') INTO isoKey;--234Postilion:CardManagementUpdateLoad
+		--SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey;
+		
+		CALL keyValueGenerator('VasApplication') INTO isoKey;--214VasApplication
+		CALL keyValueGenerator('vmobile-android-agency') INTO isoValue;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = isoKey || isoValue;--outRef.StructuredDataPostilionPrivate_127_22 || isoKey;
+		
+		
+		--CALL keyValueGenerator('vmobile-android-agency') INTO isoKey;--222vmobile-android-agency
+		--SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey;
+		
+		--MSDN21226377123456716expiry2102049-12-31
+		CALL keyValueGenerator('MSDN') INTO isoKey;
+		CALL keyValueGenerator('263771234567') INTO isoValue;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey ||isoValue;
+		
+		CALL keyValueGenerator('expiry') INTO isoKey;
+		CALL keyValueGenerator('2049-12-31') INTO isoValue;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey ||isoValue;
+		
+		
+		CALL keyValueGenerator('Postilion:CardManagementUpdateLoad') INTO isoKey;--234Postilion:CardManagementUpdateLoad
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey;
+		
+		--SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || 'CardManagementUpdateLoad3665';
 
-		IF FIELDNAME(inRef.idNumber) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.idNumber) INTO isoValue;
-			CALL keyValueGenerator('idNumber') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.otp) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.otp) INTO isoValue;
-			CALL keyValueGenerator('otp') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.tittle) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.tittle) INTO isoValue;
-			CALL keyValueGenerator('tittle') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.firstName) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.firstName) INTO isoValue;
-			CALL keyValueGenerator('firstName') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.lastName) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.lastName) INTO isoValue;
-			CALL keyValueGenerator('lastName') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.middlename) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.middlename) INTO isoValue;
-			CALL keyValueGenerator('middlename') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.birthDate) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.birthDate) INTO isoValue;
-			CALL keyValueGenerator('birthDate') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.emailAddress) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.emailAddress) INTO isoValue;
-			CALL keyValueGenerator('emailAddress') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.maritalStatus) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.maritalStatus) INTO isoValue;
-			CALL keyValueGenerator('maritalStatus') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.gender) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.gender) INTO isoValue;
-			CALL keyValueGenerator('gender') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.identificationType) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.identificationType) INTO isoValue;
-			CALL keyValueGenerator('identificationType') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.nationality) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.nationality) INTO isoValue;
-			CALL keyValueGenerator('nationality') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.residence) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.residence) INTO isoValue;
-			CALL keyValueGenerator('residence') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.city) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.city) INTO isoValue;
-			CALL keyValueGenerator('city') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.address1) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.address1) INTO isoValue;
-			CALL keyValueGenerator('address1') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.address2) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.address2) INTO isoValue;
-			CALL keyValueGenerator('address2') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.country) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.country) INTO isoValue;
-			CALL keyValueGenerator('country') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.branch) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.branch) INTO isoValue;
-			CALL keyValueGenerator('branch') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.bankingServiceStatus) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.bankingServiceStatus) INTO isoValue;
-			CALL keyValueGenerator('bankingServiceStatus') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.squareRegStatus) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.squareRegStatus) INTO isoValue;
-			CALL keyValueGenerator('squareRegStatus') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.t24CustomerId) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.t24CustomerId) INTO isoValue;
-			CALL keyValueGenerator('t24CustomerId') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.detailsAmended) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.detailsAmended) INTO isoValue;
-			CALL keyValueGenerator('detailsAmended') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.sbPostilionStatus) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.sbPostilionStatus) INTO isoValue;
-			CALL keyValueGenerator('sbPostilionStatus') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.zssPostilionStatus) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.zssPostilionStatus) INTO isoValue;
-			CALL keyValueGenerator('zssPostilionStatus') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		IF FIELDNAME(inRef.idNumber) IS NOT NULL THEN
-			CALL keyValueGenerator(inRef.address1) INTO isoValue;
-			CALL keyValueGenerator('address1') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
-		SET outRef.ExtendedTransactionTypePostilionPrivate_127_33 = '9040'; --
+		CREATE LASTCHILD OF Environment DOMAIN('XMLNSC');
+--		CREATE FIRSTCHILD OF Environment.XMLNSC TYPE XMLNSC.XmlDeclaration NAME 'XmlDeclaration';
+--		SET Environment.XMLNSC.(XMLNSC.XmlDeclaration)*.(XMLNSC.Attribute)version = '1.0';
+--		SET Environment.XMLNSC.(XMLNSC.XmlDeclaration)*.(XMLNSC.Attribute)encoding = 'UTF-8';
+--		SET Environment.XMLNSC.(XMLNSC.XmlDeclaration)*.(XMLNSC.Attribute)standalone = 'yes';
+		CREATE LASTCHILD OF Environment.XMLNSC NAME('CardManagementUpdateLoad');
+		CREATE LASTCHILD OF Environment.XMLNSC.CardManagementUpdateLoad NAME('Request');
+		DECLARE xmlRef REFERENCE TO Environment.XMLNSC.CardManagementUpdateLoad.Request;
+		CREATE LASTCHILD OF xmlRef NAME('FileFormat') VALUE ('Standard 2');
+		CREATE LASTCHILD OF xmlRef NAME('FileList');
+		CREATE LASTCHILD OF xmlRef.FileList NAME('File');
+
+		CREATE LASTCHILD OF xmlRef.FileList.File[1] NAME('FileName') VALUE ('ACCOUNTS');
+		CREATE LASTCHILD OF xmlRef.FileList.File[1] NAME('FileRowList');
+		CREATE LASTCHILD OF xmlRef.FileList.File[1].FileRowList NAME('FileRow') VALUE (inRef.actionType||','||inRef.accountNumber||','||inRef.accountType||','||inRef.currency||',,604,0,,');		
+
+
+		--CREATE LASTCHILD OF xmlRef.FileList.File[2] NAME('FileName') VALUE ('CUSTOMERS');
+		--CREATE LASTCHILD OF xmlRef.FileList.File[2] NAME('FileRowList');
+		--CREATE LASTCHILD OF xmlRef.FileList.File[2].FileRowList NAME('FileRow') VALUE (inRef.actionType||','||inRef.t24CustomerId||','||inRef.idNumber||',,'||inRef.firstname||',,'||inRef.lastname||','||inRef.lastname||' '||inRef.firstname||','||'ZW0010040,,,,,,,,,,'||inRef.mobileNumber||','||inRef.mobileNumber||',,,'||inRef.address1||',,'||inRef.city||',,,716,,,,,,,'||inRef.birthDate||',,en-US,0,,');		
+		--CREATE LASTCHILD OF xmlRef.FileList.File[2].FileRowList NAME('FileRow') VALUE ('U,3357579,75545437E13,,TAKUNDA,,BVEKERWA,BVEKERWA  TAKUNDA,ZW0010040,,,,,,,,,,263786195527,263786195527,,,NF N JCCJ NCC,,Harare,,,716,,,,,,,19650101,,en-US,0,,');
+
+		--CREATE LASTCHILD OF xmlRef.FileList.File[3] NAME('FileName') VALUE ('CUSTOMERACCOUNTS');
+		--CREATE LASTCHILD OF xmlRef.FileList.File[3] NAME('FileRowList');
+		--CREATE LASTCHILD OF xmlRef.FileList.File[3].FileRowList NAME('FileRow') VALUE (inRef.actionType||','||inRef.t24CustomerId||','||inRef.accountNumber||','||inRef.accountType);
+		--CREATE LASTCHILD OF xmlRef.FileList.File[3].FileRowList NAME('FileRow') VALUE ('U,3357579,1031160444,20');
+		
+		--CREATE LASTCHILD OF xmlRef.FileList.File[4] NAME('FileName') VALUE ('ACCOUNTBALANCES');
+		--CREATE LASTCHILD OF xmlRef.FileList.File[4] NAME('FileRowList');
+		--CREATE LASTCHILD OF xmlRef.FileList.File[4].FileRowList NAME('FileRow') VALUE (inRef.actionType||','||inRef.accountNumber||','||'0'||','||'0'||','||inRef.accountType);	
+		DECLARE domainDataRef REFERENCE TO Environment.XMLNSC;
+		DECLARE domainName CHAR FIELDNAME(domainDataRef);		
+		SET Environment.xmlData = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		--DECLARE xmlData CHAR getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----XML DATA------') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.xmlData) INTO rc;
+		CALL keyValueGenerator(Environment.xmlData) INTO isoKey;
+		--CALL keyValueGenerator('<?xml version='||'\"'1.0'\"'||'?>');-- encoding='||'\"'||'UTF-8'||'\"'||' standalone='||'\"'||'yes'||'\"'||'?>');--<CardManagementUpdateLoad><Request><FileFormat>Standard 2</FileFormat><FileList><File><FileName>ACCOUNTS</FileName><FileRowList><FileRow>U,1031160444,20,932,,604,0,,</FileRow></FileRowList></File><File><FileName>CUSTOMERS</FileName><FileRowList><FileRow>U,3357579,75545437E13,,TAKUNDA,,BVEKERWA,BVEKERWA  TAKUNDA,ZW0010040,,,,,,,,,,263786195527,263786195527,,,NF N JCCJ NCC,,Harare,,,716,,,,,,,19650101,,en-US,0,,</FileRow></FileRowList></File><File><FileName>CUSTOMERACCOUNTS</FileName><FileRowList><FileRow>U,3357579,1031160444,20</FileRow></FileRowList></File></FileList></Request></CardManagementUpdateLoad>') INTO isoKey;
+		--DECLARE xmlLength CHAR CAST(LENGTH(Environment.xmlData) AS CHAR);
+		--DECLARE lengthOfXMLLength CHAR CAST(LENGTH(xmlLength) AS CHAR);
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 ||isoKey;
+        --SET outRef.ExtendedResponseCodePostilionPrivate_127_37 = '';
 		CALL UpdateMsgWithAsciiBitMap(outRef);
-		DECLARE domainDataRef REFERENCE TO OutputRoot.DFDL;
-		DECLARE domainName CHARACTER FIELDNAME(domainDataRef);
+		MOVE domainDataRef TO OutputRoot.DFDL;
+		SET domainName = FIELDNAME(domainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		-------JSON Logs-----------
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		DECLARE jsonRef REFERENCE TO OutputRoot.JSON.Data;
+		SET jsonRef = domainDataRef;
+		SET Environment.Variables.jsonLog = getPayLoad('JSON',OutputRoot.JSON,encodeRef,ccidRef);
+		SET OutputRoot.JSON = NULL;
+		---------------------------------------------
 		IF EXISTS(Environment.DFDL[]) OR FIELDNAME(Environment.DFDL) IS NOT NULL THEN
 			SET Environment.DFDL = OutputRoot.DFDL;
 		ELSE
@@ -643,6 +604,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToZSS
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----ZSS Request------') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.jsonLog) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -650,6 +612,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToZSS
 			-----------------------------
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
+		SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		SET OutputRoot.DFDL = Environment.DFDL;
@@ -670,16 +634,30 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToPostilion
 		DECLARE ccidRef REFERENCE TO InputRoot.Properties.CodedCharSetId;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
 		DECLARE domainDataRef REFERENCE TO InputBody;
+		---------------------------------------------
 		DECLARE dbLoggingTime TIMESTAMP CURRENT_TIME;
 		DECLARE dbLoggingDate TIMESTAMP CURRENT_TIMESTAMP;
-		DECLARE Field7,timee,stri CHARACTER;
+		DECLARE timee,stri,Field7,Field12,Field13 CHARACTER;
 		SET timee = dbLoggingTime;
 		SET stri = SUBSTRING(timee FROM 17 FOR 2)||SUBSTRING(timee FROM 20 FOR 2)||SUBSTRING(timee FROM 23 FOR 2)||SUBSTRING(timee FROM 26 FOR 2)||SUBSTRING(timee FROM 29 FOR 2);
 		SET Field7 = CAST(stri AS CHARACTER FORMAT 'MMDDhhmmss');
+		SET Field13 = CAST(SUBSTRING(stri FROM 1 FOR 4) AS CHARACTER FORMAT 'MMdd');
+		DECLARE trnTime TIMESTAMP CURRENT_GMTTIMESTAMP;
+		SET Field12 = CAST(trnTime AS CHARACTER FORMAT 'HHmmss');
+		---------------------------------------
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		-------JSON Logs-----------
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		DECLARE jsonRef REFERENCE TO OutputRoot.JSON.Data;
+		SET jsonRef = domainDataRef;
+		SET Environment.Variables.jsonLog = getPayLoad('JSON',OutputRoot.JSON,encodeRef,ccidRef);
+		SET OutputRoot.JSON = NULL;
+		---------------------------------------------
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----ZSS Response------') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.jsonLog) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'ZSS Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -692,154 +670,261 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToPostilion
 		CREATE LASTCHILD OF OutputRoot.DFDL NAME ('ISO8583_1987');
 		DECLARE outRef REFERENCE TO OutputRoot.DFDL.ISO8583_1987;
 		SET outRef.MTI_Version = '0';
-		SET outRef.MTI_MessageClass = '2';
-		SET outRef.MTI_MessageFunction = '0';
+		SET outRef.MTI_MessageClass = '3';
+		SET outRef.MTI_MessageFunction = '2';
 		SET outRef.MTI_MessageOrigin = '0';
-		SET outRef.PrimaryAccountNumber_002 = envRef.cardNumber;
-		SET outRef.ProcessingCode_003 = envRef.processingCode;
-		SET outRef.TransmissionDatetime_007 = Field7;
+		--SET outRef.PrimaryAccountNumber_002 = inRef.cardNumber;
+		--SET outRef.ProcessingCode_003 = inRef.processingCode;
+		SET outRef.AmountTransaction_004 = '100000000000';
+		SET outRef.TransmissionDatetime_007 = Field7; --
+		SET outRef.SystemsTraceAuditNumber_011 = '357896'; --
+		SET outRef.TimeLocalTransaction_012 = Field12 ; --
+		SET outRef.DateLocalTransaction_013 = Field13; --
 		SET outRef.DateExpiration_014 = envRef.expiryDate;
+		SET outRef.DateSettlement_015 = Field13;
+		--SET outRef.MerchantType_018 = '6011';--
+		--SET outRef.PointOfServiceEntryMode_022 = '001';--
+		--SET outRef.PointOfServiceConditionCode_025 = '27';--
+		--SET outRef.PointOfServiceCaptureCode_026 = '12';--
+		--SET outRef.AmountTransactionFee_028 = 'C00000000';--
+		--SET outRef.AmountTransactionProcessingFee_030 = 'C00000000';--
+		SET outRef.AcquiringInstitutionIdentificationCode_032 = '333777'; --
+		--SET outRef.ForwardingInstitutionIdentificationCode_033 = '502195';--
+		SET outRef.CardAcceptorTerminalIdentification_041 = 'ISAVE263'; --
+		SET outRef.CardAcceptorIdentificationCode_042 = '26377-SBZWISAVE'; --
+		--SET outRef.CardAcceptorNameLocation_043 = '12486425402013EYE TRACK SATELL          ';
 		SET outRef.CurrencyCodeTransaction_049 = envRef.currency;
+		SET outRef.FileUpdateCode_091 = '2';
+		SET outRef.ReceivingInstitutionIdentificationCode_100 = '502195'; --
+		SET outRef.FileName_101 = 'CARD_MANAGEMENT';
 		SET outRef.AccountIdentification1_102 = envRef.accountNumber;
 		SET outRef.AccountIdentification2_103 = envRef.accountNumber;
-		SET outRef.ReservedPrivate_127 = '000000';
+		--SET outRef.ReservedPrivate_123 = '100450100130021';--
+		SET outRef.ReservedPrivate_127 = '000000'; --
+		SET outRef.SwitchKeyPostilionPrivate_127_2 = '4aa8443d6eea4dd18dd8819d68ce191b';
+
 
 		DECLARE isoKey,isoValue CHARACTER '';
-		IF FIELDNAME(envRef.mobileNumber) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.mobileNumber) INTO isoValue;
-			CALL keyValueGenerator('mobileNumber') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = isoKey || isoValue;
+		/*IF FIELDNAME(envRef.mobileNumber) IS NOT NULL THEN
+		CALL keyValueGenerator(envRef.mobileNumber) INTO isoValue;
+		CALL keyValueGenerator('mobileNumber') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = isoKey || isoValue;
 		END IF;
-
 		IF FIELDNAME(envRef.idNumber) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.idNumber) INTO isoValue;
-			CALL keyValueGenerator('idNumber') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.idNumber) INTO isoValue;
+		CALL keyValueGenerator('idNumber') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.otp) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.otp) INTO isoValue;
-			CALL keyValueGenerator('otp') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.otp) INTO isoValue;
+		CALL keyValueGenerator('otp') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.tittle) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.tittle) INTO isoValue;
-			CALL keyValueGenerator('tittle') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.tittle) INTO isoValue;
+		CALL keyValueGenerator('tittle') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.firstName) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.firstName) INTO isoValue;
-			CALL keyValueGenerator('firstName') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.firstName) INTO isoValue;
+		CALL keyValueGenerator('firstName') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.lastName) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.lastName) INTO isoValue;
-			CALL keyValueGenerator('lastName') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.lastName) INTO isoValue;
+		CALL keyValueGenerator('lastName') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.middlename) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.middlename) INTO isoValue;
-			CALL keyValueGenerator('middlename') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.middlename) INTO isoValue;
+		CALL keyValueGenerator('middlename') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.birthDate) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.birthDate) INTO isoValue;
-			CALL keyValueGenerator('birthDate') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.birthDate) INTO isoValue;
+		CALL keyValueGenerator('birthDate') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.emailAddress) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.emailAddress) INTO isoValue;
-			CALL keyValueGenerator('emailAddress') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.emailAddress) INTO isoValue;
+		CALL keyValueGenerator('emailAddress') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.maritalStatus) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.maritalStatus) INTO isoValue;
-			CALL keyValueGenerator('maritalStatus') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.maritalStatus) INTO isoValue;
+		CALL keyValueGenerator('maritalStatus') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.gender) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.gender) INTO isoValue;
-			CALL keyValueGenerator('gender') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.gender) INTO isoValue;
+		CALL keyValueGenerator('gender') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.identificationType) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.identificationType) INTO isoValue;
-			CALL keyValueGenerator('identificationType') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.identificationType) INTO isoValue;
+		CALL keyValueGenerator('identificationType') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.nationality) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.nationality) INTO isoValue;
-			CALL keyValueGenerator('nationality') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.nationality) INTO isoValue;
+		CALL keyValueGenerator('nationality') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.residence) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.residence) INTO isoValue;
-			CALL keyValueGenerator('residence') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.residence) INTO isoValue;
+		CALL keyValueGenerator('residence') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.city) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.city) INTO isoValue;
-			CALL keyValueGenerator('city') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.city) INTO isoValue;
+		CALL keyValueGenerator('city') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.address1) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.address1) INTO isoValue;
-			CALL keyValueGenerator('address1') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.address1) INTO isoValue;
+		CALL keyValueGenerator('address1') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.address2) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.address2) INTO isoValue;
-			CALL keyValueGenerator('address2') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.address2) INTO isoValue;
+		CALL keyValueGenerator('address2') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.country) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.country) INTO isoValue;
-			CALL keyValueGenerator('country') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.country) INTO isoValue;
+		CALL keyValueGenerator('country') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.branch) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.branch) INTO isoValue;
-			CALL keyValueGenerator('branch') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.branch) INTO isoValue;
+		CALL keyValueGenerator('branch') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.bankingServiceStatus) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.bankingServiceStatus) INTO isoValue;
-			CALL keyValueGenerator('bankingServiceStatus') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.bankingServiceStatus) INTO isoValue;
+		CALL keyValueGenerator('bankingServiceStatus') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.squareRegStatus) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.squareRegStatus) INTO isoValue;
-			CALL keyValueGenerator('squareRegStatus') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.squareRegStatus) INTO isoValue;
+		CALL keyValueGenerator('squareRegStatus') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.t24CustomerId) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.t24CustomerId) INTO isoValue;
-			CALL keyValueGenerator('t24CustomerId') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.t24CustomerId) INTO isoValue;
+		CALL keyValueGenerator('t24CustomerId') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.detailsAmended) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.detailsAmended) INTO isoValue;
-			CALL keyValueGenerator('detailsAmended') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.detailsAmended) INTO isoValue;
+		CALL keyValueGenerator('detailsAmended') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.sbPostilionStatus) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.sbPostilionStatus) INTO isoValue;
-			CALL keyValueGenerator('sbPostilionStatus') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.sbPostilionStatus) INTO isoValue;
+		CALL keyValueGenerator('sbPostilionStatus') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.zssPostilionStatus) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.zssPostilionStatus) INTO isoValue;
-			CALL keyValueGenerator('zssPostilionStatus') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		CALL keyValueGenerator(envRef.zssPostilionStatus) INTO isoValue;
+		CALL keyValueGenerator('zssPostilionStatus') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
 		END IF;
 		IF FIELDNAME(envRef.idNumber) IS NOT NULL THEN
-			CALL keyValueGenerator(envRef.address1) INTO isoValue;
-			CALL keyValueGenerator('address1') INTO isoKey;
-			SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
-		END IF;
+		CALL keyValueGenerator(envRef.address1) INTO isoValue;
+		CALL keyValueGenerator('address1') INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || isoValue;
+		END IF;*/
+		--IF FIELDNAME(envRef.idNumber) IS NOT NULL THEN
+		
+		CALL keyValueGenerator('Postilion:MetaData') INTO isoKey;--218Postilion:MetaData
+		--CALL keyValueGenerator('60') INTO isoValue; --1260
+		SET outRef.StructuredDataPostilionPrivate_127_22 = isoKey || '260';
+		--END IF;
+		--SET outRef.StructuredDataPostilionPrivate_127_22 = '218Postilion';
+		CALL keyValueGenerator('VasApplication') INTO isoKey;--214VasApplication
+		--CALL keyValueGenerator('1') INTO isoValue; --211
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || '111';
+		
+		CALL keyValueGenerator('Postilion:CardManagementUpdateLoad') INTO isoKey;--234Postilion:CardManagementUpdateLoad
+		--CALL keyValueGenerator('3') INTO isoValue; --213
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey || '113';
+		
+		CALL keyValueGenerator('VasApplication') INTO isoKey;--214VasApplication
+		--CALL keyValueGenerator('1') INTO isoValue; --111
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey;
+		
+		
+		CALL keyValueGenerator('vmobile-android-agency') INTO isoKey;--222vmobile-android-agency
+		--CALL keyValueGenerator('1') INTO isoValue; --111
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey;
+		
+		CALL keyValueGenerator('Postilion:CardManagementUpdateLoad') INTO isoKey;--234Postilion:CardManagementUpdateLoad
+		--CALL keyValueGenerator('3') INTO isoValue; --213
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey;
+		
+		--SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || 'CardManagementUpdateLoad3665';
+
+		CREATE LASTCHILD OF Environment DOMAIN('XMLNSC');
+		CREATE FIRSTCHILD OF Environment.XMLNSC TYPE XMLNSC.XmlDeclaration NAME 'XmlDeclaration';
+		SET Environment.XMLNSC.(XMLNSC.XmlDeclaration)*.(XMLNSC.Attribute)version = '1.0';
+		SET Environment.XMLNSC.(XMLNSC.XmlDeclaration)*.(XMLNSC.Attribute)encoding = 'UTF-8';
+		SET Environment.XMLNSC.(XMLNSC.XmlDeclaration)*.(XMLNSC.Attribute)standalone = 'yes';
+		CREATE LASTCHILD OF Environment.XMLNSC NAME('CardManagementUpdateLoad');
+		CREATE LASTCHILD OF Environment.XMLNSC.CardManagementUpdateLoad NAME('Request');
+		MOVE domainDataRef TO Environment.XMLNSC;
+		SET domainName = FIELDNAME(domainDataRef);
+		DECLARE xmlRef REFERENCE TO Environment.XMLNSC.CardManagementUpdateLoad.Request;
+		CREATE LASTCHILD OF xmlRef NAME('FileFormat') VALUE ('Standard 2');
+		CREATE LASTCHILD OF xmlRef NAME('FileList');
+		CREATE LASTCHILD OF xmlRef.FileList NAME('File');
+
+		CREATE LASTCHILD OF xmlRef.FileList.File[1] NAME('FileName') VALUE ('ACCOUNTS');
+		CREATE LASTCHILD OF xmlRef.FileList.File[1] NAME('FileRowList');
+		CREATE LASTCHILD OF xmlRef.FileList.File[1].FileRowList NAME('FileRow') VALUE ('U,1031160444,20,932,,604,0,,');		
+
+
+		CREATE LASTCHILD OF xmlRef.FileList.File[2] NAME('FileName') VALUE ('CUSTOMERS');
+		CREATE LASTCHILD OF xmlRef.FileList.File[2] NAME('FileRowList');
+		CREATE LASTCHILD OF xmlRef.FileList.File[2].FileRowList NAME('FileRow') VALUE ('U,3357579,75545437E13,,TAKUNDA,,BVEKERWA,BVEKERWA  TAKUNDA,ZW0010040,,,,,,,,,,263786195527,263786195527,,,NF N JCCJ NCC,,Harare,,,716,,,,,,,19650101,,en-US,0,,');		
+
+
+		CREATE LASTCHILD OF xmlRef.FileList.File[3] NAME('FileName') VALUE ('CUSTOMERACCOUNTS');
+		CREATE LASTCHILD OF xmlRef.FileList.File[3] NAME('FileRowList');
+		CREATE LASTCHILD OF xmlRef.FileList.File[3].FileRowList NAME('FileRow') VALUE ('U,3357579,1031160444,20');	
+		
+		CREATE LASTCHILD OF xmlRef.FileList.File[4] NAME('FileName') VALUE ('ACCOUNTBALANCES');
+		CREATE LASTCHILD OF xmlRef.FileList.File[4] NAME('FileRowList');
+		CREATE LASTCHILD OF xmlRef.FileList.File[4].FileRowList NAME('FileRow') VALUE ('U,'||envRef.accountNumber||',1031160444,20');	
+			
+		-- SET xmlRef.FileFormat = 'Standard 2';
+		-- SET xmlRef.FileList.File[1].FileName = 'FileName';
+		-- SET xmlRef.FileList.File[1].FileRowList.FileRow = 'U,1031160444,20,932,,6040,,';
+		--
+		-- SET xmlRef.FileList.File[2].FileName = 'CUSTOMERS';
+		-- SET xmlRef.FileList.File[2].FileRowList.FileRow = 'U,3357579,75545437E13,,TAKUNDA,,BVEKERWA,BVEKERWA  TAKUNDA,ZW0010040,,,,,,,,,,263786195527,263786195527,,,NF N JCCJ NCC,,Harare,,,716,,,,,,,19650101,,en-US,0,,';
+		--
+		-- SET xmlRef.FileList.File[3].FileName = 'CUSTOMERACCOUNTS';
+		-- SET xmlRef.FileList.File[3].FileRowList.FileRow = 'U,3357579,1031160444,20';
+
+		SET Environment.xmlData = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----XML DATA------') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.xmlData) INTO rc;
+		CALL keyValueGenerator(Environment.xmlData) INTO isoKey;
+		SET outRef.StructuredDataPostilionPrivate_127_22 = outRef.StructuredDataPostilionPrivate_127_22 || isoKey;
+
 		CALL UpdateMsgWithAsciiBitMap(outRef);
 		MOVE domainDataRef TO OutputRoot.DFDL;
 		SET domainName = FIELDNAME(domainDataRef);
 		SET Environment.Variables.resMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
+		-------JSON Logs-----------
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('JSON');
+		CREATE LASTCHILD OF OutputRoot.JSON NAME ('Data');
+		MOVE jsonRef TO OutputRoot.JSON.Data;
+		SET jsonRef = domainDataRef;
+		SET Environment.Variables.jsonLog = getPayLoad('JSON',OutputRoot.JSON,encodeRef,ccidRef);
+		SET OutputRoot.JSON = NULL;
+		---------------------------------------------
 		IF EXISTS(Environment.DFDL[]) OR FIELDNAME(Environment.DFDL) IS NOT NULL THEN
 			SET Environment.DFDL = OutputRoot.DFDL;
 		ELSE
@@ -850,6 +935,7 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToPostilion
 		IF IsLogRequired = 'Y' THEN
 			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----Postilion Request------') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.jsonLog) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Postilion Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -857,6 +943,8 @@ CREATE COMPUTE MODULE AccountOpeningFlow_GenerateReqToPostilion
 			-----------------------------
 		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
+		SET OutputRoot.Properties.MessageSet = '{ISO8583_Lib}';
+		SET OutputRoot.Properties.MessageType = '{}:ISO8583_1987';
 		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 		CREATE LASTCHILD OF OutputRoot DOMAIN ('DFDL');
 		SET OutputRoot.DFDL = Environment.DFDL;
@@ -1177,7 +1265,9 @@ CREATE COMPUTE MODULE AccountOpeningFlow_CaptureException
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER 'errorMessage';
 		CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- '||excpRef.excpText||' ------') INTO rc;
-		IF CONTAINS(excpRef.excpText,'T24ServiceCall') THEN
+		IF CONTAINS(excpRef.excpText,'ParserException') THEN
+			SET errMsg = 'Parser Exception';
+		ELSEIF CONTAINS(excpRef.excpText,'T24ServiceCall') THEN
 			SET errMsg = 'T24 Server Down';
 		ELSEIF CONTAINS(excpRef.excpText,'DWHServiceCall') THEN
 			SET errMsg = 'DWH Server Down';

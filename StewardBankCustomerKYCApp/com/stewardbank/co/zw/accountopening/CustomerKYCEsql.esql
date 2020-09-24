@@ -16,6 +16,8 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE ALL_SB_HTTP_RES EXTERNAL CHAR '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE LOGGER_NAME EXTERNAL CHARACTER '';
+DECLARE LOG_TYPE EXTERNAL CHARACTER '';
 DECLARE baseURL EXTERNAL CHARACTER '';
 DECLARE IP EXTERNAL CHARACTER '';
 DECLARE PORT EXTERNAL CHARACTER '';
@@ -45,8 +47,8 @@ CREATE COMPUTE MODULE KYCFlow_GenerateDWHReq
 		ELSE
 			SET url = 'http://'||IP||':'||PORT||baseURL||national_ID;
 			IF IsLogRequired = 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Calling DWH Service ------') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- '||url||' ------') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- Calling DWH Service ------') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- '||url||' ------') INTO rc;
 			END IF;
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.Properties.ContentType = 'application/json';
@@ -82,8 +84,8 @@ CREATE COMPUTE MODULE KYCFlow_GenerateDWHReq
 		END IF;
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.resMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -113,8 +115,8 @@ CREATE COMPUTE MODULE KYCFlow_GenerateKYCResponse
 		DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
 		SET Environment.Variables.reqMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- DWH Respnse ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- DWH Respnse ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.reqMsg) INTO rc;
 		END IF;
 		IF status = '200' THEN
 			CALL GenerateDWHResponse();
@@ -150,8 +152,8 @@ CREATE COMPUTE MODULE KYCFlow_GenerateKYCResponse
 		END IF;
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
@@ -188,8 +190,8 @@ CREATE COMPUTE MODULE KYCFlow_GenerateKYCResponse
 		END IF;
 		SET OutputRoot.JSON = NULL;
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- Application Response ------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- Application Response ------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.resMsg) INTO rc;
 			--------------DBLogging-------------------
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;

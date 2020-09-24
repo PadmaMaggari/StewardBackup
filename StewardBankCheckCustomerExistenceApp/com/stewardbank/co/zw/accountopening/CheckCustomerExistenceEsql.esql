@@ -21,6 +21,8 @@ DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE IP EXTERNAL CHARACTER '';
 DECLARE PORT EXTERNAL CHARACTER '';
 DECLARE baseURL EXTERNAL CHARACTER '';
+DECLARE LOGGER_NAME EXTERNAL CHARACTER '';
+DECLARE LOG_TYPE EXTERNAL CHARACTER '';
 DECLARE rc BOOLEAN FALSE;
 
 CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GetCustomerRequest
@@ -60,8 +62,8 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GetCustomerRequest
 		ELSEIF (identificationDocNo IS NOT NULL OR identificationDocNo <> '') AND (mobileNumber IS NOT NULL OR mobileNumber <> '') AND (dateOfBirth IS NOT NULL OR dateOfBirth <> '') THEN
 			SET url = 'http://'||IP||':'||PORT||baseURL||identificationDocNo||'/'||mobileNumber||'/'||dateOfBirth;
 			IF IsLogRequired = 'Y' THEN
-				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- getSTWBCustomerInformation Request ------') INTO rc;
-				CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' ----- URL :  ------'||url) INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- getSTWBCustomerInformation Request ------') INTO rc;
+				CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- URL :  ------'||url) INTO rc;
 			END IF;
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.Properties.ContentType = 'application/json';
@@ -96,8 +98,8 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GetCustomerRequest
 		SET OutputRoot.JSON = NULL;
 		------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----Application Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out1';
@@ -159,8 +161,8 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GenerateResponse
 		SET Environment.Variables.reqMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----getSTWBCustomerInformation Response------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----getSTWBCustomerInformation Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.reqMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'getSTWBCustomerInformation Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
@@ -210,8 +212,8 @@ CREATE COMPUTE MODULE CheckCustomerExistenceFlow_GenerateResponse
 		SET OutputRoot.JSON = NULL;
 		------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----Application Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
