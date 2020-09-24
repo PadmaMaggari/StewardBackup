@@ -312,7 +312,8 @@ CREATE COMPUTE MODULE RemittanceBankDepositFlow_GenReqToT24
 			SET errorRef.source = 'ESB';
 			SET errorRef.applicationName = ApplicationLabel;
 			SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.RemittanceBankDeposit.ErrorCode;
-			SET errorRef.message = errMsg;
+			SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.RemittanceBankDeposit.ErrorType;
+       		SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.RemittanceBankDeposit.ActualDesc,'');
 			MOVE domainDataRef TO OutputRoot.JSON;
 			SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;

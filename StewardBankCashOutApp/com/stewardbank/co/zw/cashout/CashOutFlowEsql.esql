@@ -263,7 +263,8 @@ CREATE COMPUTE MODULE CashOutFlow_BuildException
 		SET errorRef.source = 'ESB';
 		SET errorRef.applicationName = ApplicationLabel;
 		SET errorRef.applicationErrorCode = Environment.Variables.UserDefinedErrorCodes.CashOut.ErrorCode;
-		SET errorRef.message = errMsg;
+		SET errorRef.errorType = Environment.Variables.UserDefinedErrorCodes.CashOut.ErrorType;
+        SET errorRef.message = COALESCE(errMsg,Environment.Variables.UserDefinedErrorCodes.CashOut.ActualDesc,'');
 		MOVE domainDataRef TO OutputRoot.JSON;
 		SET Environment.Variables.resMsg = getPayload('JSON',domainDataRef,encodeRef,ccidRef);
 		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;  
