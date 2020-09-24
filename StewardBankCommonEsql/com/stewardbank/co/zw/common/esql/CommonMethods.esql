@@ -752,34 +752,37 @@ END;
 CREATE PROCEDURE BuildExceptionDetails(IN excpRef REFERENCE,INOUT outRef REFERENCE,IN serviceName CHARACTER) BEGIN
 	SET outRef.Title = FIELDNAME(excpRef);
 	DECLARE CRLF CHARACTER CAST(X'0D0A' AS CHARACTER CCSID 1208);
+	IF CONTAINS(excpRef.actualExcpText,CRLF) THEN
+		SET excpRef.actualExcpText = SUBSTRING(excpRef.actualExcpText BEFORE CRLF );
+	END IF;
 	CASE
 	WHEN excpRef.excpType = 'FatalException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_001';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
-		SET outRef.ActualDesc = SUBSTRING(excpRef.actualExcpText BEFORE CRLF );
+		SET outRef.ActualDesc = excpRef.actualExcpText;
 
 	WHEN excpRef.excpType = 'RecoverableException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_002';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
-		SET outRef.ActualDesc = SUBSTRING(excpRef.actualExcpText BEFORE CRLF );
+		SET outRef.ActualDesc = excpRef.actualExcpText;
 		
 	WHEN excpRef.excpType = 'ConfigurationException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_003';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
-		SET outRef.ActualDesc = SUBSTRING(excpRef.actualExcpText BEFORE CRLF );
+		SET outRef.ActualDesc = excpRef.actualExcpText;
 		
 	WHEN excpRef.excpType = 'SecurityException' THEN
 		SET outRef.Status = 'FAILURE';
 		SET outRef.ErrorCode = serviceName||'_004';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
-		SET outRef.ActualDesc = SUBSTRING(excpRef.actualExcpText BEFORE CRLF );
+		SET outRef.ActualDesc = excpRef.actualExcpText;
 		
 	WHEN excpRef.excpType = 'ParserException' THEN
 		SET outRef.Status = 'FAILURE';
@@ -794,7 +797,7 @@ CREATE PROCEDURE BuildExceptionDetails(IN excpRef REFERENCE,INOUT outRef REFEREN
 		SET outRef.ErrorCode = serviceName||'_006';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
-		SET outRef.ActualDesc = SUBSTRING(excpRef.actualExcpText BEFORE CRLF );
+		SET outRef.ActualDesc = excpRef.actualExcpText;
 		
 
 	WHEN excpRef.excpType = 'DatabaseException' THEN
@@ -842,7 +845,7 @@ CREATE PROCEDURE BuildExceptionDetails(IN excpRef REFERENCE,INOUT outRef REFEREN
 		SET outRef.ErrorCode = serviceName||'_012';
 		SET outRef.ErrorType = excpRef.excpType;
 		SET outRef.Description = CAST(excpRef.excpText AS CHARACTER);
-		SET outRef.ActualDesc = SUBSTRING(excpRef.actualExcpText BEFORE CRLF );
+		SET outRef.ActualDesc = excpRef.actualExcpText;
 		
 
 	WHEN excpRef.excpType = 'SocketTimeoutException' THEN
