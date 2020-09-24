@@ -25,7 +25,8 @@ DECLARE OCA_Q EXTERNAL CHARACTER '';
 DECLARE ALL_SB_HTTP_RES EXTERNAL CHAR '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
-DECLARE TABLENAME EXTERNAL CHARACTER '';
+DECLARE LOGGER_NAME EXTERNAL CHARACTER '';
+DECLARE LOG_TYPE EXTERNAL CHARACTER '';
 DECLARE rc BOOLEAN FALSE;
 
 CREATE COMPUTE MODULE AccountOpeningRouter_VerifyRequest
@@ -40,50 +41,52 @@ CREATE COMPUTE MODULE AccountOpeningRouter_VerifyRequest
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
 		END IF;
-		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
-		SET Environment.JSON = InputRoot.JSON;
-		SET Environment.MQRFH2.ChannelRequest = InputRoot.JSON.Data;
+		CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' ----- Account Opening Start ------') INTO rc;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE domainDataRef REFERENCE TO InputBody;
 		DECLARE domainName CHARACTER FIELDNAME(InputBody);
+		DECLARE inRef REFERENCE TO InputRoot;
+		IF EXISTS(InputRoot.JSON[]) THEN
+			MOVE inRef TO InputRoot.JSON.Data;
+			SET Environment.JSON = InputRoot.JSON;
+			SET Environment.MQRFH2.ChannelRequest = InputRoot.JSON.Data;
+		ELSEIF EXISTS(InputRoot.XMLNSC[]) THEN
+			MOVE inRef TO InputRoot.XMLNSC.request;
+			SET Environment.Variables.InputRequest = InputRoot.XMLNSC.request;
+			SET Environment.XMLNSC = InputRoot.XMLNSC;
+		END IF;
 		DECLARE serviceCall CHAR COALESCE(inRef.serviceCall,inRef.header.serviceCall,inRef.*.header.serviceCall,'');
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Request------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----Application Request------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.reqMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
 		END IF;
 		---------------------------
-		IF serviceCall = 'KYC' OR serviceCall = 'SHC' OR serviceCall = 'ICE' OR serviceCall = 'CCP' OR serviceCall = 'UCR' OR serviceCall = 'OCA' OR serviceCall = 'CPC' THEN
+		IF serviceCall = 'KYC' OR serviceCall = 'SHC' OR serviceCall = 'ICE' OR serviceCall = 'CCP' OR serviceCall = 'UCR' 
+			OR serviceCall = 'OCA' OR serviceCall = 'CPC' THEN
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 			SET OutputRoot.JSON = InputRoot.JSON;
 			IF serviceCall = 'KYC' THEN
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = KYC_Q;
-				--SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'KYC';
 			ELSEIF serviceCall = 'SHC' THEN
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = SHC_Q;
-				--SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'SHC';
 			ELSEIF serviceCall = 'ICE' THEN
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ICE_Q;
-				--SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'ICE';
 			ELSEIF serviceCall = 'CCP' THEN
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = CCP_Q;
-				--SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'CCP';
 			ELSEIF serviceCall = 'UCR' THEN
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = UCR_Q;
-				--SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'UCR';
 			ELSEIF serviceCall = 'OCA' THEN
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = OCA_Q;
-				--SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'OCA';
 			ELSEIF serviceCall = 'CPC' THEN
 				SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = CPC_Q;
-				--SET OutputLocalEnvironment.Destination.RouterList.DestinationData[1].labelName = 'CPC';
 			END IF;
 		ELSE
 			CALL GenerateUnknownResponse();
@@ -119,8 +122,8 @@ CREATE COMPUTE MODULE AccountOpeningRouter_VerifyRequest
 		SET OutputRoot.JSON = NULL;
 		------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',' -----Application Response------') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'AccOpeningLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,' -----Application Response------') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME, LOG_TYPE,Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';

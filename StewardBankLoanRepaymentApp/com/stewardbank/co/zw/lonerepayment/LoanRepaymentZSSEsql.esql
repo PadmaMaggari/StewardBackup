@@ -1,3 +1,7 @@
+
+
+
+
 BROKER SCHEMA com.stewardbank.co.zw.lonerepayment
 
 PATH com.stewardbank.co.zw.common.esql;
@@ -35,7 +39,7 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_RequestToZss
 		DECLARE Field37Length CHARACTER '12';
 		SET timee = dbLoggingTime;
 		SET stri = SUBSTRING(timee FROM 17 FOR 2)||SUBSTRING(timee FROM 20 FOR 2)||SUBSTRING(timee FROM 23 FOR 2)||SUBSTRING(timee FROM 26 FOR 2)||SUBSTRING(timee FROM 29 FOR 2);
-		SET Field11 = GenerateRandomIntegerNumber(Field11Length); 
+		SET Field11 = GenerateRandomIntegerNumber(Field11Length);
 		SET Field37 = GenerateRandomIntegerNumber(Field37Length);
 		SET Field7 = CAST(stri AS CHARACTER FORMAT 'MMDDhhmmss');
 		SET Field13 = CAST(stri AS CHARACTER FORMAT 'MMDD');
@@ -44,13 +48,11 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_RequestToZss
 		-- SET DBLogging Properties ==============
 		SET Environment.Variable.reqMsg = reqMsg;
 		DECLARE outRefer REFERENCE TO OutputRoot;
-		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
-		-- IF IsLogRequired LIKE 'Y' THEN
-		-- CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variable.reqMsg,'ZSS Application Request',ApplicationLabel,BrokerName,CAST(dbLoggingTime AS CHARACTER FORMAT 'HHmmss'),CAST(dbLoggingDate AS CHARACTER FORMAT 'yyyyMMdd'),'',outRefer);
-		-- SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-		-- PROPAGATE TO TERMINAL 'out1';
-		-- END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
+		DECLARE field4 DECIMAL;
+		SET field4 = inRef.JSON.Data.debitAmount;
+		SET field4 = field4 * 100 ;
+		DECLARE inField4 CHARACTER;
+		SET inField4 = field4;
 		/*=================== CALLING LOG4j LOGGING ==============*/
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
@@ -74,74 +76,80 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_RequestToZss
 		SET outRef.MTI_MessageFunction = 0;
 		SET outRef.MTI_MessageOrigin = 0;
 		--SET outRef.ProcessingCode_003 = inRef.JSON.Data.processingCode;
-		SET outRef.ProcessingCode_003 = '400000'; 
-		SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.debitAmount AS CHARACTER);
-		SET outRef.TransmissionDatetime_007 = Field7; --
-		SET outRef.SystemsTraceAuditNumber_011 = Field11;
-		SET outRef.TimeLocalTransaction_012 = Field12;
-		SET outRef.DateLocalTransaction_013 = SUBSTRING(Field13 FROM 1 FOR 4);
-		SET outRef.DateSettlement_015 = SUBSTRING(Field13 FROM 1 FOR 4);
-		SET outRef.MerchantType_018 = '6011';
-		SET outRef.PointOfServiceEntryMode_022 = '001';
-		SET outRef.PointOfServiceConditionCode_025 = '27';
-		SET outRef.PointOfServiceCaptureCode_026 = '12';
-		SET outRef.AmountTransactionFee_028 = 'C00000000';
-		SET outRef.AmountTransactionProcessingFee_030 = 'C00000000';
-		SET outRef.AcquiringInstitutionIdentificationCode_032 = '502195';
-		SET outRef.ForwardingInstitutionIdentificationCode_033 = '502195';
-		SET outRef.RetrievalReferenceNumber_037 = Field37;
-		SET outRef.CardAcceptorTerminalIdentification_041 = 'ISAVE263';
-		SET outRef.CardAcceptorIdentificationCode_042 = '26377-SBZWISAVE';
-		SET outRef.CardAcceptorNameLocation_043 = 'salary                                  ';
-		SET outRef.CurrencyCodeTransaction_049 = '932';
-		SET outRef.ReservedNational_059 = '0116742676';
-		SET outRef.ReceivingInstitutionIdentificationCode_100 = '502195';
-		SET outRef.AccountIdentification1_102 = inRef.JSON.Data.debitAccountNumber;
-		SET outRef.AccountIdentification2_103 = inRef.JSON.Data.creditAccountNumber;
-		SET outRef.ReservedPrivate_123 = '100450100130021';
-		SET outRef.ReservedPrivate_127 = '000000';	
-		SET outRef.SwitchKeyPostilionPrivate_127_2 = '00000000000000000000000359448063'; -- 
-		SET outRef.AdditionalNodeDataPostilionPrivate_127_9 = '20200911'; -- 
-		SET outRef.OriginalKeyPostilionPrivate_127_12 = '1028934641'; -- 
-		SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.mobileNumber;
-		SET outRef.ExtendedTransactionTypePostilionPrivate_127_33 = '9040'; --  
-		CALL UpdateMsgWithAsciiBitMap(outRef);
-		DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
-		SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);
-		SET Environment.dfdlData = OutputRoot.DFDL;
-		SET OutputRoot.DFDL = NULL;
-		/*=================== CALLING LOG4J LOGGING ==============*/
+		SET outRef.ProcessingCode_003 = '400000';
+		IF CONTAINS(inField4,'.') THEN /* For Hanlding the cent format Amount data*/
+		SET inField4 = SUBSTRING(inField4 BEFORE '.');
+		SET outRef.AmountTransaction_004 = CAST(inField4 AS DECIMAL); -- 
+	ELSE
+		SET outRef.AmountTransaction_004 = field4;
+	END IF;
+	--SET outRef.AmountTransaction_004 = CAST(inRef.JSON.Data.debitAmount AS CHARACTER); 
+	SET outRef.TransmissionDatetime_007 = Field7; --
+	SET outRef.SystemsTraceAuditNumber_011 = Field11;
+	SET outRef.TimeLocalTransaction_012 = Field12;
+	SET outRef.DateLocalTransaction_013 = SUBSTRING(Field13 FROM 1 FOR 4);
+	SET outRef.DateSettlement_015 = SUBSTRING(Field13 FROM 1 FOR 4);
+	SET outRef.MerchantType_018 = '6011';
+	SET outRef.PointOfServiceEntryMode_022 = '001';
+	SET outRef.PointOfServiceConditionCode_025 = '27';
+	SET outRef.PointOfServiceCaptureCode_026 = '12';
+	SET outRef.AmountTransactionFee_028 = 'C00000000';
+	SET outRef.AmountTransactionProcessingFee_030 = 'C00000000';
+	SET outRef.AcquiringInstitutionIdentificationCode_032 = '502195';
+	SET outRef.ForwardingInstitutionIdentificationCode_033 = '502195';
+	SET outRef.RetrievalReferenceNumber_037 = Field37;
+	SET outRef.CardAcceptorTerminalIdentification_041 = 'ISAVE263';
+	SET outRef.CardAcceptorIdentificationCode_042 = '26377-SBZWISAVE';
+	SET outRef.CardAcceptorNameLocation_043 = 'salary                                  ';
+	SET outRef.CurrencyCodeTransaction_049 = '932';
+	SET outRef.ReservedNational_059 = '0116742676';
+	SET outRef.ReceivingInstitutionIdentificationCode_100 = '502195';
+	SET outRef.AccountIdentification1_102 = inRef.JSON.Data.debitAccountNumber;
+	SET outRef.AccountIdentification2_103 = inRef.JSON.Data.creditAccountNumber;
+	SET outRef.ReservedPrivate_123 = '100450100130021';
+	SET outRef.ReservedPrivate_127 = '000000';
+	SET outRef.SwitchKeyPostilionPrivate_127_2 = '00000000000000000000000359448063'; --
+	SET outRef.AdditionalNodeDataPostilionPrivate_127_9 = '20200911'; --
+	SET outRef.OriginalKeyPostilionPrivate_127_12 = '1028934641'; --
+	SET outRef.StructuredDataPostilionPrivate_127_22 = channel||col||inRef.JSON.Data.channel||comm||destinationPhone||col||inRef.JSON.Data.mobileNumber;
+	SET outRef.ExtendedTransactionTypePostilionPrivate_127_33 = '9040'; --
+	CALL UpdateMsgWithAsciiBitMap(outRef);
+	DECLARE outDomainDataRef REFERENCE TO OutputRoot.DFDL;
+	SET Environment.Variables.resMsg = getPayLoad(FIELDNAME(OutputRoot.DFDL),outDomainDataRef,encodeRef,ccsid);
+	SET Environment.dfdlData = OutputRoot.DFDL;
+	SET OutputRoot.DFDL = NULL;
+	/*=================== CALLING LOG4J LOGGING ==============*/
 
-		DECLARE logRef REFERENCE TO Environment.dfdlData;
-		DECLARE jsonRef REFERENCE TO OutputRoot;
-		CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
-		CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
-		--CALL JSONLogMessage(logRef,jsonRef);
-		SET jsonRef = logRef;
-		SET Environment.ZssJsonreqMsg = getPayLoad('JSON',jsonRef,encodeRef,ccsid);
-		SET OutputRoot.JSON = NULL;
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','Generate Req to ZSS::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',Environment.Variables.resMsg) INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',Environment.ZssJsonreqMsg) INTO rc;
-		END IF;
-		/*=================== CALLING LOG4J LOGGING END ==============*/
-		/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
-		IF IsLogRequired LIKE 'Y' THEN
-			CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
-			PROPAGATE TO TERMINAL 'out1';
-		END IF;
-		/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
-		SET OutputRoot.Properties = InputRoot.Properties;
-		SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
-		SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
-		SET OutputRoot.MQMD = InputRoot.MQMD;
-		SET OutputRoot.MQRFH2 = Environment.MQRFH2;
-		SET OutputRoot.DFDL = Environment.dfdlData;
+	DECLARE logRef REFERENCE TO Environment.dfdlData;
+	DECLARE jsonRef REFERENCE TO OutputRoot;
+	CREATE LASTCHILD OF OutputRoot AS jsonRef DOMAIN('JSON');
+	CREATE LASTCHILD OF OutputRoot.JSON AS jsonRef NAME ('Data');
+	--CALL JSONLogMessage(logRef,jsonRef);
+	SET jsonRef = logRef;
+	SET Environment.ZssJsonreqMsg = getPayLoad('JSON',jsonRef,encodeRef,ccsid);
+	SET OutputRoot.JSON = NULL;
+	IF IsLogRequired LIKE 'Y' THEN
+		CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG','Generate Req to ZSS::') INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+		CALL writeToLogFile(MessageFlowLabel, 'LoneRepaymentLogging', 'DEBUG',Environment.ZssJsonreqMsg) INTO rc;
+	END IF;
+	/*=================== CALLING LOG4J LOGGING END ==============*/
+	/*=================== CALLING DB RAW AUDIT LOGGING ==============*/
+	IF IsLogRequired LIKE 'Y' THEN
+		CALL DBLogging(InputRoot.MQRFH2.RequestIdentifier,Environment.Variables.resMsg,'ZSS Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLogTime,Environment.MQRFH2.usr.dbLogDate,'',outRefer);
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
+		PROPAGATE TO TERMINAL 'out1';
+	END IF;
+	/*=================== CALLING DB RAW AUDIT LOGGING END ==============*/
+	SET OutputRoot.Properties = InputRoot.Properties;
+	SET OutputRoot.Properties.MessageSet='{ISO8583_Lib}';
+	SET OutputRoot.Properties.MessageType='{}:ISO8583_1987';
+	SET OutputRoot.MQMD = InputRoot.MQMD;
+	SET OutputRoot.MQRFH2 = Environment.MQRFH2;
+	SET OutputRoot.DFDL = Environment.dfdlData;
 
-		PROPAGATE TO TERMINAL 'out';
-	END;
+	PROPAGATE TO TERMINAL 'out';
+END;
 END MODULE;
 
 
@@ -156,7 +164,7 @@ CREATE COMPUTE MODULE LoanRepaymentZSSFlow_GenereateResponseToChannel
 		CALL initLog4j(LOG_CONFIG_PATH) INTO rc;
 		IF ( rc = FALSE ) THEN
 			SET Environment.Variables.Log4j.ErrorMsg = LOG4J_INIT_ERROR_MSG;
-		END IF;
+		END IF; 
 		DECLARE inRef REFERENCE TO InputRoot.DFDL;
 		DECLARE ccidRef INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
