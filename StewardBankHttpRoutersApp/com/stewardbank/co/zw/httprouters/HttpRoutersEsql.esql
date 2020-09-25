@@ -138,7 +138,7 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 				SET procCodeData = SUBSTRING(Environment.Variables.processingCode FROM 1 FOR 2);
 				SET channel = Environment.Variables.channel;
 			END IF;
-			ELSEIF FIELDNAME(Environment.MQRFH2.serviseName) IS NULL THEN
+			ELSEIF FIELDNAME(Environment.MQRFH2.serviceName) IS NULL THEN
 				CALL errorResponse(Environment.MQRFH2.RequestDomian,'serviceName must be specified','ESB_011',serviceName);
 			END IF;	
 				 
@@ -264,9 +264,9 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 		ELSEIF domainName = 'SOAP' THEN
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:message=msg;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:errorCode=errorCode;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:applicationName=ApplicationLabel;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=ApplicationLabel;
 		
 			
 		IF EXISTS(Environment.XMLNSC[]) THEN
@@ -508,13 +508,14 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_BuildExceptionDetails
 CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE,IN exe_Desc CHARACTER,IN ErrorCode CHAR,IN applicationLabel CHAR)
 	BEGIN
             SET OutputRoot.MQRFH2 = mqrfRef;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
+            
+            SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Header.ns1:Message='FAILURE';
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ErrorCode=ErrorCode;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:exe_Desc=exe_Desc;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message='FAILURE';
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=ErrorCode;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:exe_Desc=exe_Desc;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=ApplicationLabel;
 			
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
 			SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 			PROPAGATE TO TERMINAL 'out1';
 			END;
@@ -607,11 +608,10 @@ CREATE PROCEDURE errorResponse(IN mqrfRef REFERENCE,IN exe_Desc CHARACTER,IN Err
             SET OutputRoot.MQRFH2 = mqrfRef;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:ns1 = ns1;
 			SET OutputRoot.XMLNSC.soapenv:Envelope.(XMLNSC.NamespaceDecl)xmlns:soapenv = soapenv;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Header.ns1:Message='FAILURE';
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ErrorCode=ErrorCode;
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:exe_Desc=exe_Desc;
-			
-			SET OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message='FAILURE';
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=ErrorCode;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:exe_Desc=exe_Desc;
+			SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=ApplicationLabel;
 			SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier = CAST(Environment.MQRFH2.RequestIdentifier AS BLOB);
 			END;
 END MODULE;
