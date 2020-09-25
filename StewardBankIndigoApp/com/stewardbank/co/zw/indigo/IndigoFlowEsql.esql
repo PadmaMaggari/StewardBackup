@@ -47,16 +47,16 @@ CREATE COMPUTE MODULE IndigoFlow_GenerateReqToT24
 		DECLARE ccsid INTEGER InputRoot.Properties.CodedCharSetId;
 		DECLARE encodeRef INTEGER InputRoot.Properties.Encoding;
 		DECLARE inRef REFERENCE TO InputRoot;
-		DECLARE serviseName REFERENCE TO InputRoot.SOAP.Body.[<];
+		DECLARE serviseName REFERENCE TO InputRoot.XMLNSC.*:Envelope.*:Body.[<];
 		SET bindingOperatingName = FIELDNAME(serviseName);
-		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.SOAP,encodeRef,ccsid);
+		SET reqMsg = getPayLoad(FIELDNAME(InputBody),inRef.XMLNSC,encodeRef,ccsid);
 		-- SET DBLogging Properties ==============
 		SET Environment.reqMsg = reqMsg;
 		SET Environment.msgID= CAST(InputRoot.MQRFH2.usr.Id AS CHARACTER );
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		-- =================== CALLING DB RAW AUDIT LOGGING ==============
-		CREATE LASTCHILD OF InputRoot DOMAIN 'SOAP';
-		DECLARE inRefSoap REFERENCE TO InputRoot.SOAP;
+		CREATE LASTCHILD OF InputRoot DOMAIN 'XMLNSC';
+		DECLARE inRefSoap REFERENCE TO InputRoot.XMLNSC;
 		IF IsLogRequired LIKE 'Y' THEN
 			CALL DBLogging(Environment.MQRFH2.usr.SoapReplyIdentifier,Environment.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.dbLog.dbLogTime,Environment.MQRFH2.usr.dbLog.dbLogDate,'',outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_QNAME;
@@ -151,7 +151,7 @@ CREATE COMPUTE MODULE IndigoFlow_ReqToFrondEnd
 			
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 			SET OutputRoot.XMLNSC = Environment.outData;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 			PROPAGATE TO TERMINAL 'out';
 			
 		ELSE
@@ -196,7 +196,7 @@ CREATE COMPUTE MODULE IndigoFlow_ReqToFrondEnd
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
 			SET OutputRoot.XMLNSC = envref;
-			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
+			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 			PROPAGATE TO TERMINAL 'out';
 		END IF;
 	END;
