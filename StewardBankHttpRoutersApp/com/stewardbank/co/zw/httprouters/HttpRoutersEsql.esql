@@ -72,13 +72,13 @@ CREATE COMPUTE MODULE HttpRequestRouterFlow_RouteToInterfaceBasedOnProcessingCod
 			IF FIELDNAME(Environment.MQRFH2.header) IS NULL THEN
 				SET Environment.MQRFH2.header = inRef.*.header;
 			END IF;
-		ELSEIF STARTSWITH(Environment.Variables.reqMsg,'<so') THEN
+		ELSEIF STARTSWITH(Environment.Variables.reqMsg,'<s:') OR STARTSWITH(Environment.Variables.reqMsg,'<so') THEN
 			SET Environment.MQRFH2.RequestDomian = 'SOAP';
 			CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC') PARSE(InputRoot.BLOB.BLOB);
 			SET Environment.XMLNSC = OutputRoot.XMLNSC;
 	
-			SET Environment.MQRFH2.serviseName= FIELDNAME(OutputRoot.XMLNSC.*:Envelope.*:Body.*:*);
-			SET soapServiceName = Environment.MQRFH2.serviseName;
+			SET Environment.MQRFH2.serviceName= COALESCE(FIELDNAME(OutputRoot.XMLNSC.*:Envelope.*:Body.[<]),FIELDNAME(OutputRoot.XMLNSC.*:Envelope.*:Body.*:*),'');
+			SET soapServiceName = Environment.MQRFH2.serviceName;
 			MOVE inRef TO Environment.XMLNSC.request;		
 		ELSEIF STARTSWITH(Environment.Variables.reqMsg,'<') THEN
 			SET Environment.MQRFH2.RequestDomian = 'XMLNSC';
