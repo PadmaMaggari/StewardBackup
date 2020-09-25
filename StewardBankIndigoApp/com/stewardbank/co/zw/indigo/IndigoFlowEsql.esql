@@ -282,7 +282,7 @@ CREATE COMPUTE MODULE IndigoFlow_BuildExceptionDetails
 		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:Message=msg;
 		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ErrorCode=errorCode;
 		SET OutputRoot.XMLNSC.soapenv:Envelope.ns1:ErrorResponse.ns1:ServiceName=applicationLabel;
-		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'SOAP_RES_Q';
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = ALL_SB_HTTP_RES;
 
 		PROPAGATE TO TERMINAL 'out';
 		-- END IF;
