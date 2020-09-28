@@ -172,7 +172,7 @@ CREATE COMPUTE MODULE CassavaPickupFlow_ResponseToChannel
 			END IF;
 			DECLARE domainDataRef REFERENCE TO InputRoot.JSON;
 			SET T24resMsg = getPayload('JSON',domainDataRef,encodeRef,ccsid);
-			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','Response from T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG','Response from Cassava::') INTO rc;
 			CALL writeToLogFile(MessageFlowLabel, 'CassavaPickupLogger', 'DEBUG',T24resMsg) INTO rc;
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = Environment.MQRFH2;
