@@ -18,7 +18,8 @@ DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
 DECLARE ALL_SB_HTTP_RES EXTERNAL CHARACTER '';
-DECLARE ISAVE_TABLENAME EXTERNAL CHARACTER '';
+DECLARE LOGGER_NAME EXTERNAL CHARACTER '';
+DECLARE LOG_TYPE EXTERNAL CHARACTER '';
 DECLARE rc BOOLEAN FALSE;
 CREATE COMPUTE MODULE BalanceEnquiry_TCPFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
@@ -41,10 +42,10 @@ CREATE COMPUTE MODULE BalanceEnquiry_TCPFlow_GenerateReqToT24
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		--------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','..............Initializing Balance Enquiry logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','..............ISO Message parsed successfully...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Request from Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'..............Initializing Balance Enquiry logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'..............ISO Message parsed successfully...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'Request from Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,Environment.Variables.reqMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,
 			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -73,8 +74,8 @@ CREATE COMPUTE MODULE BalanceEnquiry_TCPFlow_GenerateReqToT24
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Request To T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'Request To T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.resMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			SET OutputRoot.DFDL = NULL;
@@ -110,9 +111,9 @@ CREATE COMPUTE MODULE BalanceEnquiry_TCPFlow_GenerateResToPostilion
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		-----------DBLogging------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','T24 Response::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'..........Logging generated Response...............') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'T24 Response::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,Environment.Variables.reqMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
@@ -128,8 +129,8 @@ CREATE COMPUTE MODULE BalanceEnquiry_TCPFlow_GenerateResToPostilion
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG','Balance Enquiry Response To Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'BalEnqLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'Balance Enquiry Response To Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			SET OutputRoot.DFDL = NULL;

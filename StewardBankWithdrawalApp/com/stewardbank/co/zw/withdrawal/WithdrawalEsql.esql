@@ -16,6 +16,8 @@ DECLARE ERR_AUDIT_Q EXTERNAL CHARACTER '';
 DECLARE EXCEPTION_Q EXTERNAL CHARACTER '';
 DECLARE IsLogRequired EXTERNAL CHARACTER '';
 DECLARE LOG4J_INIT_ERROR_MSG EXTERNAL CHARACTER '';
+DECLARE LOGGER_NAME EXTERNAL CHARACTER '';
+DECLARE LOG_TYPE EXTERNAL CHARACTER '';
 CREATE COMPUTE MODULE WithdrawalFlow_GenerateReqToT24
 	CREATE FUNCTION Main() RETURNS BOOLEAN
 	BEGIN
@@ -38,10 +40,10 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateReqToT24
 		DECLARE outRefer REFERENCE TO OutputRoot;
 		--------------DBLogging-------------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','..............Initializing Withdrawal logging...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'WARN','..............ISO Message parsed successfully...........') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','Request from Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'..............Initializing Withdrawal logging...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'..............ISO Message parsed successfully...........') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'Request from Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,Environment.Variables.reqMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'Application Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,
 			Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
@@ -70,8 +72,8 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateReqToT24
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','Request To T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'Request To T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.resMsg,'T24 Request',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			SET OutputRoot.DFDL = NULL;
@@ -108,9 +110,9 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateResToPostilion
 		SET Environment.Variables.reqMsg = getPayLoad(domainName,domainDataRef,encodeRef,ccidRef);
 		-----------DBLogging------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','..........Logging generated Response...............') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','Response from T24::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG',Environment.Variables.reqMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'..........Logging generated Response...............') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'Response from T24::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,Environment.Variables.reqMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.reqMsg,'T24 Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			PROPAGATE TO TERMINAL 'out';
@@ -126,8 +128,8 @@ CREATE COMPUTE MODULE WithdrawalFlow_GenerateResToPostilion
 		SET Environment.dfdlData = OutputRoot.DFDL;
 		----- Database Logging ------------
 		IF IsLogRequired = 'Y' THEN
-			CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG','Response To Postilion::') INTO rc;
-			CALL writeToLogFile(MessageFlowLabel, 'WithdrawLogger', 'DEBUG',Environment.Variables.resMsg) INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,'Response To Postilion::') INTO rc;
+			CALL writeToLogFile(MessageFlowLabel, LOGGER_NAME,LOG_TYPE,Environment.Variables.resMsg) INTO rc;
 			CALL DBLogging(Environment.MQRFH2.usr.Id,Environment.Variables.resMsg,'Application Response',ApplicationLabel,BrokerName,Environment.MQRFH2.usr.timeLocalTransaction,Environment.MQRFH2.usr.dateLocalTransaction,Environment.MQRFH2.usr.retrievalReferenceNumber,outRefer);
 			SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = RAW_AUDIT_Q;
 			SET OutputRoot.DFDL = NULL;
