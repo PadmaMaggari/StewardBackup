@@ -275,14 +275,14 @@ CREATE COMPUTE MODULE RemittanceBankDepositFlow_GenReqToT24
 			END IF;
 			DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 			DECLARE errMsg CHARACTER;
-			IF CONTAINS(excpRef.excpText,'connection refused') THEN
-				SET errMsg = 'T24 Server Down';
-			ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
-				SET errMsg = 'WebService Request Exception errors have occurred';
-
-			ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
-				SET errMsg = 'No Response from T24 Server';
-			END IF;
+--			IF CONTAINS(excpRef.excpText,'connection refused') THEN
+--				SET errMsg = 'T24 Server Down';
+--			ELSEIF CONTAINS(excpRef.excpText,'WebService Request Exception') THEN
+--				SET errMsg = 'WebService Request Exception errors have occurred';
+--
+--			ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
+--				SET errMsg = 'No Response from T24 Server';
+--			END IF;
 			SET OutputRoot.Properties = InputRoot.Properties;
 			SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 			DECLARE outRefer REFERENCE TO OutputRoot;

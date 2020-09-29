@@ -229,11 +229,11 @@ CREATE COMPUTE MODULE CashOutFlow_BuildException
 		END IF;
 		DECLARE excpRef REFERENCE TO InputRoot.XMLNSC.ExceptionDetails;
 		DECLARE errMsg CHARACTER;
-		IF CONTAINS(excpRef.excpText,'connection refused') THEN
-			SET errMsg = 'Mobiquity Server Down';
-		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
-			SET errMsg = 'No Response from Mobiquity Server';
-		END IF;
+--		IF CONTAINS(excpRef.excpText,'connection refused') THEN
+--			SET errMsg = 'Mobiquity Server Down';
+--		ELSEIF CONTAINS(excpRef.excpText,'SocketException') THEN
+--			SET errMsg = 'No Response from Mobiquity Server';
+--		END IF;
 		SET OutputRoot.Properties = InputRoot.Properties;
 		SET OutputRoot.MQRFH2 = InputRoot.MQRFH2;
 		DECLARE outRefer REFERENCE TO OutputRoot;
